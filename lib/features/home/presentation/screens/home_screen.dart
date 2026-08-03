@@ -8,6 +8,7 @@ import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../chatbot/presentation/screens/chatbot_native_screen.dart';
 import '../../../chatbot/presentation/screens/chatbot_web_view_screen.dart';
 import '../../../email/presentation/screens/usulan_email_list_screen.dart';
 import '../../../info_alat/presentation/screens/info_alat_screen.dart';
@@ -131,6 +132,21 @@ class HomeScreen extends ConsumerWidget {
                 mainAxisSpacing: 12,
                 childAspectRatio: 1.15,
                 children: [
+                  _buildMenuCard(
+                    context: context,
+                    title: 'Asisten Gelatik',
+                    subtitle: 'Tanya AI TIK',
+                    icon: Icons.auto_awesome_rounded,
+                    color: accentGold,
+                    badgeText: 'AI',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ChatbotNativeScreen(),
+                        ),
+                      );
+                    },
+                  ),
                   _buildMenuCard(
                     context: context,
                     title: 'Peminjaman Aset',
@@ -308,41 +324,73 @@ class HomeScreen extends ConsumerWidget {
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
+    String? badgeText,
   }) {
     final theme = Theme.of(context);
 
     return AppCard(
       onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 28),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.mutedText(context),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            child: Icon(icon, color: color, size: 28),
           ),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
+          if (badgeText != null)
+            Positioned(
+              top: -4,
+              right: -4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.accentGold(context),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.cardStroke(context),
+                    width: 1.5,
+                  ),
+                ),
+                child: Text(
+                  badgeText,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 11,
-              color: AppColors.mutedText(context),
-            ),
-            textAlign: TextAlign.center,
-          ),
         ],
       ),
     );
