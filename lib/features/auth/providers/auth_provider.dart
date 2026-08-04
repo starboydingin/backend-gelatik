@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/dummy/dummy_data.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/services/fcm_topic_service.dart';
+import '../../../core/storage/secure_storage_service.dart';
 import '../models/user_model.dart';
+import '../repositories/auth_repository.dart';
 
 enum AuthResultStatus {
   authenticated,
@@ -45,75 +47,141 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
+  final AuthRepository? authRepository;
+  final SecureStorageService? secureStorageService;
   final FcmTopicService? fcmTopicService;
 
-  AuthNotifier({this.fcmTopicService}) : super(const AuthState());
+  AuthNotifier({
+    this.authRepository,
+    this.secureStorageService,
+    this.fcmTopicService,
+  }) : super(const AuthState());
 
-  /// Simulasi pengecekan token tersimpan (BAGIAN 1)
+  /// Pengecekan token tersimpan di SecureStorage (Splash)
   Future<bool> checkAuthToken() async {
     state = state.copyWith(isLoading: true, clearErrors: true);
-    await Future.delayed(const Duration(seconds: 2));
-    state = state.copyWith(isLoading: false);
-    return state.isLoggedIn;
+    try {
+      final storage = secureStorageService;
+      final repo = authRepository;
+      if (storage == null || repo == null) {
+        state = state.copyWith(isLoading: false);
+        return state.isLoggedIn;
+      }
+
+      final token = await storage.getToken();
+      if (token == null || token.isEmpty) {
+        state = state.copyWith(
+          isLoading: false,
+          isLoggedIn: false,
+          currentUser: null,
+        );
+        return false;
+      }
+
+      final userData = await repo.getMe();
+      final user = UserModel.fromJson(userData);
+
+      if (user.status == '0') {
+        await storage.deleteToken();
+        state = state.copyWith(
+          isLoading: false,
+          isLoggedIn: false,
+          currentUser: null,
+          pendingActivationMessage:
+              'Akun Anda belum aktif atau telah dinonaktifkan.',
+        );
+        return false;
+      }
+
+      state = state.copyWith(
+        isLoading: false,
+        isLoggedIn: true,
+        currentUser: user,
+      );
+
+      await fcmTopicService?.subscribeToUserTopics(user);
+      return true;
+    } catch (e) {
+      await secureStorageService?.deleteToken();
+      state = state.copyWith(
+        isLoading: false,
+        isLoggedIn: false,
+        currentUser: null,
+      );
+      return false;
+    }
   }
 
-  /// Simulasi login terhadap dummy_data.dart (BAGIAN 2 & FR-35)
+  /// Login via AuthRepository (FR-35)
   Future<AuthResultStatus> login(String identifier, String password) async {
     state = state.copyWith(isLoading: true, clearErrors: true);
 
-    await Future.delayed(const Duration(milliseconds: 1000));
+    final repo = authRepository;
+    final storage = secureStorageService;
 
-    final trimmedIdentifier = identifier.trim().toLowerCase();
-
-    // Cari user berdasarkan email atau username di DummyData
-    final user = DummyData.dummyUsers.firstWhere(
-      (u) =>
-          u.email.toLowerCase() == trimmedIdentifier ||
-          u.username.toLowerCase() == trimmedIdentifier,
-      orElse: () => const UserModel(
-        id: -1,
-        name: '',
-        email: '',
-        username: '',
-        noHp: '',
-        namaOpd: '',
-        role: '',
-        status: '',
-      ),
-    );
-
-    if (user.id == -1) {
-      // User tidak ditemukan
+    if (repo == null || storage == null) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: 'Email/NIP atau password salah.',
+        errorMessage: 'AuthRepository / SecureStorageService belum diinisialisasi.',
       );
       return AuthResultStatus.error;
     }
 
-    // FR-35: Cek status == '0' (nonaktif / pending aktivasi admin)
-    if (user.status == '0') {
+    try {
+      final loginData = await repo.login(identifier, password);
+      final String? token = loginData['access_token'] as String?;
+
+      if (token == null || token.isEmpty) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Token autentikasi tidak ditemukan dari server.',
+        );
+        return AuthResultStatus.error;
+      }
+
+      await storage.saveToken(token);
+
+      UserModel user;
+      if (loginData['user'] != null && loginData['user'] is Map<String, dynamic>) {
+        user = UserModel.fromJson(Map<String, dynamic>.from(loginData['user']));
+      } else {
+        final userData = await repo.getMe();
+        user = UserModel.fromJson(userData);
+      }
+
       state = state.copyWith(
         isLoading: false,
-        pendingActivationMessage: 'Akun Anda belum aktif atau telah dinonaktifkan.',
+        isLoggedIn: true,
+        currentUser: user,
       );
-      return AuthResultStatus.pendingActivation;
+
+      await fcmTopicService?.subscribeToUserTopics(user);
+
+      return AuthResultStatus.authenticated;
+    } on ApiException catch (e) {
+      if (e.statusCode == 403) {
+        state = state.copyWith(
+          isLoading: false,
+          pendingActivationMessage: e.message,
+        );
+        return AuthResultStatus.pendingActivation;
+      }
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.message,
+      );
+      return AuthResultStatus.error;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+      return AuthResultStatus.error;
     }
-
-    // User ditemukan & status == '1' (aktif)
-    state = state.copyWith(
-      isLoading: false,
-      isLoggedIn: true,
-      currentUser: user,
-    );
-
-    // FR-37: Subscribe ke topic FCM pengguna setelah login BERHASIL
-    await fcmTopicService?.subscribeToUserTopics(user);
-
-    return AuthResultStatus.authenticated;
   }
 
-  /// Simulasi registrasi (BAGIAN 3 & FR-36)
+  /// Registrasi via AuthRepository (FR-36)
   Future<bool> register({
     required String name,
     required String nip,
@@ -133,11 +201,38 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return false;
     }
 
-    await Future.delayed(const Duration(milliseconds: 1000));
+    final repo = authRepository;
+    if (repo == null) {
+      state = state.copyWith(isLoading: false);
+      return true;
+    }
 
-    state = state.copyWith(isLoading: false);
-    // FR-36: Registrasi berhasil tetapi tidak menyimpan permanen / tidak auto-login
-    return true;
+    try {
+      final success = await repo.register(
+        name: name,
+        email: email,
+        nip: nip,
+        noHp: noHp,
+        namaOpd: namaOpd,
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+      );
+
+      state = state.copyWith(isLoading: false);
+      return success;
+    } on ApiException catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.message,
+      );
+      return false;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+      return false;
+    }
   }
 
   /// Membersihkan pesan error atau banner
@@ -145,9 +240,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(clearErrors: true);
   }
 
-  /// Logout (FR-38: Unsubscribe dari topic FCM sebelum proses logout selesai)
+  /// Logout (FR-38)
   Future<void> logout() async {
     await fcmTopicService?.unsubscribeFromAllTopics();
+    await authRepository?.logout();
+    await secureStorageService?.deleteToken();
 
     state = const AuthState(
       isLoggedIn: false,
@@ -159,7 +256,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
+
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+  final authRepository = ref.watch(authRepositoryProvider);
+  final secureStorageService = ref.watch(secureStorageServiceProvider);
   final fcmTopicService = ref.watch(fcmTopicServiceProvider);
-  return AuthNotifier(fcmTopicService: fcmTopicService);
+  return AuthNotifier(
+    authRepository: authRepository,
+    secureStorageService: secureStorageService,
+    fcmTopicService: fcmTopicService,
+  );
 });

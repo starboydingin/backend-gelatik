@@ -1,9 +1,86 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gelatik/core/dummy/dummy_data.dart';
+import 'package:gelatik/core/network/api_client.dart';
+import 'package:gelatik/core/network/api_exception.dart';
 import 'package:gelatik/core/services/fcm_topic_service.dart';
+import 'package:gelatik/core/storage/secure_storage_service.dart';
 import 'package:gelatik/features/auth/models/user_model.dart';
+import 'package:gelatik/features/auth/repositories/auth_repository.dart';
 import 'package:gelatik/features/auth/providers/auth_provider.dart';
+
+class FakeSecureStorageService implements SecureStorageService {
+  String? _token;
+
+  @override
+  Future<void> saveToken(String token) async {
+    _token = token;
+  }
+
+  @override
+  Future<String?> getToken() async {
+    return _token;
+  }
+
+  @override
+  Future<void> deleteToken() async {
+    _token = null;
+  }
+}
+
+class FakeAuthRepository extends AuthRepository {
+  FakeAuthRepository()
+      : super(
+          apiClient: ApiClient(
+            secureStorageService: FakeSecureStorageService(),
+          ),
+        );
+
+  @override
+  Future<Map<String, dynamic>> login(String identifier, String password) async {
+    final trimmed = identifier.trim().toLowerCase();
+
+    if (trimmed == DummyData.pendingUser.email.toLowerCase()) {
+      throw ApiException(
+        message: 'Akun Anda belum aktif atau telah dinonaktifkan.',
+        statusCode: 403,
+      );
+    }
+
+    if (trimmed == 'unknown.user@lampungprov.go.id') {
+      throw ApiException(
+        message: 'Email/NIP atau password salah.',
+        statusCode: 401,
+      );
+    }
+
+    return {
+      'access_token': 'fake_access_token_123',
+      'user': DummyData.activeUser.toJson(),
+    };
+  }
+
+  @override
+  Future<bool> register({
+    required String name,
+    required String email,
+    required String nip,
+    required String noHp,
+    required String namaOpd,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    return true;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getMe() async {
+    return DummyData.activeUser.toJson();
+  }
+
+  @override
+  Future<void> logout() async {}
+}
 
 /// Test Spy untuk memverifikasi pemanggilan method FcmTopicService
 class FakeFcmTopicService extends FcmTopicService {
@@ -28,13 +105,20 @@ class FakeFcmTopicService extends FcmTopicService {
 void main() {
   group('FCM Topic Subscribe / Unsubscribe Timing Tests (M-K, FR-37, FR-38)', () {
     late FakeFcmTopicService fakeFcmService;
+    late FakeAuthRepository fakeAuthRepo;
+    late FakeSecureStorageService fakeStorage;
     late ProviderContainer container;
 
     setUp(() {
       fakeFcmService = FakeFcmTopicService();
+      fakeAuthRepo = FakeAuthRepository();
+      fakeStorage = FakeSecureStorageService();
+
       container = ProviderContainer(
         overrides: [
           fcmTopicServiceProvider.overrideWithValue(fakeFcmService),
+          authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+          secureStorageServiceProvider.overrideWithValue(fakeStorage),
         ],
       );
     });

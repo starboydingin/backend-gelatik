@@ -2,17 +2,107 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gelatik/core/dummy/dummy_data.dart';
+import 'package:gelatik/core/network/api_client.dart';
+import 'package:gelatik/core/network/api_exception.dart';
+import 'package:gelatik/core/storage/secure_storage_service.dart';
+import 'package:gelatik/features/auth/repositories/auth_repository.dart';
 import 'package:gelatik/features/auth/providers/auth_provider.dart';
 import 'package:gelatik/features/auth/presentation/screens/splash_screen.dart';
 import 'package:gelatik/features/auth/presentation/screens/login_screen.dart';
 import 'package:gelatik/features/auth/presentation/screens/register_screen.dart';
 
+class FakeSecureStorageService implements SecureStorageService {
+  String? _token;
+
+  @override
+  Future<void> saveToken(String token) async {
+    _token = token;
+  }
+
+  @override
+  Future<String?> getToken() async {
+    return _token;
+  }
+
+  @override
+  Future<void> deleteToken() async {
+    _token = null;
+  }
+}
+
+class FakeAuthRepository extends AuthRepository {
+  FakeAuthRepository()
+      : super(
+          apiClient: ApiClient(
+            secureStorageService: FakeSecureStorageService(),
+          ),
+        );
+
+  @override
+  Future<Map<String, dynamic>> login(String identifier, String password) async {
+    final trimmed = identifier.trim().toLowerCase();
+
+    if (trimmed == DummyData.pendingUser.email.toLowerCase()) {
+      throw ApiException(
+        message: 'Akun Anda belum aktif atau telah dinonaktifkan.',
+        statusCode: 403,
+      );
+    }
+
+    if (trimmed == 'unknown.user@lampungprov.go.id') {
+      throw ApiException(
+        message: 'Email/NIP atau password salah.',
+        statusCode: 401,
+      );
+    }
+
+    return {
+      'access_token': 'fake_access_token_123',
+      'user': DummyData.activeUser.toJson(),
+    };
+  }
+
+  @override
+  Future<bool> register({
+    required String name,
+    required String email,
+    required String nip,
+    required String noHp,
+    required String namaOpd,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    if (password != passwordConfirmation) {
+      throw ApiException(message: 'Konfirmasi password tidak cocok.');
+    }
+    return true;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getMe() async {
+    return DummyData.activeUser.toJson();
+  }
+
+  @override
+  Future<void> logout() async {}
+}
+
 void main() {
   group('AuthNotifier Unit Tests', () {
     late ProviderContainer container;
+    late FakeAuthRepository fakeAuthRepo;
+    late FakeSecureStorageService fakeStorage;
 
     setUp(() {
-      container = ProviderContainer();
+      fakeAuthRepo = FakeAuthRepository();
+      fakeStorage = FakeSecureStorageService();
+
+      container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+          secureStorageServiceProvider.overrideWithValue(fakeStorage),
+        ],
+      );
     });
 
     tearDown(() {
@@ -34,6 +124,7 @@ void main() {
       expect(state.isLoggedIn, isTrue);
       expect(state.currentUser?.email, DummyData.activeUser.email);
       expect(state.currentUser?.status, '1');
+      expect(await fakeStorage.getToken(), 'fake_access_token_123');
     });
 
     test(
@@ -113,25 +204,34 @@ void main() {
   });
 
   group('Auth Screens Widget Tests', () {
+    late FakeAuthRepository fakeAuthRepo;
+    late FakeSecureStorageService fakeStorage;
+
+    setUp(() {
+      fakeAuthRepo = FakeAuthRepository();
+      fakeStorage = FakeSecureStorageService();
+    });
+
     testWidgets('SplashScreen navigates to LoginScreen when not logged in',
         (tester) async {
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+            secureStorageServiceProvider.overrideWithValue(fakeStorage),
+          ],
+          child: const MaterialApp(
             home: SplashScreen(),
           ),
         ),
       );
 
-      // Verify SplashScreen UI elements
       expect(find.text('MEMUAT SISTEM...'), findsOneWidget);
       expect(find.text('Gerbang Layanan TIK'), findsOneWidget);
 
-      // Advance 2 seconds timer
       await tester.pump(const Duration(seconds: 2));
       await tester.pump(const Duration(milliseconds: 500));
 
-      // Should land on LoginScreen
       expect(find.text('Selamat Datang'), findsOneWidget);
     });
 
@@ -139,14 +239,17 @@ void main() {
         'LoginScreen displays FR-35 pending activation error when logging in as pending user',
         (tester) async {
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+            secureStorageServiceProvider.overrideWithValue(fakeStorage),
+          ],
+          child: const MaterialApp(
             home: LoginScreen(),
           ),
         ),
       );
 
-      // Fill in pending user details
       await tester.enterText(
         find.byType(TextField).at(0),
         DummyData.pendingUser.email,
@@ -156,13 +259,11 @@ void main() {
         'password123',
       );
 
-      // Tap Masuk button
       await tester.tap(find.text('Masuk'));
-      await tester.pump(); // Start loading
-      await tester.pump(const Duration(milliseconds: 1200)); // Finish delay
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 1200));
       await tester.pumpAndSettle();
 
-      // Should show FR-35 banner/dialog with exact message
       expect(find.text('Akun Anda belum aktif atau telah dinonaktifkan.'),
           findsWidgets);
       expect(
@@ -173,8 +274,12 @@ void main() {
         'RegisterScreen form submit shows FR-36 confirmation dialog and pops back to LoginScreen',
         (tester) async {
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+            secureStorageServiceProvider.overrideWithValue(fakeStorage),
+          ],
+          child: const MaterialApp(
             home: RegisterScreen(),
           ),
         ),
@@ -182,21 +287,15 @@ void main() {
 
       expect(find.text('Daftar Akun Baru'), findsWidgets);
 
-      // Fill form fields
-      // 0: Nama Lengkap
       await tester.enterText(
           find.byType(TextField).at(0), 'Dewi Sartika, S.Pd.');
-      // 1: NIP (18 digits)
       await tester.enterText(
           find.byType(TextField).at(1), '199501012022031001');
-      // 2: Email
       await tester.enterText(
           find.byType(TextField).at(2), 'dewi.sartika@gmail.com');
-      // 3: No WA
       await tester.enterText(
           find.byType(TextField).at(3), '081298765432');
 
-      // Select OPD from dropdown
       await tester.ensureVisible(find.byType(DropdownButtonFormField<String>));
       await tester.pumpAndSettle();
       await tester.tap(find.byType(DropdownButtonFormField<String>));
@@ -205,18 +304,14 @@ void main() {
       await tester.tap(find.text(DummyData.listOpd[0]).last);
       await tester.pumpAndSettle();
 
-      // 4: Password
       await tester.enterText(find.byType(TextField).at(4), 'password123');
-      // 5: Konfirmasi Password
       await tester.enterText(find.byType(TextField).at(5), 'password123');
 
-      // Tap Checkbox Syarat & Ketentuan after ensuring visibility
       await tester.ensureVisible(find.byType(Checkbox));
       await tester.pumpAndSettle();
       await tester.tap(find.byType(Checkbox));
       await tester.pumpAndSettle();
 
-      // Tap Daftar Sekarang after ensuring visibility
       await tester.ensureVisible(find.text('Daftar Sekarang'));
 
       await tester.pumpAndSettle();
@@ -224,18 +319,15 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1500));
       await tester.pumpAndSettle();
 
-      // FR-36: Check exact dialog message
       expect(
         find.text(
             'Registrasi berhasil. Akun Anda akan diaktifkan oleh admin sebelum dapat digunakan.'),
         findsOneWidget,
       );
 
-      // Tap Kembali ke Login
       await tester.tap(find.text('Kembali ke Login'));
       await tester.pumpAndSettle();
 
-      // Should return to LoginScreen
       expect(find.text('Selamat Datang'), findsOneWidget);
     });
   });
