@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
-import '../../../../core/dummy/dummy_data.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../home/presentation/screens/home_screen.dart';
+import 'package:gelatik/features/info_alat/providers/info_alat_provider.dart';
 
 /// InfoAlatScreen — Layar Informasi Katalog Aset TIK Read-Only (M-H)
-class InfoAlatScreen extends StatefulWidget {
+class InfoAlatScreen extends ConsumerStatefulWidget {
   const InfoAlatScreen({super.key});
 
   @override
-  State<InfoAlatScreen> createState() => _InfoAlatScreenState();
+  ConsumerState<InfoAlatScreen> createState() => _InfoAlatScreenState();
 }
 
-class _InfoAlatScreenState extends State<InfoAlatScreen> {
+class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -33,7 +34,7 @@ class _InfoAlatScreenState extends State<InfoAlatScreen> {
     final accentGold = AppColors.accentGold(context);
     final mutedText = AppColors.mutedText(context);
 
-    final items = DummyData.masterItems;
+    final items = ref.watch(infoAlatProvider).items;
     final filteredItems = items.where((item) {
       final query = _searchQuery.toLowerCase();
       return item.nama.toLowerCase().contains(query) ||

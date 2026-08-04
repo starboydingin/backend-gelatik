@@ -81,12 +81,34 @@ void main() {
         noHp: '081234567890',
         namaOpd: DummyData.listOpd[0],
         password: 'password123',
+        passwordConfirmation: 'password123',
       );
 
       final state = container.read(authProvider);
 
       expect(success, isTrue);
       expect(state.isLoggedIn, isFalse); // FR-36: JANGAN auto login
+    });
+
+    test(
+        '5. Register with mismatched password and passwordConfirmation should fail with error',
+        () async {
+      final notifier = container.read(authProvider.notifier);
+
+      final success = await notifier.register(
+        name: 'Pegawai Baru, S.T.',
+        nip: '199501012022031001',
+        email: 'pegawai.baru@gmail.com',
+        noHp: '081234567890',
+        namaOpd: DummyData.listOpd[0],
+        password: 'password123',
+        passwordConfirmation: 'differentPassword',
+      );
+
+      final state = container.read(authProvider);
+
+      expect(success, isFalse);
+      expect(state.errorMessage, 'Konfirmasi password tidak cocok.');
     });
   });
 

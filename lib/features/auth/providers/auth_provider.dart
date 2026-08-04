@@ -121,8 +121,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String noHp,
     required String namaOpd,
     required String password,
+    required String passwordConfirmation,
   }) async {
     state = state.copyWith(isLoading: true, clearErrors: true);
+
+    if (password != passwordConfirmation) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Konfirmasi password tidak cocok.',
+      );
+      return false;
+    }
 
     await Future.delayed(const Duration(milliseconds: 1000));
 

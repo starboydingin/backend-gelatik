@@ -163,6 +163,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           noHp: noHp,
           namaOpd: _selectedOpd!,
           password: password,
+          passwordConfirmation: confirmPassword,
         );
 
     if (!mounted) return;

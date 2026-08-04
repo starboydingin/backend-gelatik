@@ -5,7 +5,25 @@ import 'package:gelatik/core/dummy/dummy_data.dart';
 import 'package:gelatik/features/email/providers/email_provider.dart';
 import 'package:gelatik/features/email/presentation/screens/daftar_pegawai_screen.dart';
 import 'package:gelatik/features/internet/presentation/screens/layanan_internet_screen.dart';
+import 'package:gelatik/features/info_alat/models/master_item_model.dart';
+import 'package:gelatik/features/info_alat/providers/info_alat_provider.dart';
 import 'package:gelatik/features/info_alat/presentation/screens/info_alat_screen.dart';
+
+class MockInfoAlatNotifier extends InfoAlatNotifier {
+  MockInfoAlatNotifier() : super() {
+    state = const InfoAlatState(
+      items: [
+        MasterItemModel(
+          id: 99,
+          nama: 'Alat Custom dari Provider Override',
+          deskripsi: 'Deskripsi Override Provider',
+          kondisi: 'Baik',
+          stok: 5,
+        ),
+      ],
+    );
+  }
+}
 import 'package:gelatik/features/kritik_saran/providers/kritik_saran_provider.dart';
 import 'package:gelatik/features/kritik_saran/presentation/screens/kritik_saran_screen.dart';
 import 'package:gelatik/features/home/presentation/screens/home_screen.dart';
@@ -104,6 +122,25 @@ void main() {
       // Verify NO quantity steppers / selection buttons exist
       expect(find.byIcon(Icons.remove), findsNothing);
       expect(find.byIcon(Icons.add), findsNothing);
+    });
+
+    testWidgets(
+        '5b. InfoAlatScreen renders items from InfoAlatProvider when overridden',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            infoAlatProvider.overrideWith((ref) => MockInfoAlatNotifier()),
+          ],
+          child: const MaterialApp(
+            home: InfoAlatScreen(),
+          ),
+        ),
+      );
+
+      expect(find.text('Katalog Alat TIK'), findsOneWidget);
+      expect(find.text('Alat Custom dari Provider Override'), findsOneWidget);
+      expect(find.text('Laptop Lenovo ThinkPad L14 Gen 3'), findsNothing);
     });
 
     testWidgets('6. KritikSaranScreen form submit shows confirmation dialog and closes',
