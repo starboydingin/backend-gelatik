@@ -8,6 +8,9 @@ import 'package:gelatik/features/internet/presentation/screens/layanan_internet_
 import 'package:gelatik/features/info_alat/models/master_item_model.dart';
 import 'package:gelatik/features/info_alat/providers/info_alat_provider.dart';
 import 'package:gelatik/features/info_alat/presentation/screens/info_alat_screen.dart';
+import 'package:gelatik/features/kritik_saran/providers/kritik_saran_provider.dart';
+import 'package:gelatik/features/kritik_saran/presentation/screens/kritik_saran_screen.dart';
+import 'package:gelatik/features/home/presentation/screens/home_screen.dart';
 
 class MockInfoAlatNotifier extends InfoAlatNotifier {
   MockInfoAlatNotifier() : super() {
@@ -24,9 +27,6 @@ class MockInfoAlatNotifier extends InfoAlatNotifier {
     );
   }
 }
-import 'package:gelatik/features/kritik_saran/providers/kritik_saran_provider.dart';
-import 'package:gelatik/features/kritik_saran/presentation/screens/kritik_saran_screen.dart';
-import 'package:gelatik/features/home/presentation/screens/home_screen.dart';
 
 void main() {
   group('Modules M-E s.d. M-H Unit & Widget Tests', () {
