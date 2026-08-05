@@ -7,7 +7,7 @@
     },
     "item": [
         {
-            "name": "00 - PANDUAN PENGGUNAAN",
+            "name": "00 - PANDUAN PENGGUNAAN (DOKUMENTASI SAJA - BUKAN ENDPOINT)",
             "item": [
                 {
                     "name": "📘 PANDUAN DOKUMENTASI API & INTEGRASI",
@@ -24,14 +24,9 @@
                             "type": "noauth"
                         },
                         "url": {
-                            "raw": "{{base_url}}/{{base_url}}/panduan",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "{{base_url}}",
-                                "panduan"
-                            ]
+                            "raw": "",
+                            "host": [],
+                            "path": []
                         },
                         "description": "# 📘 PANDUAN PENGGUNAAN POSTMAN COLLECTION LAYANAN TIK\n\nSelamat datang di Postman Collection resmi **Layanan TIK Backend API (Diskominfotik Pemprov Lampung)**. Collection ini dirancang khusus sebagai panduan integrasi bagi **Developer Website** dan **Developer Mobile**.\n\n---\n\n## 1. PETUNJUK AWAL & AUTENTIKASI AUTOMATIS\n1. **Import File**: Import file collection (`layanantik-backend-api.postman_collection.json`) dan environment (`layanantik-local.postman_environment.json`) ke Postman Anda.\n2. **Pilih Environment**: Pastikan environment aktif disetel ke **\"LayananTIK Local Environment\"**.\n3. **Jalankan Login**: Buka folder `00 - Auth` -> pilih request `POST /login` -> klik **Send**.\n4. **Token Auto-Save**: Script otomatis di tab *Tests* akan langsung menyimpan `access_token` ke environment variable `{{access_token}}`. Seluruh request terautentikasi di folder lain akan otomatis memakai Bearer token ini.\n\n---\n\n## 2. DAFTAR TOPIC FCM (FIREBASE CLOUD MESSAGING)\nClient Mobile & Web disarankan melakukan subscribe ke topic-topic FCM berikut untuk menerima Push Notification:\n- `user_{id}` : Notifikasi personal spesifik per user (contoh: `user_2`, `user_5`).\n- `admin` : Notifikasi pengajuan baru untuk seluruh Admin Operator / Petugas TIK.\n- `bkd` : Notifikasi khusus tim BKD (terkait pengajuan email resmi BKD).\n- `pengumuman` : Notifikasi pengumuman resmi ke seluruh pengguna.\n\n---\n\n## 3. PANDUAN INTEGRASI REALTIME SERVICE (SOCKET.IO)\n- **URL Socket Server**: `http://localhost:4000` (atau port production yang dikonfigurasi).\n- **Format Handshake Auth**:\n  ```javascript\n  const socket = io(\"http://localhost:4000\", {\n    auth: {\n      token: access_token // Bearer token OAuth Passport dari /api/login\n    }\n  });\n  ```\n- **Daftar Event yang Bisa Didengarkan (Client Listeners)**:\n  1. `pinjam.status_changed` : Notifikasi saat status pengajuan peminjaman aset berubah (`Menunggu` -> `Disetujui` / `Ditolak` / `Selesai`).\n  2. `konsultasi.new_response` : Notifikasi balasan/tanggapan baru pada tiket konsultasi TIK.\n  3. `usulan_email.status_changed` : Notifikasi perubahan status usulan email resmi BKD.\n  4. `pengumuman.created` : Notifikasi pengumuman resmi baru yang diterbitkan admin.\n\n---\n\n## 4. REFERENSI DOKUMEN PRODUCTION\n- Dapatkan konfigurasi environment server produksi pada file:\n  `KONFIGURASI_PRODUCTION.md` (terletak di root repository).\n\n---\n\n## ⚠️ CATATAN PENTING KONTRAK API FINAL\n- Endpoint dan path yang tertera dalam Postman Collection ini (termasuk aksi tambah/hapus item pada transaksi peminjaman seperti `POST /api/pinjam/{id}` dan `DELETE /api/pinjam/{p}/item/{id}`) adalah **SKEMA FINAL DAN RESMI SESUAI KONTRAK AKTUAL BACKEND**.\n- Developer **WAJIB** menjadikan Postman Collection ini sebagai *Single Source of Truth* (satu-satunya acuan kebenaran) dan mengabaikan perbedaan path pada draft dokumen SRS/PRD lama."
                     },
@@ -63,7 +58,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"email\": \"bkd@lampungprov.go.id\",\n    \"password\": \"password123\"\n}",
+                            "raw": "{\n    \"identifier\": \"bkd\",\n    \"password\": \"password123\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -79,7 +74,7 @@
                                 "login"
                             ]
                         },
-                        "description": "Fungsi: Autentikasi akun pengguna atau admin operator.\nPermission/Role: Publik.\nCatatan: Script otomatis akan menyimpan access_token dari response ke environment variable {{access_token}}."
+                        "description": "Fungsi: Autentikasi akun pengguna atau admin operator. Field identifier dapat diisi Email, Username (akun instansi), maupun NIP (akun personal).\nPermission/Role: Publik.\nCatatan: Script otomatis akan menyimpan access_token dari response ke environment variable {{access_token}}."
                     },
                     "response": [],
                     "event": [
@@ -122,7 +117,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"User Baru OPD Test\",\n    \"email\": \"userbaru_test@lampungprov.go.id\",\n    \"username\": \"userbaru_test\",\n    \"no_hp\": \"081234567890\",\n    \"nama_opd\": \"Dinas Komunikasi Informasi dan Statistik\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}",
+                            "raw": "{\n    \"name\": \"User Baru OPD Test\",\n    \"email\": \"userbaru_test@lampungprov.go.id\",\n    \"nip\": \"199501012022011001\",\n    \"no_hp\": \"081234567890\",\n    \"nama_opd\": \"Dinas Komunikasi Informasi dan Statistik\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -138,7 +133,7 @@
                                 "register"
                             ]
                         },
-                        "description": "Fungsi: Pendaftaran akun baru pengguna OPD/Pegawai.\nPermission/Role: Publik.\nCatatan: Akun yang terdaftar berstatus aktif (status=1) dan mendapatkan role 'user'."
+                        "description": "Fungsi: Pendaftaran akun baru pengguna OPD/Pegawai. Field username akan otomatis terisi sama dengan NIP.\nPermission/Role: Publik.\nCatatan: Akun yang terdaftar berstatus pending (status=0) menunggu aktivasi admin dan mendapatkan role 'user'."
                     },
                     "response": []
                 },
