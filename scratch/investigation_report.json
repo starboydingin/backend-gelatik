@@ -1,0 +1,392 @@
+{
+    "activity_log": {
+        "dump_count": 612,
+        "current_count": 884,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "chatbot_conversations": {
+        "dump_count": 0,
+        "current_count": 12,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "chatbot_messages": {
+        "dump_count": 0,
+        "current_count": 27,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "chatbot_urls": {
+        "dump_count": 0,
+        "current_count": 1,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "failed_jobs": {
+        "dump_count": 0,
+        "current_count": 0,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "faq": {
+        "dump_count": 1,
+        "current_count": 23,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "jobs": {
+        "dump_count": 0,
+        "current_count": 4,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "kritik_sarans": {
+        "dump_count": 5,
+        "current_count": 0,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "m_settings": {
+        "dump_count": 7,
+        "current_count": 7,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "master_item": {
+        "dump_count": 11,
+        "current_count": 11,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "master_topik": {
+        "dump_count": 47,
+        "current_count": 48,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "migrations": {
+        "dump_count": 31,
+        "current_count": 36,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "model_has_permissions": {
+        "dump_count": 0,
+        "current_count": 0,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "model_has_roles": {
+        "dump_count": 248,
+        "current_count": 3,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "notification": {
+        "dump_count": 189,
+        "current_count": 228,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "oauth_access_tokens": {
+        "dump_count": 109,
+        "current_count": 138,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "oauth_auth_codes": {
+        "dump_count": 0,
+        "current_count": 0,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "oauth_clients": {
+        "dump_count": 6,
+        "current_count": 6,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "oauth_personal_access_clients": {
+        "dump_count": 3,
+        "current_count": 3,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "oauth_refresh_tokens": {
+        "dump_count": 0,
+        "current_count": 0,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "password_resets": {
+        "dump_count": 2,
+        "current_count": 4,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "pegawaibelumpunyaemail": {
+        "dump_count": 0,
+        "current_count": 2,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "pengumumans": {
+        "dump_count": 0,
+        "current_count": 1,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "permissions": {
+        "dump_count": 42,
+        "current_count": 45,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "personal_access_tokens": {
+        "dump_count": 0,
+        "current_count": 0,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "pinjam_item": {
+        "dump_count": 56,
+        "current_count": 64,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "ratings": {
+        "dump_count": 0,
+        "current_count": 1,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "role_has_permissions": {
+        "dump_count": 52,
+        "current_count": 45,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "roles": {
+        "dump_count": 4,
+        "current_count": 1,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "sliders": {
+        "dump_count": 2,
+        "current_count": 2,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "tr_konsultasi": {
+        "dump_count": 0,
+        "current_count": 4,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "tr_konsultasi_response": {
+        "dump_count": 0,
+        "current_count": 4,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "tr_permintaan_pinjam": {
+        "dump_count": 0,
+        "current_count": 4,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "unker_list_router": {
+        "dump_count": 74,
+        "current_count": 74,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "unker_router": {
+        "dump_count": 48,
+        "current_count": 48,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "users": {
+        "dump_count": 247,
+        "current_count": 253,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "usulan_email": {
+        "dump_count": 0,
+        "current_count": 4,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "whatsapp_delivery_logs": {
+        "dump_count": 0,
+        "current_count": 0,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    },
+    "whatsapp_subscriptions": {
+        "dump_count": 0,
+        "current_count": 2,
+        "duplicate_id_groups": 0,
+        "deleted_rows_calculated": 0,
+        "diff_rows_with_other_columns": 0,
+        "diff_column_details": [],
+        "duplicate_ids": [],
+        "sample_duplicates": []
+    }
+}
