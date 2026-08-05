@@ -14,6 +14,8 @@ import 'package:gelatik/features/info_alat/repositories/master_item_repository.d
 import 'package:gelatik/features/kritik_saran/providers/kritik_saran_provider.dart';
 import 'package:gelatik/features/kritik_saran/presentation/screens/kritik_saran_screen.dart';
 import 'package:gelatik/features/home/presentation/screens/home_screen.dart';
+import 'package:gelatik/features/home/models/home_dashboard_model.dart';
+import 'package:gelatik/features/home/providers/home_provider.dart';
 
 class MockInfoAlatNotifier extends InfoAlatNotifier {
   MockInfoAlatNotifier({List<MasterItemModel> items = DummyData.masterItems})
@@ -195,8 +197,29 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        const ProviderScope(child: MaterialApp(home: HomeScreen())),
+        ProviderScope(
+          overrides: [
+            homeProvider.overrideWith(
+              (ref) => HomeNotifier.preview(
+                const HomeDashboardModel(
+                  userName: 'Test User',
+                  userRole: 'user',
+                  availableItemCount: 0,
+                  totalBorrowingCount: 0,
+                  totalConsultationCount: 0,
+                ),
+              ),
+            ),
+          ],
+          child: const MaterialApp(home: HomeScreen()),
+        ),
       );
+
+      await tester.drag(
+        find.byKey(const Key('home-scroll')),
+        const Offset(0, -900),
+      );
+      await tester.pumpAndSettle();
 
       expect(find.text('Gelatik Dashboard'), findsOneWidget);
       expect(find.text('Layanan Internet'), findsOneWidget);
@@ -206,7 +229,8 @@ void main() {
 
       // Tap Layanan Internet
       final finder = find.widgetWithText(InkWell, 'Layanan Internet');
-      await tester.ensureVisible(finder);
+      await Scrollable.ensureVisible(tester.element(finder), alignment: 0.5);
+      await tester.pumpAndSettle();
       await tester.tap(finder);
       await tester.pumpAndSettle();
       expect(find.text('Layanan Internet OPD'), findsOneWidget);

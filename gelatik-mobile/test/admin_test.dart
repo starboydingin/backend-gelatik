@@ -12,6 +12,8 @@ import 'package:gelatik/features/auth/providers/auth_provider.dart';
 import 'package:gelatik/features/email/models/usulan_email_model.dart';
 import 'package:gelatik/features/email/providers/email_provider.dart';
 import 'package:gelatik/features/home/presentation/screens/home_screen.dart';
+import 'package:gelatik/features/home/models/home_dashboard_model.dart';
+import 'package:gelatik/features/home/providers/home_provider.dart';
 import 'package:gelatik/features/peminjaman/models/pinjam_model.dart';
 import 'package:gelatik/features/peminjaman/providers/peminjaman_provider.dart';
 import 'package:gelatik/features/peminjaman/repositories/peminjaman_repository.dart';
@@ -39,6 +41,17 @@ class _AdminFakePeminjamanRepository extends PeminjamanRepository {
   }
 }
 
+HomeNotifier _homePreview(UserModel user) => HomeNotifier.preview(
+  HomeDashboardModel(
+    userName: user.name,
+    userRole: user.role,
+    namaOpd: user.namaOpd,
+    availableItemCount: 0,
+    totalBorrowingCount: 0,
+    totalConsultationCount: 0,
+  ),
+);
+
 void main() {
   setUpAll(() async {
     await initializeDateFormatting('id_ID', null);
@@ -62,6 +75,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            homeProvider.overrideWith((ref) => _homePreview(adminUser)),
             authProvider.overrideWith((ref) {
               final notifier = AuthNotifier();
               notifier.state = const AuthState(
@@ -88,6 +102,9 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            homeProvider.overrideWith(
+              (ref) => _homePreview(DummyData.activeUser),
+            ),
             authProvider.overrideWith((ref) {
               final notifier = AuthNotifier();
               notifier.state = AuthState(

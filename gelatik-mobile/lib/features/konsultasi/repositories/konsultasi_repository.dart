@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/models/paginated_result.dart';
 import '../models/konsultasi_model.dart';
 import '../models/konsultasi_request.dart';
 import '../models/konsultasi_response_model.dart';
@@ -89,7 +90,12 @@ class KonsultasiRepository {
 
   KonsultasiRepository({required this.apiClient});
 
-  Future<List<KonsultasiModel>> getKonsultasi({int page = 1}) async {
+  Future<List<KonsultasiModel>> getKonsultasi({int page = 1}) async =>
+      (await getKonsultasiPage(page: page)).items;
+
+  Future<PaginatedResult<KonsultasiModel>> getKonsultasiPage({
+    int page = 1,
+  }) async {
     try {
       final response = await apiClient.dio.get(
         '/konsul',
@@ -102,7 +108,21 @@ class KonsultasiRepository {
           'Data daftar konsultasi bukan list/paginator JSON.',
         );
       }
-      return entries.map(_parseKonsultasi).toList(growable: false);
+      final items = entries.map(_parseKonsultasi).toList(growable: false);
+      if (data is! Map) {
+        return PaginatedResult(
+          items: items,
+          total: items.length,
+          currentPage: 1,
+          lastPage: 1,
+        );
+      }
+      return PaginatedResult(
+        items: items,
+        total: _paginatorInt(data, 'total'),
+        currentPage: _paginatorInt(data, 'current_page'),
+        lastPage: _paginatorInt(data, 'last_page'),
+      );
     } on DioException catch (error) {
       throw KonsultasiRepositoryException.fromDioException(error);
     } on KonsultasiRepositoryException {
@@ -110,6 +130,16 @@ class KonsultasiRepository {
     } on FormatException catch (error) {
       throw KonsultasiRepositoryException.malformed(error.message);
     }
+  }
+
+  int _paginatorInt(Map<dynamic, dynamic> paginator, String key) {
+    final value = paginator[key];
+    if (value is int && value >= 0) return value;
+    final parsed = int.tryParse(value?.toString() ?? '');
+    if (parsed != null && parsed >= 0) return parsed;
+    throw KonsultasiRepositoryException.malformed(
+      'Metadata paginator konsultasi $key tidak valid.',
+    );
   }
 
   Future<KonsultasiModel> getDetail(int id) =>

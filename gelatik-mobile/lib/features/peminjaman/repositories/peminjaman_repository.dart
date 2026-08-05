@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/models/paginated_result.dart';
 import '../models/pinjam_model.dart';
 import '../models/pinjam_request.dart';
 
@@ -86,7 +87,10 @@ class PeminjamanRepository {
 
   PeminjamanRepository({required this.apiClient});
 
-  Future<List<PinjamModel>> getPeminjaman({int page = 1}) async {
+  Future<List<PinjamModel>> getPeminjaman({int page = 1}) async =>
+      (await getPeminjamanPage(page: page)).items;
+
+  Future<PaginatedResult<PinjamModel>> getPeminjamanPage({int page = 1}) async {
     try {
       final response = await apiClient.dio.get(
         '/pinjam',
@@ -99,7 +103,21 @@ class PeminjamanRepository {
           'Data daftar peminjaman bukan list/paginator JSON.',
         );
       }
-      return list.map(_parseEntry).toList(growable: false);
+      final items = list.map(_parseEntry).toList(growable: false);
+      if (envelope is! Map) {
+        return PaginatedResult(
+          items: items,
+          total: items.length,
+          currentPage: 1,
+          lastPage: 1,
+        );
+      }
+      return PaginatedResult(
+        items: items,
+        total: _paginatorInt(envelope, 'total'),
+        currentPage: _paginatorInt(envelope, 'current_page'),
+        lastPage: _paginatorInt(envelope, 'last_page'),
+      );
     } on DioException catch (error) {
       throw PeminjamanRepositoryException.fromDioException(error);
     } on PeminjamanRepositoryException {
@@ -107,6 +125,16 @@ class PeminjamanRepository {
     } on FormatException catch (error) {
       throw PeminjamanRepositoryException.malformed(error.message);
     }
+  }
+
+  int _paginatorInt(Map<dynamic, dynamic> paginator, String key) {
+    final value = paginator[key];
+    if (value is int && value >= 0) return value;
+    final parsed = int.tryParse(value?.toString() ?? '');
+    if (parsed != null && parsed >= 0) return parsed;
+    throw PeminjamanRepositoryException.malformed(
+      'Metadata paginator peminjaman $key tidak valid.',
+    );
   }
 
   Future<PinjamModel> getPeminjamanDetail(int id) async =>

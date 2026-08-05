@@ -238,14 +238,18 @@ void main() {
             'success': true,
             'data': {
               'current_page': 1,
+              'last_page': 1,
+              'total': 1,
               'data': [_json()],
             },
           },
           inspect: (options) => request = options,
         ),
       );
-      final list = await repository.getPeminjaman();
-      expect(list.single.id, 11);
+      final page = await repository.getPeminjamanPage();
+      expect(page.items.single.id, 11);
+      expect(page.total, 1);
+      expect(page.currentPage, 1);
       expect(request?.path, '/pinjam');
       expect(request?.headers['Authorization'], 'Bearer borrowing-test-token');
     });

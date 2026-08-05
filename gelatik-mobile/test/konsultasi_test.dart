@@ -276,14 +276,18 @@ void main() {
             'success': true,
             'data': {
               'current_page': 1,
+              'last_page': 1,
+              'total': 1,
               'data': [_json()],
             },
           },
           inspect: (options) => request = options,
         ),
       );
-      final result = await repository.getKonsultasi();
-      expect(result.single.id, 11);
+      final page = await repository.getKonsultasiPage();
+      expect(page.items.single.id, 11);
+      expect(page.total, 1);
+      expect(page.currentPage, 1);
       expect(
         request?.headers['Authorization'],
         'Bearer consultation-test-token',
