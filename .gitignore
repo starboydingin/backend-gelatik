@@ -1,10 +1,12 @@
 # Environment and secrets
-.env
-.env.*
-!.env.example
 **/.env
 **/.env.*
 !**/.env.example
+
+# Database dumps
+*.sql
+*.sqlite
+*.sqlite3
 
 # Laravel
 backend/vendor/
@@ -15,13 +17,7 @@ backend/storage/framework/sessions/*
 backend/storage/framework/views/*
 backend/bootstrap/cache/*.php
 
-# Database dumps
-*.sql
-*.sqlite
-*.sqlite3
-backend/db_layanantik.sql
-
-# Node.js
+# Realtime service
 realtime-service/node_modules/
 realtime-service/auth_session/
 realtime-service/logs/
@@ -29,12 +25,32 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Flutter / Dart
+gelatik-mobile/.dart_tool/
+gelatik-mobile/build/
+gelatik-mobile/.flutter-plugins
+gelatik-mobile/.flutter-plugins-dependencies
+gelatik-mobile/.packages
+gelatik-mobile/pubspec_overrides.yaml
+
+# Android
+gelatik-mobile/android/.gradle/
+gelatik-mobile/android/local.properties
+gelatik-mobile/android/key.properties
+gelatik-mobile/android/app/*.jks
+gelatik-mobile/android/app/*.keystore
+
+# iOS
+gelatik-mobile/ios/Pods/
+gelatik-mobile/ios/.symlinks/
+gelatik-mobile/ios/Flutter/ephemeral/
+
 # IDE
 .vscode/
 .idea/
 *.code-workspace
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
 
