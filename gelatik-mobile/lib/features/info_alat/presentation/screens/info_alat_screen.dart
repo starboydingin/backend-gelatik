@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/empty_state.dart';
+import '../../../../core/widgets/loading_skeleton.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../home/presentation/screens/home_screen.dart';
+import '../../models/master_item_model.dart';
+import '../../repositories/master_item_repository.dart';
 import 'package:gelatik/features/info_alat/providers/info_alat_provider.dart';
 
 /// InfoAlatScreen — Layar Informasi Katalog Aset TIK Read-Only (M-H)
@@ -18,12 +24,31 @@ class InfoAlatScreen extends ConsumerStatefulWidget {
 
 class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
+  Timer? _searchDebounce;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      if (!mounted) return;
+      ref.read(infoAlatProvider.notifier).loadItems();
+    });
+  }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _scheduleSearch(String value) {
+    _searchDebounce?.cancel();
+    setState(() {});
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      ref.read(infoAlatProvider.notifier).searchItems(value);
+    });
   }
 
   @override
@@ -34,12 +59,7 @@ class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
     final accentGold = AppColors.accentGold(context);
     final mutedText = AppColors.mutedText(context);
 
-    final items = ref.watch(infoAlatProvider).items;
-    final filteredItems = items.where((item) {
-      final query = _searchQuery.toLowerCase();
-      return item.nama.toLowerCase().contains(query) ||
-          item.deskripsi.toLowerCase().contains(query);
-    }).toList();
+    final state = ref.watch(infoAlatProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -53,10 +73,7 @@ class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
             );
           },
         ),
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: Column(
@@ -69,162 +86,33 @@ class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
                 labelText: 'Pencarian Alat TIK',
                 hintText: 'Cari alat TIK (Laptop, Proyektor...)...',
                 prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: _searchQuery.isNotEmpty
+                suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear_rounded),
                         onPressed: () {
                           _searchController.clear();
-                          setState(() => _searchQuery = '');
+                          _scheduleSearch('');
                         },
                       )
                     : null,
-                onChanged: (val) {
-                  setState(() => _searchQuery = val);
-                },
+                onChanged: _scheduleSearch,
               ),
             ),
 
             const Divider(height: 1),
 
-            // Item List Cards (Read-only mode)
+            if (state.isRefreshing) const LinearProgressIndicator(minHeight: 2),
+
             Expanded(
-              child: filteredItems.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Aset TIK tidak ditemukan.',
-                        style: TextStyle(color: mutedText, fontSize: 13),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: filteredItems.length,
-                      itemBuilder: (context, index) {
-                        final item = filteredItems[index];
-
-                        // Alternating Icon Background Color (primaryTeal / accentNavy / accentGold)
-                        final bgColors = [
-                          primaryTeal.withValues(alpha: 0.12),
-                          accentNavy.withValues(alpha: 0.15),
-                          accentGold.withValues(alpha: 0.15),
-                        ];
-                        final iconColors = [primaryTeal, accentNavy, accentGold];
-
-                        final bg = bgColors[index % bgColors.length];
-                        final fg = iconColors[index % iconColors.length];
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
-                          child: AppCard(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Item Thumbnail / Category Icon Container
-                                Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    color: bg,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: item.foto != null
-                                      ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(12),
-                                          child: Image.network(
-                                            item.foto!,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) => Icon(
-                                              Icons.devices_rounded,
-                                              color: fg,
-                                              size: 32,
-                                            ),
-                                          ),
-                                        )
-                                      : Icon(
-                                          Icons.devices_rounded,
-                                          color: fg,
-                                          size: 32,
-                                        ),
-                                ),
-                                const SizedBox(width: 14),
-
-                                // Item Details Info (Read-only)
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.nama,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: theme.colorScheme.onSurface,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        item.deskripsi,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: mutedText,
-                                          height: 1.3,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 8),
-
-                                      // Badges: Condition & Stock
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.actionEmerald(context)
-                                                  .withValues(alpha: 0.12),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              'Kondisi: ${item.kondisi}',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                                color: AppColors.actionEmerald(context),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: primaryTeal
-                                                  .withValues(alpha: 0.12),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              'Stok: ${item.stok} unit',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                                color: primaryTeal,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+              child: _buildContent(
+                context,
+                state,
+                primaryTeal,
+                accentNavy,
+                accentGold,
+                mutedText,
+                theme,
+              ),
             ),
           ],
         ),
@@ -238,5 +126,218 @@ class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
         },
       ),
     );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    InfoAlatState state,
+    Color primaryTeal,
+    Color accentNavy,
+    Color accentGold,
+    Color mutedText,
+    ThemeData theme,
+  ) {
+    if (state.status == InfoAlatStatus.initial ||
+        state.status == InfoAlatStatus.loading) {
+      return ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: 4,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (_, _) => const LoadingSkeleton.card(height: 92),
+      );
+    }
+
+    if (state.status == InfoAlatStatus.error) {
+      return _refreshableState(
+        EmptyState(
+          title: _errorTitle(state.errorType),
+          message: state.errorMessage ?? 'Katalog alat gagal dimuat.',
+          icon: _errorIcon(state.errorType),
+          buttonText: 'Coba Lagi',
+          onButtonPressed: () => ref.read(infoAlatProvider.notifier).retry(),
+        ),
+      );
+    }
+
+    if (state.status == InfoAlatStatus.empty) {
+      return _refreshableState(
+        EmptyState(
+          title: state.query.isEmpty
+              ? 'Belum Ada Aset TIK'
+              : 'Aset TIK Tidak Ditemukan',
+          message: state.query.isEmpty
+              ? 'Katalog alat masih kosong. Tarik ke bawah untuk memuat ulang.'
+              : 'Tidak ada alat yang cocok dengan pencarian "${state.query}".',
+          icon: state.query.isEmpty
+              ? Icons.inventory_2_outlined
+              : Icons.search_off_rounded,
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: ref.read(infoAlatProvider.notifier).refresh,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        itemCount: state.items.length,
+        itemBuilder: (context, index) => _buildItemCard(
+          context,
+          state.items[index],
+          index,
+          primaryTeal,
+          accentNavy,
+          accentGold,
+          mutedText,
+          theme,
+        ),
+      ),
+    );
+  }
+
+  Widget _refreshableState(Widget child) {
+    return RefreshIndicator(
+      onRefresh: ref.read(infoAlatProvider.notifier).refresh,
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItemCard(
+    BuildContext context,
+    MasterItemModel item,
+    int index,
+    Color primaryTeal,
+    Color accentNavy,
+    Color accentGold,
+    Color mutedText,
+    ThemeData theme,
+  ) {
+    final bgColors = [
+      primaryTeal.withValues(alpha: 0.12),
+      accentNavy.withValues(alpha: 0.15),
+      accentGold.withValues(alpha: 0.15),
+    ];
+    final iconColors = [primaryTeal, accentNavy, accentGold];
+    final bg = bgColors[index % bgColors.length];
+    final fg = iconColors[index % iconColors.length];
+    final foto = item.foto?.trim();
+    final stockColor = item.tersedia ? primaryTeal : theme.colorScheme.error;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AppCard(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: foto != null && foto.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        foto,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) =>
+                            Icon(Icons.devices_rounded, color: fg, size: 32),
+                      ),
+                    )
+                  : Icon(Icons.devices_rounded, color: fg, size: 32),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.nama,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.deskripsi.trim().isNotEmpty
+                        ? item.deskripsi
+                        : 'Deskripsi belum tersedia.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: mutedText,
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      _buildBadge(
+                        'Kondisi: ${item.kondisi.trim().isNotEmpty ? item.kondisi : 'Tidak diketahui'}',
+                        AppColors.actionEmerald(context),
+                      ),
+                      _buildBadge('Stok: ${item.stok} unit', stockColor),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  String _errorTitle(MasterItemErrorType? type) {
+    return switch (type) {
+      MasterItemErrorType.unauthorized => 'Sesi Berakhir',
+      MasterItemErrorType.forbidden => 'Akses Ditolak',
+      MasterItemErrorType.network ||
+      MasterItemErrorType.timeout => 'Koneksi Bermasalah',
+      _ => 'Katalog Gagal Dimuat',
+    };
+  }
+
+  IconData _errorIcon(MasterItemErrorType? type) {
+    return switch (type) {
+      MasterItemErrorType.unauthorized => Icons.lock_clock_outlined,
+      MasterItemErrorType.forbidden => Icons.block_rounded,
+      MasterItemErrorType.network ||
+      MasterItemErrorType.timeout => Icons.cloud_off_rounded,
+      _ => Icons.error_outline_rounded,
+    };
   }
 }
