@@ -1,0 +1,44 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Laravel
+backend/vendor/
+backend/node_modules/
+backend/storage/logs/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/bootstrap/cache/*.php
+
+# Database dumps
+*.sql
+*.sqlite
+*.sqlite3
+backend/db_layanantik.sql
+
+# Node.js
+realtime-service/node_modules/
+realtime-service/auth_session/
+realtime-service/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test/cache
+.phpunit.cache/
+.phpunit.result.cache
+coverage/
