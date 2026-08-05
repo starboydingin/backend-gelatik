@@ -71,13 +71,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (result == AuthResultStatus.authenticated) {
       // 1. User aktif (status = '1') -> Navigasi ke HomeScreen
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
     } else if (result == AuthResultStatus.pendingActivation) {
       // 2. Response 403 (Akun belum aktif / status = '0') -> Tampilkan PendingActivationBanner & Dialog FR-35
       final authState = ref.read(authProvider);
-      final backendMessage = authState.pendingActivationMessage ??
+      final backendMessage =
+          authState.pendingActivationMessage ??
           'Akun Anda belum aktif atau telah dinonaktifkan.';
 
       setState(() {
@@ -104,8 +105,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.error_outline_rounded,
-                  color: Colors.white, size: 20),
+              const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Expanded(child: Text(errorMessage)),
             ],
@@ -117,17 +121,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
       );
     }
-  }
-
-  void _fillPreset(String identifier, String password) {
-    setState(() {
-      _identifierController.text = identifier;
-      _passwordController.text = password;
-      _identifierError = null;
-      _passwordError = null;
-      _generalError = null;
-      _showPendingBanner = false;
-    });
   }
 
   @override
@@ -208,10 +201,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           const SizedBox(height: 6),
                           Text(
                             'Silakan masuk menggunakan email atau NIP Anda.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: mutedText,
-                            ),
+                            style: TextStyle(fontSize: 14, color: mutedText),
                           ),
 
                           const SizedBox(height: 20),
@@ -220,7 +210,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           if (_showPendingBanner) ...[
                             PendingActivationBanner(
                               title: 'Akun Belum Aktif',
-                              message: authState.pendingActivationMessage ??
+                              message:
+                                  authState.pendingActivationMessage ??
                                   'Akun Anda belum aktif atau telah dinonaktifkan.',
                               onDismiss: () {
                                 setState(() => _showPendingBanner = false);
@@ -336,74 +327,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ],
                       ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // ---------------------------------------------------------------
-                  // Chips Preset Testing Cepat
-                  // ---------------------------------------------------------------
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.science_outlined,
-                                size: 16, color: primaryTeal),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Quick Testing Kredensial Dummy:',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: primaryTeal,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            ActionChip(
-                              avatar: const Icon(Icons.check_circle,
-                                  size: 14, color: Colors.green),
-                              label: const Text('User Aktif (status=1)',
-                                  style: TextStyle(fontSize: 11)),
-                              onPressed: () => _fillPreset(
-                                  'ahmad.subagja@lampungprov.go.id',
-                                  'password123'),
-                            ),
-                            ActionChip(
-                              avatar: const Icon(Icons.warning,
-                                  size: 14, color: Colors.amber),
-                              label: const Text('User Pending FR-35 (status=0)',
-                                  style: TextStyle(fontSize: 11)),
-                              onPressed: () => _fillPreset(
-                                  'budi.santoso@lampungprov.go.id',
-                                  'password123'),
-                            ),
-                            ActionChip(
-                              avatar: const Icon(Icons.cancel,
-                                  size: 14, color: Colors.red),
-                              label: const Text('User Tidak Ada',
-                                  style: TextStyle(fontSize: 11)),
-                              onPressed: () => _fillPreset(
-                                  'tidak.ada@lampungprov.go.id',
-                                  'password123'),
-                            ),
-                          ],
-                        ),
-                      ],
                     ),
                   ),
 

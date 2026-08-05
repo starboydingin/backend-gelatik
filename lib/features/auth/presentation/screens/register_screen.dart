@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
 import 'login_screen.dart';
-import '../../../../core/dummy/dummy_data.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
@@ -46,6 +45,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   String? _passwordError;
   String? _confirmPasswordError;
   String? _termsError;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authProvider.notifier).loadOpds();
+    });
+  }
 
   @override
   void dispose() {
@@ -123,8 +130,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     // 5. Validasi Dropdown OPD
     if (_selectedOpd == null || _selectedOpd!.isEmpty) {
-      setState(() =>
-          _opdError = 'Silakan pilih Organisasi Perangkat Daerah (OPD)');
+      setState(
+        () => _opdError = 'Silakan pilih Organisasi Perangkat Daerah (OPD)',
+      );
       isValid = false;
     }
 
@@ -139,8 +147,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     // 7. Validasi Konfirmasi Password
     if (confirmPassword.isEmpty) {
-      setState(
-          () => _confirmPasswordError = 'Konfirmasi password wajib diisi');
+      setState(() => _confirmPasswordError = 'Konfirmasi password wajib diisi');
       isValid = false;
     } else if (confirmPassword != password) {
       setState(() => _confirmPasswordError = 'Konfirmasi password tidak cocok');
@@ -156,7 +163,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (!isValid) return;
 
     // Process Registration via AuthNotifier
-    final success = await ref.read(authProvider.notifier).register(
+    final success = await ref
+        .read(authProvider.notifier)
+        .register(
           name: name,
           nip: nip,
           email: email,
@@ -186,8 +195,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         final accentGold = AppColors.accentGold(dialogContext);
 
         return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -320,10 +330,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           const SizedBox(height: 6),
                           Text(
                             'Lengkapi formulir di bawah ini untuk mendaftar akun.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: mutedText,
-                            ),
+                            style: TextStyle(fontSize: 14, color: mutedText),
                           ),
                           const SizedBox(height: 20),
 
@@ -332,7 +339,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             labelText: 'Nama Lengkap',
                             hintText: 'Masukkan nama lengkap Anda',
                             controller: _nameController,
-                            prefixIcon: const Icon(Icons.person_outline_rounded),
+                            prefixIcon: const Icon(
+                              Icons.person_outline_rounded,
+                            ),
                             errorText: _nameError,
                             onChanged: (_) {
                               if (_nameError != null) {
@@ -349,7 +358,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             controller: _nipController,
                             keyboardType: TextInputType.number,
                             inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly
+                              FilteringTextInputFormatter.digitsOnly,
                             ],
                             prefixIcon: const Icon(Icons.badge_outlined),
                             errorText: _nipError,
@@ -384,7 +393,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             controller: _noHpController,
                             keyboardType: TextInputType.phone,
                             inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly
+                              FilteringTextInputFormatter.digitsOnly,
                             ],
                             prefixIcon: const Icon(Icons.phone_android_rounded),
                             errorText: _noHpError,
@@ -398,6 +407,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                           // 5. Dropdown OPD
                           DropdownButtonFormField<String>(
+                            key: const Key('opd_dropdown'),
                             initialValue: _selectedOpd,
                             isExpanded: true,
                             decoration: InputDecoration(
@@ -431,7 +441,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 ),
                               ),
                             ),
-                            items: DummyData.listOpd.map((opd) {
+                            items: authState.opds.map((opd) {
                               return DropdownMenuItem<String>(
                                 value: opd,
                                 child: Text(
@@ -444,13 +454,63 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 ),
                               );
                             }).toList(),
-                            onChanged: (val) {
-                              setState(() {
-                                _selectedOpd = val;
-                                _opdError = null;
-                              });
-                            },
+                            onChanged: authState.isOpdLoading
+                                ? null
+                                : (val) {
+                                    setState(() {
+                                      _selectedOpd = val;
+                                      _opdError = null;
+                                    });
+                                  },
                           ),
+                          if (authState.isOpdLoading) ...[
+                            const SizedBox(height: 8),
+                            const LinearProgressIndicator(
+                              key: Key('opd_loading'),
+                            ),
+                          ] else if (authState.opdErrorMessage != null) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              key: const Key('opd_error'),
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    authState.opdErrorMessage!,
+                                    style: TextStyle(
+                                      color: theme.colorScheme.error,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  key: const Key('opd_retry'),
+                                  onPressed: () => ref
+                                      .read(authProvider.notifier)
+                                      .loadOpds(),
+                                  child: const Text('Coba Lagi'),
+                                ),
+                              ],
+                            ),
+                          ] else if (authState.opds.isEmpty) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              key: const Key('opd_empty'),
+                              children: [
+                                const Expanded(
+                                  child: Text(
+                                    'Daftar OPD tidak tersedia.',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => ref
+                                      .read(authProvider.notifier)
+                                      .loadOpds(),
+                                  child: const Text('Muat Ulang'),
+                                ),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 16),
 
                           // 6. Password

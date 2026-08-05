@@ -5,11 +5,7 @@ import '../../../core/storage/secure_storage_service.dart';
 import '../models/user_model.dart';
 import '../repositories/auth_repository.dart';
 
-enum AuthResultStatus {
-  authenticated,
-  pendingActivation,
-  error,
-}
+enum AuthResultStatus { authenticated, pendingActivation, error }
 
 class AuthState {
   final bool isLoggedIn;
@@ -17,6 +13,9 @@ class AuthState {
   final bool isLoading;
   final String? errorMessage;
   final String? pendingActivationMessage;
+  final List<String> opds;
+  final bool isOpdLoading;
+  final String? opdErrorMessage;
 
   const AuthState({
     this.isLoggedIn = false,
@@ -24,6 +23,9 @@ class AuthState {
     this.isLoading = false,
     this.errorMessage,
     this.pendingActivationMessage,
+    this.opds = const [],
+    this.isOpdLoading = false,
+    this.opdErrorMessage,
   });
 
   AuthState copyWith({
@@ -32,7 +34,11 @@ class AuthState {
     bool? isLoading,
     String? errorMessage,
     String? pendingActivationMessage,
+    List<String>? opds,
+    bool? isOpdLoading,
+    String? opdErrorMessage,
     bool clearErrors = false,
+    bool clearOpdError = false,
   }) {
     return AuthState(
       isLoggedIn: isLoggedIn ?? this.isLoggedIn,
@@ -42,6 +48,11 @@ class AuthState {
       pendingActivationMessage: clearErrors
           ? null
           : (pendingActivationMessage ?? this.pendingActivationMessage),
+      opds: opds ?? this.opds,
+      isOpdLoading: isOpdLoading ?? this.isOpdLoading,
+      opdErrorMessage: clearOpdError
+          ? null
+          : (opdErrorMessage ?? this.opdErrorMessage),
     );
   }
 }
@@ -56,6 +67,39 @@ class AuthNotifier extends StateNotifier<AuthState> {
     this.secureStorageService,
     this.fcmTopicService,
   }) : super(const AuthState());
+
+  Future<void> loadOpds() async {
+    final repo = authRepository;
+    if (repo == null) {
+      state = state.copyWith(
+        isOpdLoading: false,
+        opdErrorMessage: 'Repository daftar OPD belum diinisialisasi.',
+      );
+      return;
+    }
+
+    state = state.copyWith(isOpdLoading: true, clearOpdError: true);
+    try {
+      final opds = await repo.getOpds();
+      state = state.copyWith(
+        opds: opds,
+        isOpdLoading: false,
+        clearOpdError: true,
+      );
+    } on ApiException catch (e) {
+      state = state.copyWith(
+        opds: const [],
+        isOpdLoading: false,
+        opdErrorMessage: e.message,
+      );
+    } catch (_) {
+      state = state.copyWith(
+        opds: const [],
+        isOpdLoading: false,
+        opdErrorMessage: 'Gagal memuat daftar OPD.',
+      );
+    }
+  }
 
   /// Pengecekan token tersimpan di SecureStorage (Splash)
   Future<bool> checkAuthToken() async {
@@ -122,7 +166,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (repo == null || storage == null) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: 'AuthRepository / SecureStorageService belum diinisialisasi.',
+        errorMessage:
+            'AuthRepository / SecureStorageService belum diinisialisasi.',
       );
       return AuthResultStatus.error;
     }
@@ -142,7 +187,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await storage.saveToken(token);
 
       UserModel user;
-      if (loginData['user'] != null && loginData['user'] is Map<String, dynamic>) {
+      if (loginData['user'] != null &&
+          loginData['user'] is Map<String, dynamic>) {
         user = UserModel.fromJson(Map<String, dynamic>.from(loginData['user']));
       } else {
         final userData = await repo.getMe();
@@ -167,16 +213,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return AuthResultStatus.pendingActivation;
       }
 
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
       return AuthResultStatus.error;
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
       return AuthResultStatus.error;
     }
   }
@@ -221,16 +261,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(isLoading: false);
       return success;
     } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
       return false;
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
       return false;
     }
   }
@@ -255,7 +289,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
   }
 }
-
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);

@@ -8,15 +8,48 @@ class AuthRepository {
 
   AuthRepository({required this.apiClient});
 
+  /// GET /api/opd
+  Future<List<String>> getOpds() async {
+    try {
+      final response = await apiClient.dio.get('/opd');
+      final responseData = response.data;
+      final dynamic rawItems = responseData is Map
+          ? responseData['data']
+          : responseData;
+
+      if (rawItems is! List) {
+        throw ApiException(message: 'Format response daftar OPD tidak valid.');
+      }
+
+      final opds = <String>[];
+      for (final item in rawItems) {
+        final String? name;
+        if (item is String) {
+          name = item.trim();
+        } else if (item is Map) {
+          final value = item['nama_opd'] ?? item['nama'] ?? item['name'];
+          name = value?.toString().trim();
+        } else {
+          name = null;
+        }
+
+        if (name != null && name.isNotEmpty && !opds.contains(name)) {
+          opds.add(name);
+        }
+      }
+
+      return opds;
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   /// POST /api/login
   Future<Map<String, dynamic>> login(String identifier, String password) async {
     try {
       final response = await apiClient.dio.post(
         '/login',
-        data: {
-          'identifier': identifier,
-          'password': password,
-        },
+        data: {'identifier': identifier, 'password': password},
       );
       final data = response.data;
       if (data is Map<String, dynamic> && data['data'] != null) {
