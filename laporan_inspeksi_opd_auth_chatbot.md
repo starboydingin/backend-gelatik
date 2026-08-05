@@ -74,7 +74,7 @@ Secara meyakinkan **TERDAPAT 2 USER DENGAN STATUS `0` (NONAKTIF)** di database s
 
 ## 4. Isi Code Existing `AuthController.php`
 
-File: [app/Http/Controllers/Api/AuthController.php](file:///e:/Adwika/AdwikaPerkuliahan/KP-BACKEND/backend/app/Http/Controllers/Api/AuthController.php)
+File: [app/Http/Controllers/Api/AuthController.php](backend/app/Http/Controllers/Api/AuthController.php)
 
 ```php
 <?php

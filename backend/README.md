@@ -77,7 +77,7 @@ Ikuti langkah-langkah berikut untuk memasang aplikasi dari awal:
 Sebelum melakukan deployment ke server production / server resmi Diskominfotik, **TIM TIK WAJIB** mengisi environment variable dengan kredensial asli (seperti IP Database Production, Key Gemini/Groq, Token SIMKI, dan Firebase Credentials).
 
 > 📌 Silakan baca dokumen panduan terpusat:  
-> **[KONFIGURASI_PRODUCTION.md](file:///e:/Adwika/AdwikaPerkuliahan/KP-BACKEND/backend/KONFIGURASI_PRODUCTION.md)**
+> **[KONFIGURASI_PRODUCTION.md](../KONFIGURASI_PRODUCTION.md)**
 
 ---
 

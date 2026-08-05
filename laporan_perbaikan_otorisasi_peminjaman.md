@@ -8,7 +8,7 @@ Telah dilakukan verifikasi dan perbaikan otorisasi akses pada endpoint `GET /api
 
 ## 2. Kode Sebelum Perubahan (Before)
 
-File: [`App\Http\Controllers\Api\LaporanController.php`](file:///e:/Adwika/AdwikaPerkuliahan/KP-BACKEND/backend/app/Http/Controllers/Api/LaporanController.php#L22-L38)
+File: [`App\Http\Controllers\Api\LaporanController.php`](backend/app/Http/Controllers/Api/LaporanController.php#L22-L38)
 
 ```php
     /**
@@ -40,13 +40,13 @@ File: [`App\Http\Controllers\Api\LaporanController.php`](file:///e:/Adwika/Adwik
 
 1. **Eksistensi Permission**: Permission `'list laporan'` dengan guard `web` telah terdaftar di database (`permissions` table).
 2. **Assignment Role `admin`**: Role `admin` **sudah memiliki** permission `'list laporan'` di database.
-3. **Pembaruan Seeder**: File [`NewPermissionsSeeder.php`](file:///e:/Adwika/AdwikaPerkuliahan/KP-BACKEND/backend/database/seeders/NewPermissionsSeeder.php#L37-L46) diperbarui agar secara otomatis meng-assign permission `'list laporan'`, `'export laporan'`, dan `'manage notifikasi-wa'` ke role `admin` (selain `superadmin`) apabila seeder dieksekusi ulang.
+3. **Pembaruan Seeder**: File [`NewPermissionsSeeder.php`](backend/database/seeders/NewPermissionsSeeder.php#L37-L46) diperbarui agar secara otomatis meng-assign permission `'list laporan'`, `'export laporan'`, dan `'manage notifikasi-wa'` ke role `admin` (selain `superadmin`) apabila seeder dieksekusi ulang.
 
 ---
 
 ## 4. Kode Setelah Perubahan (After)
 
-File: [`App\Http\Controllers\Api\LaporanController.php`](file:///e:/Adwika/AdwikaPerkuliahan/KP-BACKEND/backend/app/Http/Controllers/Api/LaporanController.php#L22-L38)
+File: [`App\Http\Controllers\Api\LaporanController.php`](backend/app/Http/Controllers/Api/LaporanController.php#L22-L38)
 
 ```php
     /**
@@ -89,7 +89,7 @@ Pengujian dilakukan dengan mensimulasikan HTTP Request ke endpoint `GET /api/lap
 
 ## 6. Pembaruan Dokumen Postman Collection
 
-File: [`layanantik-backend-api.postman_collection.json`](file:///e:/Adwika/AdwikaPerkuliahan/KP-BACKEND/layanantik-backend-api.postman_collection.json)
+File: [`layanantik-backend-api.postman_collection.json`](layanantik-backend-api.postman_collection.json)
 
 1. **Deskripsi Request Updated**:
    Folder `15 - Fitur Baru - Laporan (F-LAPORAN)` -> `GET Laporan Rekapitulasi Peminjaman Aset`:
