@@ -1,4 +1,9 @@
 # Miscellaneous
+.env
+.env.*
+!.env.example
+*.sql
+auth_session/
 *.class
 *.log
 *.pyc
