@@ -156,6 +156,34 @@ class AuthorizationTest extends TestCase
         $this->postJson('/api/konsul/202/response', ['isi_respon' => 'Balasan admin'])->assertCreated();
     }
 
+    public function test_konsultasi_create_and_response_receive_generated_ids(): void
+    {
+        $this->actingAsApi($this->userA);
+
+        $createResponse = $this->postJson('/api/konsul', [
+            'topik_id' => 601,
+            'judul' => 'Konsultasi dari mobile',
+            'deskripsi' => 'Mohon bantuan integrasi.',
+        ])->assertCreated()
+            ->assertJsonPath('data.user_id', $this->userA->id)
+            ->assertJsonPath('data.status', 'Menunggu');
+
+        $konsultasiId = $createResponse->json('data.id');
+        $this->assertIsInt($konsultasiId);
+
+        $response = $this->postJson('/api/konsul/'.$konsultasiId.'/response', [
+            'isi_respon' => 'Informasi tambahan dari pemilik.',
+        ])->assertCreated();
+
+        $responseId = $response->json('data.id');
+        $this->assertIsInt($responseId);
+        $this->assertDatabaseHas('tr_konsultasi_response', [
+            'id' => $responseId,
+            'konsultasi_id' => $konsultasiId,
+            'user_id' => $this->userA->id,
+        ]);
+    }
+
     public function test_user_cannot_change_konsultasi_status_but_admin_can(): void
     {
         $this->actingAsApi($this->userA);
@@ -165,6 +193,17 @@ class AuthorizationTest extends TestCase
         $this->postJson('/api/konsul/201/status', ['status' => 'Diproses'])
             ->assertOk()
             ->assertJsonPath('data.status', 'Diproses');
+    }
+
+    public function test_invalid_konsultasi_status_transition_returns_bad_request(): void
+    {
+        Konsultasi::findOrFail(201)->update(['status' => 'Selesai']);
+
+        $this->actingAsApi($this->admin);
+        $this->postJson('/api/konsul/201/status', ['status' => 'Diproses'])
+            ->assertBadRequest()
+            ->assertJsonPath('success', false)
+            ->assertJsonStructure(['message']);
     }
 
     public function test_user_cannot_delete_another_users_konsultasi(): void
@@ -390,11 +429,12 @@ class AuthorizationTest extends TestCase
             $table->timestamps();
         });
         Schema::create('tr_konsultasi', function (Blueprint $table): void {
-            $table->unsignedBigInteger('id')->primary();
+            $table->id();
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('faq_id');
             $table->string('judul');
             $table->text('pesan');
+            $table->text('file')->nullable();
             $table->string('status')->default('Menunggu');
             $table->unsignedBigInteger('created_by');
             $table->unsignedBigInteger('updated_by')->nullable();
@@ -402,7 +442,7 @@ class AuthorizationTest extends TestCase
             $table->timestamps();
         });
         Schema::create('tr_konsultasi_response', function (Blueprint $table): void {
-            $table->unsignedBigInteger('id')->primary();
+            $table->id();
             $table->unsignedBigInteger('konsultasi_id');
             $table->unsignedBigInteger('user_id');
             $table->text('pesan');

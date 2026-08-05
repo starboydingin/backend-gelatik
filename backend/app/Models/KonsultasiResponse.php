@@ -11,7 +11,7 @@ class KonsultasiResponse extends Model
 
     protected $table = 'tr_konsultasi_response';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     protected $fillable = [
         'id',

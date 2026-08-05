@@ -9,6 +9,7 @@ use App\Models\Konsultasi;
 use App\Services\KonsultasiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use InvalidArgumentException;
 
 class KonsultasiController extends Controller
 {
@@ -88,7 +89,14 @@ class KonsultasiController extends Controller
         Gate::authorize('updateStatus', $konsultasi);
 
         $request->validate(['status' => 'required|in:Diproses,Ditolak,Selesai']);
-        $updatedKonsultasi = $this->konsultasiService->ubahStatus($konsultasi, $request->status, $request->user());
+        try {
+            $updatedKonsultasi = $this->konsultasiService->ubahStatus($konsultasi, $request->status, $request->user());
+        } catch (InvalidArgumentException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 400);
+        }
 
         return response()->json([
             'success' => true,
