@@ -682,7 +682,7 @@
                                 "konsul"
                             ]
                         },
-                        "description": "Fungsi: Mengambil daftar tiket konsultasi TIK milik pengguna (atau seluruh tiket jika Admin/Petugas).\nPermission/Role: Terautentikasi."
+                        "description": "Fungsi: Mengambil daftar tiket konsultasi TIK milik pengguna; admin/superadmin menerima seluruh tiket. Hasil dipaginasi 10 tiket per halaman dan diurutkan dari terbaru.\nPermission/Role: Terautentikasi; scope ditegakkan backend."
                     },
                     "response": []
                 },
@@ -714,7 +714,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"topik_id\": 1,\n    \"judul\": \"Konsultasi Integrasi Domain OPD\",\n    \"keluhan\": \"Meminta arahan mengenai konfigurasi DNS dan SSL wildcard.\"\n}",
+                            "raw": "{\n    \"topik_id\": 1,\n    \"judul\": \"Konsultasi Integrasi Domain OPD\",\n    \"deskripsi\": \"Meminta arahan mengenai konfigurasi DNS dan SSL wildcard.\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -730,7 +730,7 @@
                                 "konsul"
                             ]
                         },
-                        "description": "Fungsi: Membuat tiket permohonan konsultasi TIK baru.\nPermission/Role: Terautentikasi."
+                        "description": "Fungsi: Membuat tiket konsultasi berstatus Menunggu. user_id diambil dari bearer token. Gunakan multipart/form-data bila mengirim file jpg/jpeg/png/pdf maksimal 2 MB.\nPermission/Role: Semua user terautentikasi."
                     },
                     "response": []
                 },
@@ -765,7 +765,7 @@
                                 "1"
                             ]
                         },
-                        "description": "Fungsi: Mengambil detail tiket konsultasi beserta riwayat balasan/tanggapan dari tim teknis.\nPermission/Role: Terautentikasi."
+                        "description": "Fungsi: Mengambil detail tiket konsultasi beserta riwayat balasan dan relasi pengirim.\nPermission/Role: Pemilik tiket atau admin/superadmin."
                     },
                     "response": []
                 },
@@ -797,7 +797,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"pesan\": \"Tanggapan awal dari tim teknis Diskominfotik.\"\n}",
+                            "raw": "{\n    \"isi_respon\": \"Tanggapan awal dari tim teknis Diskominfotik.\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -815,7 +815,7 @@
                                 "response"
                             ]
                         },
-                        "description": "Fungsi: Mengirimkan pesan balasan/tanggapan baru pada tiket konsultasi.\nPermission/Role: Terautentikasi (Pemilik tiket / Tim teknis)."
+                        "description": "Fungsi: Mengirim balasan baru. Balasan admin/superadmin otomatis mengubah Menunggu menjadi Diproses. Gunakan multipart/form-data bila mengirim file jpg/jpeg/png/pdf maksimal 2 MB.\nPermission/Role: Pemilik tiket atau admin/superadmin."
                     },
                     "response": []
                 },
@@ -847,7 +847,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"status\": \"selesai\"\n}",
+                            "raw": "{\n    \"status\": \"Selesai\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -865,7 +865,7 @@
                                 "status"
                             ]
                         },
-                        "description": "Fungsi: Memperbarui status tiket konsultasi (proses / selesai / tutup).\nPermission/Role: Admin / Petugas TIK."
+                        "description": "Fungsi: Memperbarui status dengan nilai persis Diproses, Ditolak, atau Selesai. Transisi: Menunggu -> ketiganya; Diproses -> Ditolak/Selesai; status terminal tidak dapat diubah.\nPermission/Role: Admin/superadmin."
                     },
                     "response": []
                 },
@@ -900,7 +900,7 @@
                                 "1"
                             ]
                         },
-                        "description": "Fungsi: Menghapus tiket konsultasi TIK.\nPermission/Role: Terautentikasi."
+                        "description": "Fungsi: Menghapus (soft delete) tiket konsultasi TIK.\nPermission/Role: Hanya pemilik tiket; admin/superadmin tidak mendapat bypass policy delete."
                     },
                     "response": []
                 }
@@ -1076,7 +1076,7 @@
                                 "topik"
                             ]
                         },
-                        "description": "Fungsi: Mengambil daftar topik kategori layanan dan konsultasi TIK.\nPermission/Role: Publik / Terautentikasi."
+                        "description": "Fungsi: Mengambil daftar topik kategori layanan dan konsultasi TIK.\nPermission/Role: Terautentikasi (auth:api)."
                     },
                     "response": []
                 },

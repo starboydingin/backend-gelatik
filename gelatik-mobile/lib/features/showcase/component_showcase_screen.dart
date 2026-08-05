@@ -15,10 +15,12 @@ class ComponentShowcaseScreen extends ConsumerStatefulWidget {
   const ComponentShowcaseScreen({super.key});
 
   @override
-  ConsumerState<ComponentShowcaseScreen> createState() => _ComponentShowcaseScreenState();
+  ConsumerState<ComponentShowcaseScreen> createState() =>
+      _ComponentShowcaseScreenState();
 }
 
-class _ComponentShowcaseScreenState extends ConsumerState<ComponentShowcaseScreen> {
+class _ComponentShowcaseScreenState
+    extends ConsumerState<ComponentShowcaseScreen> {
   int _navIndex = 0;
   bool _showBannerInline = true;
   bool _btnLoading = false;
@@ -52,8 +54,9 @@ class _ComponentShowcaseScreenState extends ConsumerState<ComponentShowcaseScree
               Switch(
                 value: isDark,
                 onChanged: (val) {
-                  ref.read(themeModeProvider.notifier).state =
-                      val ? ThemeMode.dark : ThemeMode.light;
+                  ref.read(themeModeProvider.notifier).state = val
+                      ? ThemeMode.dark
+                      : ThemeMode.light;
                 },
               ),
               const SizedBox(width: 8),
@@ -95,7 +98,10 @@ class _ComponentShowcaseScreenState extends ConsumerState<ComponentShowcaseScree
             // -----------------------------------------------------------------
             // 1. Pending Activation Banner (FR-35)
             // -----------------------------------------------------------------
-            _buildSectionHeader(context, '1. Pending Activation Component (FR-35)'),
+            _buildSectionHeader(
+              context,
+              '1. Pending Activation Component (FR-35)',
+            ),
             if (_showBannerInline) ...[
               PendingActivationBanner(
                 title: 'Akun Belum Aktif (User: ${DummyData.pendingUser.name})',
@@ -142,7 +148,10 @@ class _ComponentShowcaseScreenState extends ConsumerState<ComponentShowcaseScree
             // -----------------------------------------------------------------
             // 2. AppButton Showcase
             // -----------------------------------------------------------------
-            _buildSectionHeader(context, '2. AppButton (Filled & Outlined, Radius 24px)'),
+            _buildSectionHeader(
+              context,
+              '2. AppButton (Filled & Outlined, Radius 24px)',
+            ),
             Wrap(
               spacing: 12,
               runSpacing: 12,
@@ -185,7 +194,10 @@ class _ComponentShowcaseScreenState extends ConsumerState<ComponentShowcaseScree
             // -----------------------------------------------------------------
             // 3. StatusBadge Showcase
             // -----------------------------------------------------------------
-            _buildSectionHeader(context, '3. StatusBadge (Pill Stadium Colors)'),
+            _buildSectionHeader(
+              context,
+              '3. StatusBadge (Pill Stadium Colors)',
+            ),
             const Wrap(
               spacing: 10,
               runSpacing: 10,
@@ -223,8 +235,11 @@ class _ComponentShowcaseScreenState extends ConsumerState<ComponentShowcaseScree
             // -----------------------------------------------------------------
             // 5. AppCard & Real Model Data Showcase
             // -----------------------------------------------------------------
-            _buildSectionHeader(context, '5. AppCard (Surface, Radius 16px) & Real Data'),
-            
+            _buildSectionHeader(
+              context,
+              '5. AppCard (Surface, Radius 16px) & Real Data',
+            ),
+
             // Item Peminjaman Real Data
             Text(
               'Sample Record Peminjaman (Model: PinjamModel):',
@@ -241,11 +256,17 @@ class _ComponentShowcaseScreenState extends ConsumerState<ComponentShowcaseScree
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.inventory_2_rounded, color: theme.colorScheme.primary),
+                          Icon(
+                            Icons.inventory_2_rounded,
+                            color: theme.colorScheme.primary,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Peminjaman #${DummyData.pinjamList[0].id}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                         ],
                       ),
@@ -255,17 +276,26 @@ class _ComponentShowcaseScreenState extends ConsumerState<ComponentShowcaseScree
                   const SizedBox(height: 12),
                   Text(
                     'PIC: ${DummyData.pinjamList[0].namaPic} (${DummyData.pinjamList[0].instansiPic})',
-                    style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Item: ${DummyData.pinjamList[0].items.map((i) => "${i.quantity}x ${i.item?.nama ?? 'Aset'}").join(', ')}',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Durasi: ${DummyData.pinjamList[0].durasiPeminjaman} ${DummyData.pinjamList[0].jenisDurasi} (Mulai: ${DummyData.pinjamList[0].tanggalMulai.toString().split(' ')[0]})',
-                    style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -288,7 +318,10 @@ class _ComponentShowcaseScreenState extends ConsumerState<ComponentShowcaseScree
                       Expanded(
                         child: Text(
                           DummyData.konsultasiList[0].judul,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -298,7 +331,10 @@ class _ComponentShowcaseScreenState extends ConsumerState<ComponentShowcaseScree
                   const SizedBox(height: 8),
                   Text(
                     DummyData.konsultasiList[0].pesan,
-                    style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -313,8 +349,11 @@ class _ComponentShowcaseScreenState extends ConsumerState<ComponentShowcaseScree
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Respon (${DummyData.konsultasiList[0].responses[0].namaPengirim}): "${DummyData.konsultasiList[0].responses[0].pesan}"',
-                            style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                            'Respon (${DummyData.konsultasiList[0].responses[0].userName}): "${DummyData.konsultasiList[0].responses[0].pesan}"',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
                         ),
                       ],
@@ -328,11 +367,18 @@ class _ComponentShowcaseScreenState extends ConsumerState<ComponentShowcaseScree
             // -----------------------------------------------------------------
             // 6. LoadingSkeleton Showcase
             // -----------------------------------------------------------------
-            _buildSectionHeader(context, '6. LoadingSkeleton (Shimmer Placeholder)'),
+            _buildSectionHeader(
+              context,
+              '6. LoadingSkeleton (Shimmer Placeholder)',
+            ),
             AppCard(
               child: Row(
                 children: [
-                  const LoadingSkeleton(width: 48, height: 48, borderRadius: 24),
+                  const LoadingSkeleton(
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                  ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -352,12 +398,16 @@ class _ComponentShowcaseScreenState extends ConsumerState<ComponentShowcaseScree
             // -----------------------------------------------------------------
             // 7. EmptyState Showcase
             // -----------------------------------------------------------------
-            _buildSectionHeader(context, '7. EmptyState (Ilustrasi Data Kosong)'),
+            _buildSectionHeader(
+              context,
+              '7. EmptyState (Ilustrasi Data Kosong)',
+            ),
             AppCard(
               padding: EdgeInsets.zero,
               child: EmptyState(
                 title: 'Belum Ada Pengajuan Email',
-                message: 'Silakan ajukan usulan email resmi @lampungprov.go.id baru untuk pegawai OPD Anda.',
+                message:
+                    'Silakan ajukan usulan email resmi @lampungprov.go.id baru untuk pegawai OPD Anda.',
                 icon: Icons.mark_email_unread_outlined,
                 buttonText: 'Buat Usulan Email',
                 onButtonPressed: () {},

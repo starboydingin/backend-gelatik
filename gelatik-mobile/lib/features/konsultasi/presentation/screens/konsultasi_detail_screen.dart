@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/status_badge.dart';
@@ -9,7 +10,6 @@ import '../../models/konsultasi_model.dart';
 import '../../models/konsultasi_response_model.dart';
 import '../../providers/konsultasi_provider.dart';
 
-/// KonsultasiDetailScreen — Layar Detail Thread Chat Konsultasi TIK (User vs Admin Bubbles)
 class KonsultasiDetailScreen extends ConsumerStatefulWidget {
   final KonsultasiModel konsultasi;
   final bool isAdminView;
@@ -27,7 +27,17 @@ class KonsultasiDetailScreen extends ConsumerStatefulWidget {
 
 class _KonsultasiDetailScreenState
     extends ConsumerState<KonsultasiDetailScreen> {
-  final TextEditingController _replyController = TextEditingController();
+  final _replyController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(
+      () => ref
+          .read(konsultasiProvider.notifier)
+          .loadDetail(widget.konsultasi.id),
+    );
+  }
 
   @override
   void dispose() {
@@ -35,406 +45,348 @@ class _KonsultasiDetailScreenState
     super.dispose();
   }
 
-  Future<void> _handleSendReply() async {
+  bool _isAdmin(String? role) {
+    final normalized = role?.toLowerCase();
+    return normalized == 'admin' || normalized == 'superadmin';
+  }
+
+  Future<void> _sendReply() async {
     final text = _replyController.text.trim();
     if (text.isEmpty) return;
+    final success = await ref
+        .read(konsultasiProvider.notifier)
+        .kirimBalasan(konsultasiId: widget.konsultasi.id, isiRespon: text);
+    if (!mounted) return;
+    if (success) {
+      _replyController.clear();
+      FocusScope.of(context).unfocus();
+    } else {
+      final message = ref.read(konsultasiProvider).errorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message ?? 'Gagal mengirim balasan.')),
+      );
+    }
+  }
 
-    final user = ref.read(authProvider).currentUser;
-    final isUserAdmin = widget.isAdminView ||
-        (user?.role.toLowerCase() == 'admin' || user?.role.toLowerCase() == 'superadmin');
+  Future<void> _changeStatus(String status) async {
+    final success = await ref
+        .read(konsultasiProvider.notifier)
+        .ubahStatus(widget.konsultasi.id, status);
+    if (!mounted || success) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ref.read(konsultasiProvider).errorMessage ??
+              'Gagal memperbarui status.',
+        ),
+      ),
+    );
+  }
 
-    _replyController.clear();
-    FocusScope.of(context).unfocus();
-
-    await ref.read(konsultasiProvider.notifier).kirimBalasan(
-          konsultasiId: widget.konsultasi.id,
-          userId: user?.id ?? 1,
-          namaPengirim: user?.name ?? (isUserAdmin ? 'Admin Diskominfo' : 'Anda'),
-          pesan: text,
-          isAdmin: isUserAdmin,
-        );
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus konsultasi?'),
+        content: const Text('Konsultasi yang dihapus tidak dapat dipulihkan.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final success = await ref
+        .read(konsultasiProvider.notifier)
+        .hapusKonsultasi(widget.konsultasi.id);
+    if (!mounted) return;
+    if (success) {
+      Navigator.of(context).pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ref.read(konsultasiProvider).errorMessage ??
+                'Gagal menghapus konsultasi.',
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final primaryTeal = AppColors.primaryTeal(context);
-    final actionEmerald = AppColors.actionEmerald(context);
-    final strokeColor = AppColors.cardStroke(context);
-    final mutedText = AppColors.mutedText(context);
-
     final state = ref.watch(konsultasiProvider);
-    // Ambil data tiket terbaru dari state jika ada, atau fallback ke widget.konsultasi
-    final currentTiket = state.listKonsultasi.firstWhere(
-      (k) => k.id == widget.konsultasi.id,
-      orElse: () => widget.konsultasi,
-    );
+    final user = ref.watch(authProvider).currentUser;
+    final current = state.selectedKonsultasi?.id == widget.konsultasi.id
+        ? state.selectedKonsultasi!
+        : widget.konsultasi;
+    final hasCurrentDetail =
+        state.selectedKonsultasi?.id == widget.konsultasi.id;
+    final isAdmin = widget.isAdminView || _isAdmin(user?.role);
+    final isOwner = user != null && user.id == current.userId;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Tiket #${currentTiket.id}'),
+        title: Text('Tiket #${current.id}'),
         centerTitle: true,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
+        actions: [
+          if (isOwner && !isAdmin)
+            IconButton(
+              key: const Key('delete-consultation'),
+              onPressed: state.isSubmitting ? null : _delete,
+              icon: const Icon(Icons.delete_outline),
+            ),
+          const ThemeToggleButton(),
+          const SizedBox(width: 8),
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ---------------------------------------------------------
-                    // Header Card Tiket Konsultasi
-                    // ---------------------------------------------------------
-                    AppCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+        child: state.status == KonsultasiLoadStatus.loading && !hasCurrentDetail
+            ? const Center(child: CircularProgressIndicator())
+            : state.status == KonsultasiLoadStatus.error && !hasCurrentDetail
+            ? _DetailError(
+                message: state.errorMessage ?? 'Gagal memuat detail.',
+                onRetry: () => ref
+                    .read(konsultasiProvider.notifier)
+                    .loadDetail(widget.konsultasi.id),
+              )
+            : Column(
+                children: [
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () => ref
+                          .read(konsultasiProvider.notifier)
+                          .loadDetail(widget.konsultasi.id),
+                      child: ListView(
+                        key: const Key('consultation-detail'),
+                        padding: const EdgeInsets.all(16),
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  currentTiket.topik?['nama'] ?? 'Topik TIK',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                        theme.colorScheme.onPrimaryContainer,
-                                  ),
-                                ),
-                              ),
-                              StatusBadge(
-                                status: currentTiket.status,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            currentTiket.judul,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onSurface,
+                          _HeaderCard(konsultasi: current),
+                          if (isAdmin) ...[
+                            const SizedBox(height: 12),
+                            _StatusActions(
+                              currentStatus: current.status,
+                              isSubmitting: state.isSubmitting,
+                              onChange: _changeStatus,
                             ),
+                          ],
+                          const SizedBox(height: 20),
+                          Text(
+                            'Balasan (${current.responses.length})',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Icon(Icons.access_time_rounded,
-                                  size: 14, color: mutedText),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${currentTiket.createdAt.day}/${currentTiket.createdAt.month}/${currentTiket.createdAt.year}',
-                                style:
-                                    TextStyle(fontSize: 12, color: mutedText),
+                          const SizedBox(height: 10),
+                          if (current.responses.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Text(
+                                'Belum ada tanggapan.',
+                                textAlign: TextAlign.center,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          const Divider(height: 1),
-                          const SizedBox(height: 12),
-
-                          // Initial Question / Thread Starter
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              CircleAvatar(
-                                radius: 14,
-                                backgroundColor: primaryTeal,
-                                child: const Icon(
-                                  Icons.person_rounded,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
+                            )
+                          else
+                            ...current.responses.map(
+                              (response) => _ResponseBubble(
+                                response: response,
+                                isAdminResponse:
+                                    response.userId != current.userId,
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Pesan Awal Pengajuan:',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: primaryTeal,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      currentTiket.pesan,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        height: 1.4,
-                                        color: theme.colorScheme.onSurface,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
                         ],
                       ),
                     ),
-
-                    const SizedBox(height: 24),
-
-                    // Divider Section Thread Balasan
-                    Row(
-                      children: [
-                        const Expanded(child: Divider()),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            'THREAD BALASAN KONSULTASI (${currentTiket.responses.length})',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: mutedText,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ),
-                        const Expanded(child: Divider()),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // ---------------------------------------------------------
-                    // List Thread Balasan Chat Bubbles (User vs Admin)
-                    // ---------------------------------------------------------
-                    if (currentTiket.responses.isEmpty) ...[
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 24),
-                          child: Column(
-                            children: [
-                              Icon(Icons.mark_chat_unread_outlined,
-                                  size: 40, color: mutedText.withValues(alpha: 0.5)),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Belum ada tanggapan. Silakan tuliskan pesan balasan di bawah.',
-                                style: TextStyle(
-                                    fontSize: 12, color: mutedText),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ] else ...[
-                      ...currentTiket.responses.map((resp) {
-                        return _buildChatBubble(
-                          context: context,
-                          response: resp,
-                          primaryTeal: primaryTeal,
-                          strokeColor: strokeColor,
-                          mutedText: mutedText,
-                          theme: theme,
-                          isDark: isDark,
-                        );
-                      }),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-
-            // -----------------------------------------------------------------
-            // Bottom Reply Input Box
-            // -----------------------------------------------------------------
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                border: Border(
-                  top: BorderSide(color: strokeColor, width: 1.5),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _replyController,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Tulis balasan pesan...',
-                        filled: true,
-                        fillColor: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.5),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: strokeColor, width: 1.5),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: strokeColor, width: 1.5),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: primaryTeal, width: 2),
-                        ),
-                      ),
-                    ),
                   ),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: _handleSendReply,
-                    borderRadius: BorderRadius.circular(24),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: actionEmerald,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
+                  _ReplyBox(
+                    controller: _replyController,
+                    submitting: state.isSubmitting,
+                    onSend: _sendReply,
                   ),
                 ],
               ),
-            ),
+      ),
+    );
+  }
+}
+
+class _HeaderCard extends StatelessWidget {
+  final KonsultasiModel konsultasi;
+
+  const _HeaderCard({required this.konsultasi});
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(child: Text(konsultasi.topikNama)),
+            StatusBadge(status: konsultasi.status),
           ],
         ),
-      ),
+        const SizedBox(height: 12),
+        Text(
+          konsultasi.judul,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${konsultasi.createdAt.day}/${konsultasi.createdAt.month}/${konsultasi.createdAt.year}',
+          style: TextStyle(color: AppColors.mutedText(context)),
+        ),
+        const Divider(height: 24),
+        Text(konsultasi.pesan),
+        if (konsultasi.file != null) ...[
+          const SizedBox(height: 10),
+          Text('Lampiran: ${konsultasi.file}'),
+        ],
+      ],
+    ),
+  );
+}
+
+class _StatusActions extends StatelessWidget {
+  final String currentStatus;
+  final bool isSubmitting;
+  final ValueChanged<String> onChange;
+
+  const _StatusActions({
+    required this.currentStatus,
+    required this.isSubmitting,
+    required this.onChange,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = switch (currentStatus) {
+      'Menunggu' => const ['Diproses', 'Ditolak', 'Selesai'],
+      'Diproses' => const ['Ditolak', 'Selesai'],
+      _ => const <String>[],
+    };
+    if (actions.isEmpty) return const SizedBox.shrink();
+    return Wrap(
+      key: const Key('admin-status-actions'),
+      spacing: 8,
+      children: actions
+          .map(
+            (status) => OutlinedButton(
+              onPressed: isSubmitting ? null : () => onChange(status),
+              child: Text(status),
+            ),
+          )
+          .toList(),
     );
   }
+}
 
-  /// Helper Builder Chat Bubble dengan posisi, warna, & radius asimetris
-  Widget _buildChatBubble({
-    required BuildContext context,
-    required KonsultasiResponseModel response,
-    required Color primaryTeal,
-    required Color strokeColor,
-    required Color mutedText,
-    required ThemeData theme,
-    required bool isDark,
-  }) {
-    final isAdmin = response.isAdminUser;
+class _ResponseBubble extends StatelessWidget {
+  final KonsultasiResponseModel response;
+  final bool isAdminResponse;
 
-    // Position Alignment: Admin di Kiri, User di Kanan
-    final alignment =
-        isAdmin ? Alignment.centerLeft : Alignment.centerRight;
+  const _ResponseBubble({
+    required this.response,
+    required this.isAdminResponse,
+  });
 
-    // Asymmetrical Border Radius: Sudut dekat pengirim lebih kecil (4px)
-    final borderRadius = isAdmin
-        ? const BorderRadius.only(
-            topLeft: Radius.circular(4),
-            topRight: Radius.circular(16),
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-          )
-        : const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(4),
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-          );
-
-    // Color Styling: User = primaryTeal solid, Admin = cardStroke border tanpa shadow
-    final bgColor = isAdmin
-        ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
-        : primaryTeal;
-
-    final textColor = isAdmin
-        ? theme.colorScheme.onSurface
-        : Colors.white;
-
-    final border = isAdmin
-        ? Border.all(color: strokeColor, width: 1.5)
-        : null;
-
-    final formattedTime =
-        '${response.createdAt.hour.toString().padLeft(2, '0')}:${response.createdAt.minute.toString().padLeft(2, '0')}';
-
-    return Align(
-      alignment: alignment,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 12.0),
-        child: Container(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.82,
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: isAdminResponse ? Alignment.centerLeft : Alignment.centerRight,
+    child: Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width * .82,
+      ),
+      decoration: BoxDecoration(
+        color: isAdminResponse
+            ? Theme.of(context).colorScheme.surfaceContainerHighest
+            : AppColors.primaryTeal(context),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            response.userName ?? (isAdminResponse ? 'Admin TIK' : 'Anda'),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isAdminResponse ? null : Colors.white,
+            ),
           ),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: borderRadius,
-            border: border,
+          const SizedBox(height: 4),
+          Text(
+            response.pesan,
+            style: TextStyle(color: isAdminResponse ? null : Colors.white),
           ),
-          child: Column(
-            crossAxisAlignment:
-                isAdmin ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-            children: [
-              // Header Pengirim (Nama & Role)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isAdmin ? Icons.support_agent_rounded : Icons.person_rounded,
-                    size: 14,
-                    color: isAdmin ? primaryTeal : Colors.white.withValues(alpha: 0.9),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    response.namaPengirim ?? (isAdmin ? 'Petugas TIK' : 'Anda'),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: isAdmin ? primaryTeal : Colors.white,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    formattedTime,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isAdmin
-                          ? mutedText
-                          : Colors.white.withValues(alpha: 0.75),
-                    ),
-                  ),
-                ],
-              ),
+        ],
+      ),
+    ),
+  );
+}
 
-              const SizedBox(height: 6),
+class _ReplyBox extends StatelessWidget {
+  final TextEditingController controller;
+  final bool submitting;
+  final VoidCallback onSend;
 
-              // Isi Pesan Chat Bubble
-              Text(
-                response.pesan,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.4,
-                  color: textColor,
-                ),
-              ),
-            ],
+  const _ReplyBox({
+    required this.controller,
+    required this.submitting,
+    required this.onSend,
+  });
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(12),
+    child: Row(
+      children: [
+        Expanded(
+          child: TextField(
+            key: const Key('reply-field'),
+            controller: controller,
+            enabled: !submitting,
+            decoration: const InputDecoration(
+              hintText: 'Tulis balasan pesan...',
+            ),
           ),
         ),
-      ),
-    );
-  }
+        IconButton(
+          key: const Key('send-reply'),
+          onPressed: submitting ? null : onSend,
+          icon: submitting
+              ? const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.send_rounded),
+        ),
+      ],
+    ),
+  );
+}
+
+class _DetailError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _DetailError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(message),
+        TextButton(onPressed: onRetry, child: const Text('Coba Lagi')),
+      ],
+    ),
+  );
 }

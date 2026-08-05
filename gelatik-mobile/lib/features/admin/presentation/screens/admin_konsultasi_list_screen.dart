@@ -21,11 +21,15 @@ class AdminKonsultasiListScreen extends ConsumerStatefulWidget {
 class _AdminKonsultasiListScreenState
     extends ConsumerState<AdminKonsultasiListScreen> {
   String _selectedFilter = 'Semua';
-  final List<String> _filters = const [
-    'Semua',
-    'Menunggu Balasan',
-    'Selesai',
-  ];
+  final List<String> _filters = const ['Semua', 'Menunggu Balasan', 'Selesai'];
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(
+      () => ref.read(konsultasiProvider.notifier).loadKonsultasi(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,16 +58,10 @@ class _AdminKonsultasiListScreenState
         ),
         title: Text(
           'Kelola Konsultasi TIK',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: primaryTeal,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: primaryTeal),
         ),
         centerTitle: true,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: Column(
@@ -82,7 +80,9 @@ class _AdminKonsultasiListScreenState
                       label: Text(filter),
                       labelStyle: TextStyle(
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                         color: isSelected
                             ? theme.colorScheme.onPrimaryContainer
                             : theme.colorScheme.onSurface,
@@ -108,101 +108,144 @@ class _AdminKonsultasiListScreenState
 
             // List Konsultasi
             Expanded(
-              child: filteredList.isEmpty
+              child:
+                  state.status == KonsultasiLoadStatus.loading &&
+                      listKonsultasi.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : state.status == KonsultasiLoadStatus.error &&
+                        listKonsultasi.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            state.errorMessage ??
+                                'Gagal memuat daftar konsultasi.',
+                            textAlign: TextAlign.center,
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                ref.read(konsultasiProvider.notifier).retry(),
+                            child: const Text('Coba Lagi'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : filteredList.isEmpty
                   ? EmptyState(
                       title: 'Tidak Ada Tiket',
-                      message: 'Tidak ada tiket konsultasi dengan filter "$_selectedFilter".',
+                      message:
+                          'Tidak ada tiket konsultasi dengan filter "$_selectedFilter".',
                       icon: Icons.support_agent_rounded,
                     )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: filteredList.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final item = filteredList[index];
+                  : RefreshIndicator(
+                      onRefresh: () =>
+                          ref.read(konsultasiProvider.notifier).refresh(),
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredList.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final item = filteredList[index];
 
-                        return AppCard(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => KonsultasiDetailScreen(
-                                  konsultasi: item,
-                                  isAdminView: true, // REUSE SAMA DENGAN FLAG ADMIN
+                          return AppCard(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => KonsultasiDetailScreen(
+                                    konsultasi: item,
+                                    isAdminView:
+                                        true, // REUSE SAMA DENGAN FLAG ADMIN
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: primaryTeal.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
+                              );
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: primaryTeal.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        item.topikNama,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: primaryTeal,
+                                        ),
+                                      ),
                                     ),
-                                    child: Text(
-                                      item.topikNama,
+                                    StatusBadge(status: item.status),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  item.judul,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  item.pesan,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: mutedText,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.forum_outlined,
+                                          size: 14,
+                                          color: mutedText,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${item.responses.length} balasan',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: mutedText,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      dateFormat.format(item.createdAt),
                                       style: TextStyle(
                                         fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: primaryTeal,
+                                        color: mutedText,
                                       ),
                                     ),
-                                  ),
-                                  StatusBadge(status: item.status),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                item.judul,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onSurface,
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                item.pesan,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: mutedText,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(Icons.forum_outlined,
-                                          size: 14, color: mutedText),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${item.responses.length} balasan',
-                                        style: TextStyle(
-                                            fontSize: 11, color: mutedText),
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    dateFormat.format(item.createdAt),
-                                    style: TextStyle(
-                                        fontSize: 11, color: mutedText),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ),
             ),
           ],

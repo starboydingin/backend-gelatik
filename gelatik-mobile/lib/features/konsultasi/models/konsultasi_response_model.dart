@@ -1,12 +1,11 @@
-/// KonsultasiResponseModel — Balasan / tanggapan pada tiket konsultasi
 class KonsultasiResponseModel {
   final int id;
   final int konsultasiId;
   final int userId;
   final String pesan;
+  final String? file;
   final DateTime createdAt;
-  final String? namaPengirim;
-  final bool isAdminUser;
+  final String? userName;
 
   const KonsultasiResponseModel({
     required this.id,
@@ -14,37 +13,50 @@ class KonsultasiResponseModel {
     required this.userId,
     required this.pesan,
     required this.createdAt,
-    this.namaPengirim,
-    this.isAdminUser = false,
+    this.file,
+    this.userName,
   });
 
-  bool get isAdmin => isAdminUser;
-
   factory KonsultasiResponseModel.fromJson(Map<String, dynamic> json) {
+    final rawUser = json['user'];
+    if (rawUser != null && rawUser is! Map) {
+      throw const FormatException('Field user response bukan object.');
+    }
     return KonsultasiResponseModel(
-      id: json['id'] as int? ?? 0,
-      konsultasiId: (json['konsultasi_id'] ?? json['konsultasiId']) as int? ?? 0,
-      userId: (json['user_id'] ?? json['userId']) as int? ?? 0,
-      pesan: json['pesan'] as String? ?? '',
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'].toString())
-          : (json['createdAt'] is DateTime
-              ? json['createdAt'] as DateTime
-              : DateTime.now()),
-      namaPengirim: (json['nama_pengirim'] ?? json['namaPengirim']) as String?,
-      isAdminUser: (json['is_admin'] ?? json['isAdminUser']) as bool? ?? false,
+      id: _int(json, 'id'),
+      konsultasiId: _int(json, 'konsultasi_id'),
+      userId: _int(json, 'user_id'),
+      pesan: _string(json, 'pesan'),
+      createdAt: _date(json, 'created_at'),
+      file: json['file'] is String && (json['file'] as String).isNotEmpty
+          ? json['file'] as String
+          : null,
+      userName: rawUser is Map && rawUser['name'] is String
+          ? rawUser['name'] as String
+          : null,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'konsultasi_id': konsultasiId,
-      'user_id': userId,
-      'pesan': pesan,
-      'created_at': createdAt.toIso8601String(),
-      'nama_pengirim': namaPengirim,
-      'is_admin': isAdminUser,
-    };
+  static int _int(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value is int) return value;
+    final parsed = int.tryParse(value?.toString() ?? '');
+    if (parsed != null) return parsed;
+    throw FormatException('Field $key response konsultasi tidak valid.');
+  }
+
+  static String _string(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value is String && value.isNotEmpty) return value;
+    throw FormatException('Field $key response konsultasi tidak valid.');
+  }
+
+  static DateTime _date(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    final parsed = value is DateTime
+        ? value
+        : DateTime.tryParse(value?.toString() ?? '');
+    if (parsed != null) return parsed;
+    throw FormatException('Field $key response konsultasi tidak valid.');
   }
 }

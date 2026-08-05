@@ -4,6 +4,7 @@ import '../../features/peminjaman/models/pinjam_item_model.dart';
 import '../../features/peminjaman/models/pinjam_model.dart';
 import '../../features/konsultasi/models/konsultasi_model.dart';
 import '../../features/konsultasi/models/konsultasi_response_model.dart';
+import '../../features/konsultasi/models/konsultasi_topik_model.dart';
 import '../../features/email/models/usulan_email_model.dart';
 
 /// DummyData — Data contoh yang realistis berbasis OPD Lampung & Aset TIK Nyata
@@ -76,7 +77,8 @@ class DummyData {
       nama: 'Laptop Lenovo ThinkPad L14 Gen 3',
       deskripsi: 'Intel Core i5-1235U, RAM 16GB, SSD 512GB, Windows 11 Pro',
       stok: 5,
-      foto: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500',
+      foto:
+          'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500',
       kondisi: 'Baik',
     ),
     MasterItemModel(
@@ -84,7 +86,8 @@ class DummyData {
       nama: 'Proyektor Epson EB-X05',
       deskripsi: '3300 Lumens, XGA Resolution, HDMI & VGA Input, Portable Bag',
       stok: 3,
-      foto: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=500',
+      foto:
+          'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=500',
       kondisi: 'Baik',
     ),
     MasterItemModel(
@@ -122,7 +125,8 @@ class DummyData {
       userId: 1,
       namaPic: 'Ahmad Subagja, S.Kom.',
       jabatanPic: 'Pranata Komputer Ahli Muda',
-      instansiPic: 'Dinas Komunikasi, Informatika dan Statistik Provinsi Lampung',
+      instansiPic:
+          'Dinas Komunikasi, Informatika dan Statistik Provinsi Lampung',
       kontakPic: '081272345678',
       jenisIdentitas: 'NIP',
       nomorIdentitas: '198804122014031002',
@@ -131,7 +135,8 @@ class DummyData {
       tanggalMulai: DateTime.now().subtract(const Duration(days: 2)),
       jamMulai: '08:00',
       durasiPeminjaman: 3,
-      keterangan: 'Peminjaman peralatan TIK untuk Rapat Koordinasi SPBE Pemprov Lampung',
+      keterangan:
+          'Peminjaman peralatan TIK untuk Rapat Koordinasi SPBE Pemprov Lampung',
       status: 'Menunggu',
       catatanPetugas: null,
       items: [
@@ -183,7 +188,8 @@ class DummyData {
       userId: 1,
       namaPic: 'Ahmad Subagja, S.Kom.',
       jabatanPic: 'Pranata Komputer Ahli Muda',
-      instansiPic: 'Dinas Komunikasi, Informatika dan Statistik Provinsi Lampung',
+      instansiPic:
+          'Dinas Komunikasi, Informatika dan Statistik Provinsi Lampung',
       kontakPic: '081272345678',
       jenisIdentitas: 'NIP',
       nomorIdentitas: '198804122014031002',
@@ -192,7 +198,8 @@ class DummyData {
       tanggalMulai: DateTime.now().subtract(const Duration(days: 15)),
       jamMulai: '08:30',
       durasiPeminjaman: 1,
-      keterangan: 'Zoom Webinar Nasional Sistem Pemerintahan Berbasis Elektronik',
+      keterangan:
+          'Zoom Webinar Nasional Sistem Pemerintahan Berbasis Elektronik',
       status: 'Selesai',
       catatanPetugas: 'Peralatan dikembalikan dalam kondisi lengkap dan baik.',
       tanggalSelesai: DateTime.now().subtract(const Duration(days: 14)),
@@ -223,7 +230,8 @@ class DummyData {
       durasiPeminjaman: 5,
       keterangan: 'Peminjaman unit laptop untuk input data vaksinasi massal',
       status: 'Ditolak',
-      catatanPetugas: 'Pengajuan ditolak karena stok laptop sedang terpakai seluruhnya untuk agenda Gubernur.',
+      catatanPetugas:
+          'Pengajuan ditolak karena stok laptop sedang terpakai seluruhnya untuk agenda Gubernur.',
       items: [
         PinjamItemModel(
           id: 5,
@@ -244,21 +252,22 @@ class DummyData {
       id: 1,
       userId: 1,
       judul: 'Kendala Koneksi Wi-Fi Jaringan Lampung Smart di Lantai 2',
-      pesan: 'Sinyal Wi-Fi sering terputus (intermittent) saat jam kerja tinggi di ruang rapat Dishub.',
+      pesan:
+          'Sinyal Wi-Fi sering terputus (intermittent) saat jam kerja tinggi di ruang rapat Dishub.',
       faqId: 39,
       file: null,
       status: 'Diproses',
       createdAt: DateTime.now().subtract(const Duration(hours: 4)),
-      topik: {'id': 1, 'nama': 'Jaringan & Internet'},
+      topik: const KonsultasiTopikModel(id: 1, nama: 'Jaringan & Internet'),
       responses: [
         KonsultasiResponseModel(
           id: 1,
           konsultasiId: 1,
           userId: 3,
-          pesan: 'Halo Pak Ahmad, tim teknis Jaringan Diskominfotik sedang mengecek Access Point di lokasi.',
+          pesan:
+              'Halo Pak Ahmad, tim teknis Jaringan Diskominfotik sedang mengecek Access Point di lokasi.',
           createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-          namaPengirim: 'Petugas Helpdesk TIK',
-          isAdminUser: true,
+          userName: 'Petugas Helpdesk TIK',
         ),
       ],
     ),
@@ -266,21 +275,22 @@ class DummyData {
       id: 2,
       userId: 1,
       judul: 'Permohonan Integrasi Subdomain opd.lampungprov.go.id',
-      pesan: 'Mohon arahan dan persyaratan teknis untuk pendaftaran SSL certificate subdomain baru.',
+      pesan:
+          'Mohon arahan dan persyaratan teknis untuk pendaftaran SSL certificate subdomain baru.',
       faqId: null,
       file: 'persyaratan_ssl.pdf',
       status: 'Selesai',
       createdAt: DateTime.now().subtract(const Duration(days: 3)),
-      topik: {'id': 2, 'nama': 'Domain & Hosting'},
+      topik: const KonsultasiTopikModel(id: 2, nama: 'Domain & Hosting'),
       responses: [
         KonsultasiResponseModel(
           id: 2,
           konsultasiId: 2,
           userId: 3,
-          pesan: 'DNS record dan SSL Certificate Let\'s Encrypt telah aktif untuk subdomain Anda.',
+          pesan:
+              'DNS record dan SSL Certificate Let\'s Encrypt telah aktif untuk subdomain Anda.',
           createdAt: DateTime.now().subtract(const Duration(days: 2)),
-          namaPengirim: 'Admin Infrastructure',
-          isAdminUser: true,
+          userName: 'Admin Infrastructure',
         ),
       ],
     ),
@@ -288,12 +298,13 @@ class DummyData {
       id: 3,
       userId: 1,
       judul: 'Lupa Password Akun E-Office Pemprov Lampung',
-      pesan: 'Mohon reset password akun e-office NIP 198804122014031002 karena terblokir.',
+      pesan:
+          'Mohon reset password akun e-office NIP 198804122014031002 karena terblokir.',
       faqId: 12,
       file: null,
       status: 'Menunggu',
       createdAt: DateTime.now().subtract(const Duration(minutes: 45)),
-      topik: {'id': 3, 'nama': 'Aplikasi Pegawai'},
+      topik: const KonsultasiTopikModel(id: 3, nama: 'Aplikasi Pegawai'),
       responses: [],
     ),
   ];
@@ -447,17 +458,20 @@ class DummyData {
     {
       'id': 1,
       'pertanyaan': 'Koneksi internet melambat saat jam kantor?',
-      'jawaban': 'Pastikan perangkat tidak sedang melakukan download/stream video 4K tanpa batasan bandwidth, atau lakukan restart pada Adaptor Wi-Fi Anda.',
+      'jawaban':
+          'Pastikan perangkat tidak sedang melakukan download/stream video 4K tanpa batasan bandwidth, atau lakukan restart pada Adaptor Wi-Fi Anda.',
     },
     {
       'id': 2,
       'pertanyaan': 'Sinyal Wi-Fi terhubung tetapi "No Internet Connection"?',
-      'jawaban': 'Periksa apakah IP Address Anda mendapatkan DHCP otomatis atau hubungi tim Helpdesk untuk verifikasi subnet gateway OPD.',
+      'jawaban':
+          'Periksa apakah IP Address Anda mendapatkan DHCP otomatis atau hubungi tim Helpdesk untuk verifikasi subnet gateway OPD.',
     },
     {
       'id': 3,
       'pertanyaan': 'Layanan aplikasi SIMPEG / E-Office tidak dapat dibuka?',
-      'jawaban': 'Gunakan jaringan internal Lampung Smart atau VPN Resmi Pemprov Lampung jika mengakses dari luar kantor.',
+      'jawaban':
+          'Gunakan jaringan internal Lampung Smart atau VPN Resmi Pemprov Lampung jika mengakses dari luar kantor.',
     },
   ];
 }
