@@ -1,53 +1,179 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/dummy/dummy_data.dart';
+
 import '../../info_alat/models/master_item_model.dart';
-import '../models/pinjam_item_model.dart';
 import '../models/pinjam_model.dart';
+import '../models/pinjam_request.dart';
+import '../repositories/peminjaman_repository.dart';
+
+enum PeminjamanLoadStatus {
+  initial,
+  loading,
+  success,
+  empty,
+  error,
+  refreshing,
+}
+
+enum PeminjamanMutationStatus {
+  idle,
+  submitting,
+  success,
+  validationError,
+  forbidden,
+  conflict,
+  error,
+}
 
 class PeminjamanState {
   final List<PinjamModel> listPinjam;
-  final List<MasterItemModel> listMasterItem;
-  final bool isLoading;
+  final PinjamModel? selectedPinjam;
+  final PeminjamanLoadStatus status;
+  final PeminjamanMutationStatus mutationStatus;
   final String? successMessage;
   final String? errorMessage;
+  final PeminjamanErrorType? errorType;
+  final Map<String, dynamic> validationErrors;
 
   const PeminjamanState({
-    required this.listPinjam,
-    required this.listMasterItem,
-    this.isLoading = false,
+    this.listPinjam = const [],
+    this.selectedPinjam,
+    this.status = PeminjamanLoadStatus.initial,
+    this.mutationStatus = PeminjamanMutationStatus.idle,
     this.successMessage,
     this.errorMessage,
+    this.errorType,
+    this.validationErrors = const {},
   });
+
+  bool get isLoading =>
+      status == PeminjamanLoadStatus.loading ||
+      mutationStatus == PeminjamanMutationStatus.submitting;
+  bool get isRefreshing => status == PeminjamanLoadStatus.refreshing;
+  bool get isSubmitting =>
+      mutationStatus == PeminjamanMutationStatus.submitting;
 
   PeminjamanState copyWith({
     List<PinjamModel>? listPinjam,
-    List<MasterItemModel>? listMasterItem,
-    bool? isLoading,
+    PinjamModel? selectedPinjam,
+    PeminjamanLoadStatus? status,
+    PeminjamanMutationStatus? mutationStatus,
     String? successMessage,
     String? errorMessage,
-  }) {
-    return PeminjamanState(
-      listPinjam: listPinjam ?? this.listPinjam,
-      listMasterItem: listMasterItem ?? this.listMasterItem,
-      isLoading: isLoading ?? this.isLoading,
-      successMessage: successMessage,
-      errorMessage: errorMessage,
-    );
-  }
+    PeminjamanErrorType? errorType,
+    Map<String, dynamic>? validationErrors,
+    bool clearSelected = false,
+    bool clearMessages = false,
+  }) => PeminjamanState(
+    listPinjam: listPinjam ?? this.listPinjam,
+    selectedPinjam: clearSelected
+        ? null
+        : (selectedPinjam ?? this.selectedPinjam),
+    status: status ?? this.status,
+    mutationStatus: mutationStatus ?? this.mutationStatus,
+    successMessage: clearMessages
+        ? null
+        : (successMessage ?? this.successMessage),
+    errorMessage: clearMessages ? null : (errorMessage ?? this.errorMessage),
+    errorType: clearMessages ? null : (errorType ?? this.errorType),
+    validationErrors: clearMessages
+        ? const {}
+        : (validationErrors ?? this.validationErrors),
+  );
 }
 
 class PeminjamanNotifier extends StateNotifier<PeminjamanState> {
-  PeminjamanNotifier()
-      : super(
-          PeminjamanState(
-            listPinjam: List.from(DummyData.pinjamList),
-            listMasterItem: List.from(DummyData.masterItems),
-          ),
-        );
+  final PeminjamanRepository repository;
+  int _listGeneration = 0;
+  int _detailGeneration = 0;
 
-  /// Submit pengajuan peminjaman baru (menggabungkan Step 1 list item & Step 2 form details)
+  PeminjamanNotifier({required this.repository})
+    : super(const PeminjamanState());
+
+  Future<void> loadPeminjaman({bool force = false}) async {
+    final inFlight =
+        state.status == PeminjamanLoadStatus.loading ||
+        state.status == PeminjamanLoadStatus.refreshing;
+    if (!force && inFlight) return;
+    if (!force &&
+        (state.status == PeminjamanLoadStatus.success ||
+            state.status == PeminjamanLoadStatus.empty)) {
+      return;
+    }
+    await _fetchList(refreshing: false);
+  }
+
+  Future<void> refresh() => _fetchList(refreshing: true);
+  Future<void> retry() => _fetchList(refreshing: false);
+
+  Future<void> _fetchList({required bool refreshing}) async {
+    final generation = ++_listGeneration;
+    state = state.copyWith(
+      status: refreshing
+          ? PeminjamanLoadStatus.refreshing
+          : PeminjamanLoadStatus.loading,
+      clearMessages: true,
+    );
+    try {
+      final list = await repository.getPeminjaman();
+      if (generation != _listGeneration) return;
+      state = state.copyWith(
+        listPinjam: list,
+        status: list.isEmpty
+            ? PeminjamanLoadStatus.empty
+            : PeminjamanLoadStatus.success,
+        clearMessages: true,
+      );
+    } on PeminjamanRepositoryException catch (error) {
+      if (generation != _listGeneration) return;
+      state = state.copyWith(
+        status: PeminjamanLoadStatus.error,
+        errorMessage: error.message,
+        errorType: error.type,
+      );
+    } catch (_) {
+      if (generation != _listGeneration) return;
+      state = state.copyWith(
+        status: PeminjamanLoadStatus.error,
+        errorMessage: 'Terjadi kesalahan saat memuat peminjaman.',
+        errorType: PeminjamanErrorType.unknown,
+      );
+    }
+  }
+
+  Future<void> loadDetail(int id) async {
+    final generation = ++_detailGeneration;
+    state = state.copyWith(
+      status: PeminjamanLoadStatus.loading,
+      clearMessages: true,
+    );
+    try {
+      final detail = await repository.getPeminjamanDetail(id);
+      if (generation != _detailGeneration) return;
+      _replace(detail);
+      state = state.copyWith(
+        selectedPinjam: detail,
+        status: PeminjamanLoadStatus.success,
+      );
+    } on PeminjamanRepositoryException catch (error) {
+      if (generation != _detailGeneration) return;
+      state = state.copyWith(
+        status: PeminjamanLoadStatus.error,
+        errorMessage: error.message,
+        errorType: error.type,
+        clearSelected: true,
+      );
+    } catch (_) {
+      if (generation != _detailGeneration) return;
+      state = state.copyWith(
+        status: PeminjamanLoadStatus.error,
+        errorMessage: 'Terjadi kesalahan saat memuat detail peminjaman.',
+        errorType: PeminjamanErrorType.unknown,
+        clearSelected: true,
+      );
+    }
+  }
+
   Future<bool> submitPengajuan({
-    required int userId,
     required String namaPic,
     required String jabatanPic,
     required String instansiPic,
@@ -63,156 +189,189 @@ class PeminjamanNotifier extends StateNotifier<PeminjamanState> {
     String? urlDokumen,
     required Map<MasterItemModel, int> selectedItemsWithQuantity,
   }) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
-
-    // Simulasi delay request backend (800ms)
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    try {
-      final newPinjamId = DateTime.now().millisecondsSinceEpoch % 100000;
-
-      final List<PinjamItemModel> items = [];
-      int itemIdCounter = 1;
-
-      selectedItemsWithQuantity.forEach((masterItem, qty) {
-        if (qty > 0) {
-          items.add(
-            PinjamItemModel(
-              id: newPinjamId * 10 + itemIdCounter++,
-              pinjamId: newPinjamId,
-              itemId: masterItem.id,
-              quantity: qty,
-              item: masterItem,
-            ),
-          );
-        }
-      });
-
-      if (items.isEmpty) {
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: 'Minimal satu aset harus dipilih.',
-        );
-        return false;
-      }
-
-      final newPinjam = PinjamModel(
-        id: newPinjamId,
-        userId: userId,
-        namaPic: namaPic,
-        jabatanPic: jabatanPic,
-        instansiPic: instansiPic,
-        kontakPic: kontakPic,
-        jenisIdentitas: jenisIdentitas,
-        nomorIdentitas: nomorIdentitas,
-        alamatPeminjam: alamatPeminjam,
-        jenisDurasi: jenisDurasi,
-        tanggalMulai: tanggalMulai,
-        jamMulai: jamMulai ?? '08:00',
-        durasiPeminjaman: durasiPeminjaman,
-        keterangan: keterangan,
-        urlDokumen: urlDokumen,
-        status: 'Menunggu',
-        items: items,
-      );
-
-      final updatedList = [newPinjam, ...state.listPinjam];
-
-      // Juga update di DummyData agar konsisten
-      DummyData.pinjamList = updatedList;
-
+    if (state.isSubmitting) return false;
+    final itemQuantities = <int, int>{
+      for (final entry in selectedItemsWithQuantity.entries)
+        if (entry.value > 0) entry.key.id: entry.value,
+    };
+    if (itemQuantities.isEmpty) {
       state = state.copyWith(
-        isLoading: false,
-        listPinjam: updatedList,
+        mutationStatus: PeminjamanMutationStatus.validationError,
+        errorMessage: 'Minimal satu aset harus dipilih.',
+        validationErrors: const {
+          'items': ['Minimal satu aset harus dipilih.'],
+        },
+      );
+      return false;
+    }
+    state = state.copyWith(
+      mutationStatus: PeminjamanMutationStatus.submitting,
+      clearMessages: true,
+    );
+    try {
+      final created = await repository.createPeminjaman(
+        PinjamRequest(
+          namaPic: namaPic,
+          jabatanPic: jabatanPic,
+          instansiPic: instansiPic,
+          kontakPic: kontakPic,
+          jenisIdentitas: jenisIdentitas,
+          nomorIdentitas: nomorIdentitas,
+          alamatPeminjam: alamatPeminjam,
+          jenisDurasi: jenisDurasi,
+          tanggalMulai: tanggalMulai,
+          jamMulai: jamMulai,
+          durasiPeminjaman: durasiPeminjaman,
+          keterangan: keterangan,
+          urlDokumen: urlDokumen,
+          itemQuantities: itemQuantities,
+        ),
+      );
+      final list = [
+        created,
+        ...state.listPinjam.where((item) => item.id != created.id),
+      ];
+      state = state.copyWith(
+        listPinjam: list,
+        selectedPinjam: created,
+        status: PeminjamanLoadStatus.success,
+        mutationStatus: PeminjamanMutationStatus.success,
         successMessage: 'Pengajuan peminjaman berhasil dikirim!',
       );
-
       return true;
-    } catch (e) {
+    } on PeminjamanRepositoryException catch (error) {
+      _setMutationError(error);
+      return false;
+    } catch (_) {
       state = state.copyWith(
-        isLoading: false,
-        errorMessage: 'Gagal mengirim pengajuan: ${e.toString()}',
+        mutationStatus: PeminjamanMutationStatus.error,
+        errorMessage: 'Gagal mengirim pengajuan peminjaman.',
+        errorType: PeminjamanErrorType.unknown,
       );
       return false;
     }
   }
 
-  /// Admin Action: Setujui Peminjaman (Status 'Menunggu' -> 'Proses')
-  Future<bool> setujuPeminjaman(int id) async {
-    state = state.copyWith(isLoading: true);
-    await Future.delayed(const Duration(milliseconds: 300));
+  Future<bool> setujuPeminjaman(int id) => _changeStatus(id, 'Proses');
 
-    final updatedList = state.listPinjam.map((p) {
-      if (p.id == id) {
-        return p.copyWith(status: 'Proses');
-      }
-      return p;
-    }).toList();
+  Future<bool> tolakPeminjaman(int id, String catatanPetugas) =>
+      _changeStatus(id, 'Ditolak', catatan: catatanPetugas);
 
-    DummyData.pinjamList = updatedList;
+  Future<bool> selesaikanPeminjaman(int id, {String? buktiPengembalian}) =>
+      _changeStatus(id, 'Selesai');
+
+  Future<bool> _changeStatus(int id, String status, {String? catatan}) async {
+    if (state.isSubmitting) return false;
     state = state.copyWith(
-      isLoading: false,
-      listPinjam: updatedList,
-      successMessage: 'Peminjaman berhasil disetujui!',
+      mutationStatus: PeminjamanMutationStatus.submitting,
+      clearMessages: true,
     );
-    return true;
+    try {
+      var updated = await repository.updateStatus(id, status, catatan: catatan);
+      PinjamModel? previous;
+      for (final item in state.listPinjam) {
+        if (item.id == id) {
+          previous = item;
+          break;
+        }
+      }
+      if (updated.items.isEmpty &&
+          previous != null &&
+          previous.items.isNotEmpty) {
+        updated = updated.copyWith(items: previous.items);
+      }
+      _replace(updated);
+      state = state.copyWith(
+        selectedPinjam: updated,
+        mutationStatus: PeminjamanMutationStatus.success,
+        successMessage: 'Status peminjaman berhasil diperbarui.',
+      );
+      return true;
+    } on PeminjamanRepositoryException catch (error) {
+      _setMutationError(error);
+      return false;
+    } catch (_) {
+      state = state.copyWith(
+        mutationStatus: PeminjamanMutationStatus.error,
+        errorMessage: 'Status peminjaman gagal diperbarui.',
+        errorType: PeminjamanErrorType.unknown,
+      );
+      return false;
+    }
   }
 
-  /// Admin Action: Tolak Peminjaman (Status 'Menunggu' -> 'Ditolak' + catatanPetugas)
-  Future<bool> tolakPeminjaman(int id, String catatanPetugas) async {
-    state = state.copyWith(isLoading: true);
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    final updatedList = state.listPinjam.map((p) {
-      if (p.id == id) {
-        return p.copyWith(
-          status: 'Ditolak',
-          catatanPetugas: catatanPetugas,
-        );
-      }
-      return p;
-    }).toList();
-
-    DummyData.pinjamList = updatedList;
+  Future<bool> cancelPeminjaman(int id) async {
+    if (state.isSubmitting) return false;
     state = state.copyWith(
-      isLoading: false,
-      listPinjam: updatedList,
-      successMessage: 'Peminjaman berhasil ditolak.',
+      mutationStatus: PeminjamanMutationStatus.submitting,
+      clearMessages: true,
     );
-    return true;
+    try {
+      await repository.cancelPeminjaman(id);
+      final remaining = state.listPinjam
+          .where((item) => item.id != id)
+          .toList();
+      state = state.copyWith(
+        listPinjam: remaining,
+        status: remaining.isEmpty
+            ? PeminjamanLoadStatus.empty
+            : PeminjamanLoadStatus.success,
+        mutationStatus: PeminjamanMutationStatus.success,
+        successMessage: 'Pengajuan peminjaman berhasil dibatalkan.',
+        clearSelected: true,
+      );
+      return true;
+    } on PeminjamanRepositoryException catch (error) {
+      _setMutationError(error);
+      return false;
+    } catch (_) {
+      state = state.copyWith(
+        mutationStatus: PeminjamanMutationStatus.error,
+        errorMessage: 'Pengajuan peminjaman gagal dibatalkan.',
+        errorType: PeminjamanErrorType.unknown,
+      );
+      return false;
+    }
   }
 
-  /// Admin Action: Tandai Selesai (Status 'Proses' -> 'Selesai' + buktiPengembalian)
-  Future<bool> selesaikanPeminjaman(int id, {String? buktiPengembalian}) async {
-    state = state.copyWith(isLoading: true);
-    await Future.delayed(const Duration(milliseconds: 300));
+  void _replace(PinjamModel updated) {
+    final found = state.listPinjam.any((item) => item.id == updated.id);
+    final list = found
+        ? state.listPinjam
+              .map((item) => item.id == updated.id ? updated : item)
+              .toList()
+        : [updated, ...state.listPinjam];
+    state = state.copyWith(listPinjam: list);
+  }
 
-    final updatedList = state.listPinjam.map((p) {
-      if (p.id == id) {
-        return p.copyWith(
-          status: 'Selesai',
-          waktuPengembalian: DateTime.now(),
-          buktiPengembalian: buktiPengembalian ?? 'bukti_pengembalian_dummy.jpg',
-        );
-      }
-      return p;
-    }).toList();
-
-    DummyData.pinjamList = updatedList;
+  void _setMutationError(PeminjamanRepositoryException error) {
+    final mutationStatus = switch (error.type) {
+      PeminjamanErrorType.validation =>
+        PeminjamanMutationStatus.validationError,
+      PeminjamanErrorType.forbidden => PeminjamanMutationStatus.forbidden,
+      PeminjamanErrorType.conflict ||
+      PeminjamanErrorType.invalidState => PeminjamanMutationStatus.conflict,
+      _ => PeminjamanMutationStatus.error,
+    };
     state = state.copyWith(
-      isLoading: false,
-      listPinjam: updatedList,
-      successMessage: 'Peminjaman ditandai selesai.',
+      mutationStatus: mutationStatus,
+      errorMessage: error.message,
+      errorType: error.type,
+      validationErrors: error.errors ?? const {},
     );
-    return true;
   }
 
   void clearMessage() {
-    state = state.copyWith(successMessage: null, errorMessage: null);
+    state = state.copyWith(
+      mutationStatus: PeminjamanMutationStatus.idle,
+      clearMessages: true,
+    );
   }
 }
 
 final peminjamanProvider =
     StateNotifierProvider<PeminjamanNotifier, PeminjamanState>((ref) {
-  return PeminjamanNotifier();
-});
+      return PeminjamanNotifier(
+        repository: ref.watch(peminjamanRepositoryProvider),
+      );
+    });

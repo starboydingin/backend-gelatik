@@ -28,7 +28,7 @@
                             "host": [],
                             "path": []
                         },
-                        "description": "# 📘 PANDUAN PENGGUNAAN POSTMAN COLLECTION LAYANAN TIK\n\nSelamat datang di Postman Collection resmi **Layanan TIK Backend API (Diskominfotik Pemprov Lampung)**. Collection ini dirancang khusus sebagai panduan integrasi bagi **Developer Website** dan **Developer Mobile**.\n\n---\n\n## 1. PETUNJUK AWAL & AUTENTIKASI AUTOMATIS\n1. **Import File**: Import file collection (`layanantik-backend-api.postman_collection.json`) dan environment (`layanantik-local.postman_environment.json`) ke Postman Anda.\n2. **Pilih Environment**: Pastikan environment aktif disetel ke **\"LayananTIK Local Environment\"**.\n3. **Jalankan Login**: Buka folder `00 - Auth` -> pilih request `POST /login` -> klik **Send**.\n4. **Token Auto-Save**: Script otomatis di tab *Tests* akan langsung menyimpan `access_token` ke environment variable `{{access_token}}`. Seluruh request terautentikasi di folder lain akan otomatis memakai Bearer token ini.\n\n---\n\n## 2. DAFTAR TOPIC FCM (FIREBASE CLOUD MESSAGING)\nClient Mobile & Web disarankan melakukan subscribe ke topic-topic FCM berikut untuk menerima Push Notification:\n- `user_{id}` : Notifikasi personal spesifik per user (contoh: `user_2`, `user_5`).\n- `admin` : Notifikasi pengajuan baru untuk seluruh Admin Operator / Petugas TIK.\n- `bkd` : Notifikasi khusus tim BKD (terkait pengajuan email resmi BKD).\n- `pengumuman` : Notifikasi pengumuman resmi ke seluruh pengguna.\n\n---\n\n## 3. PANDUAN INTEGRASI REALTIME SERVICE (SOCKET.IO)\n- **URL Socket Server**: `http://localhost:4000` (atau port production yang dikonfigurasi).\n- **Format Handshake Auth**:\n  ```javascript\n  const socket = io(\"http://localhost:4000\", {\n    auth: {\n      token: access_token // Bearer token OAuth Passport dari /api/login\n    }\n  });\n  ```\n- **Daftar Event yang Bisa Didengarkan (Client Listeners)**:\n  1. `pinjam.status_changed` : Notifikasi saat status pengajuan peminjaman aset berubah (`Menunggu` -> `Disetujui` / `Ditolak` / `Selesai`).\n  2. `konsultasi.new_response` : Notifikasi balasan/tanggapan baru pada tiket konsultasi TIK.\n  3. `usulan_email.status_changed` : Notifikasi perubahan status usulan email resmi BKD.\n  4. `pengumuman.created` : Notifikasi pengumuman resmi baru yang diterbitkan admin.\n\n---\n\n## 4. REFERENSI DOKUMEN PRODUCTION\n- Dapatkan konfigurasi environment server produksi pada file:\n  `KONFIGURASI_PRODUCTION.md` (terletak di root repository).\n\n---\n\n## ⚠️ CATATAN PENTING KONTRAK API FINAL\n- Endpoint dan path yang tertera dalam Postman Collection ini (termasuk aksi tambah/hapus item pada transaksi peminjaman seperti `POST /api/pinjam/{id}` dan `DELETE /api/pinjam/{p}/item/{id}`) adalah **SKEMA FINAL DAN RESMI SESUAI KONTRAK AKTUAL BACKEND**.\n- Developer **WAJIB** menjadikan Postman Collection ini sebagai *Single Source of Truth* (satu-satunya acuan kebenaran) dan mengabaikan perbedaan path pada draft dokumen SRS/PRD lama."
+                        "description": "# 📘 PANDUAN PENGGUNAAN POSTMAN COLLECTION LAYANAN TIK\n\nSelamat datang di Postman Collection resmi **Layanan TIK Backend API (Diskominfotik Pemprov Lampung)**. Collection ini dirancang khusus sebagai panduan integrasi bagi **Developer Website** dan **Developer Mobile**.\n\n---\n\n## 1. PETUNJUK AWAL & AUTENTIKASI AUTOMATIS\n1. **Import File**: Import file collection (`layanantik-backend-api.postman_collection.json`) dan environment (`layanantik-local.postman_environment.json`) ke Postman Anda.\n2. **Pilih Environment**: Pastikan environment aktif disetel ke **\"LayananTIK Local Environment\"**.\n3. **Jalankan Login**: Buka folder `00 - Auth` -> pilih request `POST /login` -> klik **Send**.\n4. **Token Auto-Save**: Script otomatis di tab *Tests* akan langsung menyimpan `access_token` ke environment variable `{{access_token}}`. Seluruh request terautentikasi di folder lain akan otomatis memakai Bearer token ini.\n\n---\n\n## 2. DAFTAR TOPIC FCM (FIREBASE CLOUD MESSAGING)\nClient Mobile & Web disarankan melakukan subscribe ke topic-topic FCM berikut untuk menerima Push Notification:\n- `user_{id}` : Notifikasi personal spesifik per user (contoh: `user_2`, `user_5`).\n- `admin` : Notifikasi pengajuan baru untuk seluruh Admin Operator / Petugas TIK.\n- `bkd` : Notifikasi khusus tim BKD (terkait pengajuan email resmi BKD).\n- `pengumuman` : Notifikasi pengumuman resmi ke seluruh pengguna.\n\n---\n\n## 3. PANDUAN INTEGRASI REALTIME SERVICE (SOCKET.IO)\n- **URL Socket Server**: `http://localhost:4000` (atau port production yang dikonfigurasi).\n- **Format Handshake Auth**:\n  ```javascript\n  const socket = io(\"http://localhost:4000\", {\n    auth: {\n      token: access_token // Bearer token OAuth Passport dari /api/login\n    }\n  });\n  ```\n- **Daftar Event yang Bisa Didengarkan (Client Listeners)**:\n  1. `pinjam.status_changed` : Notifikasi saat status pengajuan peminjaman aset berubah (`Menunggu` -> `Proses` / `Ditolak`, lalu `Proses` -> `Selesai`).\n  2. `konsultasi.new_response` : Notifikasi balasan/tanggapan baru pada tiket konsultasi TIK.\n  3. `usulan_email.status_changed` : Notifikasi perubahan status usulan email resmi BKD.\n  4. `pengumuman.created` : Notifikasi pengumuman resmi baru yang diterbitkan admin.\n\n---\n\n## 4. REFERENSI DOKUMEN PRODUCTION\n- Dapatkan konfigurasi environment server produksi pada file:\n  `KONFIGURASI_PRODUCTION.md` (terletak di root repository).\n\n---\n\n## ⚠️ CATATAN PENTING KONTRAK API FINAL\n- Endpoint dan path yang tertera dalam Postman Collection ini (termasuk aksi tambah/hapus item pada transaksi peminjaman seperti `POST /api/pinjam/{id}` dan `DELETE /api/pinjam/{p}/item/{id}`) adalah **SKEMA FINAL DAN RESMI SESUAI KONTRAK AKTUAL BACKEND**.\n- Developer **WAJIB** menjadikan Postman Collection ini sebagai *Single Source of Truth* (satu-satunya acuan kebenaran) dan mengabaikan perbedaan path pada draft dokumen SRS/PRD lama."
                     },
                     "response": []
                 }
@@ -340,7 +340,7 @@
                                 "pinjam"
                             ]
                         },
-                        "description": "Fungsi: Mengambil daftar riwayat pengajuan peminjaman aset TIK milik pengguna (atau seluruh peminjaman jika role Admin/Petugas).\nPermission/Role: Terautentikasi."
+                        "description": "Fungsi: Mengambil daftar riwayat pengajuan peminjaman aset TIK milik pengguna (atau seluruh peminjaman jika role Admin/Superadmin).\nPermission/Role: Terautentikasi."
                     },
                     "response": []
                 },
@@ -372,7 +372,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"tgl_pinjam\": \"2026-07-28\",\n    \"tgl_kembali\": \"2026-07-31\",\n    \"keterangan\": \"Peminjaman Laptop & Proyektor untuk Rapat Koordinasi\",\n    \"items\": [\n        {\n            \"item_id\": 1,\n            \"jumlah\": 1\n        }\n    ]\n}",
+                            "raw": "{\n    \"nama_pic\": \"Ahmad Subagja\",\n    \"jabatan_pic\": \"Pranata Komputer\",\n    \"instansi_pic\": \"Diskominfotik Provinsi Lampung\",\n    \"kontak_pic\": \"081272345678\",\n    \"jenis_identitas\": \"NIP\",\n    \"nomor_identitas\": \"198804122014031002\",\n    \"alamat_peminjam\": \"Jl. Wolter Monginsidi No. 69\",\n    \"jenis_durasi\": \"harian\",\n    \"tanggal_mulai\": \"2026-07-28\",\n    \"jam_mulai\": \"08:00\",\n    \"durasi_peminjaman\": 3,\n    \"keterangan\": \"Peminjaman Laptop & Proyektor untuk Rapat Koordinasi\",\n    \"items\": [\n        {\n            \"item_id\": 1,\n            \"quantity\": 1\n        }\n    ]\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -504,7 +504,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"status\": \"1\",\n    \"catatan\": \"Disetujui oleh admin operator\"\n}",
+                            "raw": "{\n    \"status\": \"Proses\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -522,7 +522,7 @@
                                 "status"
                             ]
                         },
-                        "description": "Fungsi: Mengubah status peminjaman aset (1 = Disetujui, 2 = Ditolak, 3 = Selesai).\nPermission/Role: Admin / Superadmin / Petugas TIK."
+                        "description": "Fungsi: Mengubah status peminjaman aset dengan transisi Menunggu -> Proses/Ditolak dan Proses -> Selesai. Catatan wajib saat status Ditolak.\nPermission/Role: Admin / Superadmin."
                     },
                     "response": []
                 },
@@ -554,7 +554,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"item_id\": 1,\n    \"jumlah\": 1\n}",
+                            "raw": "{\n    \"items\": [\n        {\n            \"item_id\": 1,\n            \"quantity\": 1\n        }\n    ]\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -608,7 +608,7 @@
                                 "1"
                             ]
                         },
-                        "description": "Fungsi: Menghapus item tertentu dari daftar transaksi peminjaman.\nPermission/Role: Terautentikasi.\nCatatan: Path /pinjam/{p}/item/{id} di mana {p} adalah ID peminjaman dan {id} adalah ID pivot item (pinjam_item.id)."
+                        "description": "Fungsi: Menghapus item tertentu dari daftar transaksi peminjaman.\nPermission/Role: Pemilik pengajuan.\nCatatan: Path /pinjam/{p}/item/{id} di mana {p} adalah ID peminjaman dan {id} adalah master_item.id yang tersimpan pada pinjam_item.item_id. Hanya berlaku saat status Menunggu dan minimal satu item harus tersisa."
                     },
                     "response": []
                 },

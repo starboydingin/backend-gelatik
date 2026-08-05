@@ -7,16 +7,15 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../../peminjaman/models/pinjam_model.dart';
 import '../../../peminjaman/providers/peminjaman_provider.dart';
 
 /// AdminPeminjamanDetailScreen — Detail Peminjaman & Aksi Khusus Admin (Setujui/Tolak/Selesai)
 class AdminPeminjamanDetailScreen extends ConsumerStatefulWidget {
   final int pinjamId;
 
-  const AdminPeminjamanDetailScreen({
-    super.key,
-    required this.pinjamId,
-  });
+  const AdminPeminjamanDetailScreen({super.key, required this.pinjamId});
 
   @override
   ConsumerState<AdminPeminjamanDetailScreen> createState() =>
@@ -27,6 +26,14 @@ class _AdminPeminjamanDetailScreenState
     extends ConsumerState<AdminPeminjamanDetailScreen> {
   final TextEditingController _catatanController = TextEditingController();
   String? _catatanError;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(
+      () => ref.read(peminjamanProvider.notifier).loadDetail(widget.pinjamId),
+    );
+  }
 
   @override
   void dispose() {
@@ -41,7 +48,9 @@ class _AdminPeminjamanDetailScreenState
     });
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final errorColor = isDark ? AppColors.statusErrorDark : AppColors.statusErrorLight;
+    final errorColor = isDark
+        ? AppColors.statusErrorDark
+        : AppColors.statusErrorLight;
 
     showDialog(
       context: context,
@@ -61,7 +70,8 @@ class _AdminPeminjamanDetailScreenState
                   const SizedBox(height: 12),
                   AppTextField(
                     labelText: 'Catatan Penolakan Admin',
-                    hintText: 'Misal: Stok barang tidak mencukupi untuk periode tersebut.',
+                    hintText:
+                        'Misal: Stok barang tidak mencukupi untuk periode tersebut.',
                     controller: _catatanController,
                     maxLines: 3,
                     errorText: _catatanError,
@@ -130,12 +140,15 @@ class _AdminPeminjamanDetailScreenState
               SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.cloud_upload_rounded, color: Colors.teal),
+                  Icon(Icons.inventory_2_outlined, color: Colors.teal),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Bukti pengembalian: bukti_kembali_aset.jpg (Dummy File Attached)',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      'Status akan diperbarui setelah pengembalian dikonfirmasi.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -158,10 +171,7 @@ class _AdminPeminjamanDetailScreenState
                 final messenger = ScaffoldMessenger.of(context);
                 final success = await ref
                     .read(peminjamanProvider.notifier)
-                    .selesaikanPeminjaman(
-                      widget.pinjamId,
-                      buktiPengembalian: 'bukti_pengembalian_aset_selesai.jpg',
-                    );
+                    .selesaikanPeminjaman(widget.pinjamId);
 
                 if (success) {
                   messenger.showSnackBar(
@@ -185,15 +195,47 @@ class _AdminPeminjamanDetailScreenState
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primaryTeal = AppColors.primaryTeal(context);
-    final errorColor = isDark ? AppColors.statusErrorDark : AppColors.statusErrorLight;
+    final errorColor = isDark
+        ? AppColors.statusErrorDark
+        : AppColors.statusErrorLight;
     final strokeColor = AppColors.cardStroke(context);
     final mutedText = AppColors.mutedText(context);
 
     final state = ref.watch(peminjamanProvider);
-    final pinjam = state.listPinjam.firstWhere(
-      (p) => p.id == widget.pinjamId,
-      orElse: () => state.listPinjam.first,
-    );
+    final role = ref.watch(authProvider).currentUser?.role.toLowerCase();
+    final canManage = role == 'admin' || role == 'superadmin';
+    PinjamModel? pinjam = state.selectedPinjam?.id == widget.pinjamId
+        ? state.selectedPinjam
+        : null;
+    for (final item in state.listPinjam) {
+      if (item.id == widget.pinjamId) pinjam ??= item;
+    }
+
+    if (state.status == PeminjamanLoadStatus.error || pinjam == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Detail Peminjaman')),
+        body: Center(
+          child: state.status == PeminjamanLoadStatus.error
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      state.errorMessage ?? 'Detail peminjaman gagal dimuat.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => ref
+                          .read(peminjamanProvider.notifier)
+                          .loadDetail(widget.pinjamId),
+                      child: const Text('Coba Lagi'),
+                    ),
+                  ],
+                )
+              : const CircularProgressIndicator(),
+        ),
+      );
+    }
 
     final dateFormat = DateFormat('dd MMMM yyyy', 'id_ID');
 
@@ -205,16 +247,10 @@ class _AdminPeminjamanDetailScreenState
         ),
         title: Text(
           'Detail Peminjaman #${pinjam.id}',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: primaryTeal,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: primaryTeal),
         ),
         centerTitle: true,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -243,18 +279,37 @@ class _AdminPeminjamanDetailScreenState
                       ],
                     ),
                     const Divider(height: 20),
-                    _buildDetailRow(context, 'Nama Pemohon (PIC)', pinjam.namaPic),
+                    _buildDetailRow(
+                      context,
+                      'Nama Pemohon (PIC)',
+                      pinjam.namaPic,
+                    ),
                     const SizedBox(height: 10),
-                    _buildDetailRow(context, 'Instansi / OPD', pinjam.instansiPic),
+                    _buildDetailRow(
+                      context,
+                      'Instansi / OPD',
+                      pinjam.instansiPic,
+                    ),
                     const SizedBox(height: 10),
                     _buildDetailRow(context, 'Jabatan PIC', pinjam.jabatanPic),
                     const SizedBox(height: 10),
-                    _buildDetailRow(context, 'Kontak WA / HP', pinjam.kontakPic),
+                    _buildDetailRow(
+                      context,
+                      'Kontak WA / HP',
+                      pinjam.kontakPic,
+                    ),
                     const SizedBox(height: 10),
                     _buildDetailRow(
-                        context, 'Identitas (${pinjam.jenisIdentitas})', pinjam.nomorIdentitas),
+                      context,
+                      'Identitas (${pinjam.jenisIdentitas})',
+                      pinjam.nomorIdentitas,
+                    ),
                     const SizedBox(height: 10),
-                    _buildDetailRow(context, 'Alamat Peminjam', pinjam.alamatPeminjam),
+                    _buildDetailRow(
+                      context,
+                      'Alamat Peminjam',
+                      pinjam.alamatPeminjam,
+                    ),
                   ],
                 ),
               ),
@@ -287,9 +342,14 @@ class _AdminPeminjamanDetailScreenState
                       'Durasi Peminjaman',
                       '${pinjam.durasiPeminjaman} ${pinjam.jenisDurasi}',
                     ),
-                    if (pinjam.keterangan != null && pinjam.keterangan!.isNotEmpty) ...[
+                    if (pinjam.keterangan != null &&
+                        pinjam.keterangan!.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      _buildDetailRow(context, 'Maksud & Tujuan', pinjam.keterangan!),
+                      _buildDetailRow(
+                        context,
+                        'Maksud & Tujuan',
+                        pinjam.keterangan!,
+                      ),
                     ],
                   ],
                 ),
@@ -330,13 +390,17 @@ class _AdminPeminjamanDetailScreenState
                                     color: primaryTeal.withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: Icon(Icons.devices_rounded,
-                                      size: 18, color: primaryTeal),
+                                  child: Icon(
+                                    Icons.devices_rounded,
+                                    size: 18,
+                                    color: primaryTeal,
+                                  ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         pinjamItem.item?.nama ?? 'Aset TIK',
@@ -348,25 +412,34 @@ class _AdminPeminjamanDetailScreenState
                                       ),
                                       Text(
                                         'Kondisi: ${pinjamItem.item?.kondisi ?? "Baik"}',
-                                        style: TextStyle(fontSize: 11, color: mutedText),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: mutedText,
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 Container(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: theme.colorScheme.primaryContainer,
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: strokeColor, width: 1),
+                                    border: Border.all(
+                                      color: strokeColor,
+                                      width: 1,
+                                    ),
                                   ),
                                   child: Text(
                                     '${pinjamItem.quantity} unit',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: theme.colorScheme.onPrimaryContainer,
+                                      color:
+                                          theme.colorScheme.onPrimaryContainer,
                                     ),
                                   ),
                                 ),
@@ -380,7 +453,8 @@ class _AdminPeminjamanDetailScreenState
               ),
 
               // Jika status Ditolak dan ada catatanPetugas
-              if (pinjam.catatanPetugas != null && pinjam.catatanPetugas!.isNotEmpty) ...[
+              if (pinjam.catatanPetugas != null &&
+                  pinjam.catatanPetugas!.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 AppCard(
                   child: Column(
@@ -388,7 +462,11 @@ class _AdminPeminjamanDetailScreenState
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.info_outline_rounded, color: errorColor, size: 20),
+                          Icon(
+                            Icons.info_outline_rounded,
+                            color: errorColor,
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'CATATAN PENOLAKAN ADMIN',
@@ -420,7 +498,7 @@ class _AdminPeminjamanDetailScreenState
               // ===============================================================
               // ACTION BUTTONS KHUSUS ADMIN (M-L BAGIAN 2)
               // ===============================================================
-              if (pinjam.status == 'Menunggu') ...[
+              if (canManage && pinjam.status == 'Menunggu') ...[
                 Row(
                   children: [
                     Expanded(
@@ -428,7 +506,9 @@ class _AdminPeminjamanDetailScreenState
                         text: 'Tolak',
                         icon: Icons.cancel_outlined,
                         variant: AppButtonVariant.outlined,
-                        onPressed: () => _showTolakDialog(context),
+                        onPressed: state.isSubmitting
+                            ? null
+                            : () => _showTolakDialog(context),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -437,32 +517,38 @@ class _AdminPeminjamanDetailScreenState
                         text: 'Setujui',
                         icon: Icons.check_circle_outline_rounded,
                         variant: AppButtonVariant.filled,
-                        onPressed: () async {
-                          final success = await ref
-                              .read(peminjamanProvider.notifier)
-                              .setujuPeminjaman(pinjam.id);
+                        onPressed: state.isSubmitting
+                            ? null
+                            : () async {
+                                final success = await ref
+                                    .read(peminjamanProvider.notifier)
+                                    .setujuPeminjaman(widget.pinjamId);
 
-                          if (success && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Pengajuan peminjaman telah disetujui! Status: Proses.'),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          }
-                        },
+                                if (success && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Pengajuan peminjaman telah disetujui! Status: Proses.',
+                                      ),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              },
                       ),
                     ),
                   ],
                 ),
-              ] else if (pinjam.status == 'Proses') ...[
+              ] else if (canManage && pinjam.status == 'Proses') ...[
                 SizedBox(
                   width: double.infinity,
                   child: AppButton(
                     text: 'Tandai Selesai',
                     icon: Icons.task_alt_rounded,
                     variant: AppButtonVariant.filled,
-                    onPressed: () => _showSelesaiDialog(context),
+                    onPressed: state.isSubmitting
+                        ? null
+                        : () => _showSelesaiDialog(context),
                   ),
                 ),
               ],
@@ -483,10 +569,7 @@ class _AdminPeminjamanDetailScreenState
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 11,
-            color: AppColors.mutedText(context),
-          ),
+          style: TextStyle(fontSize: 11, color: AppColors.mutedText(context)),
         ),
         const SizedBox(height: 2),
         Text(

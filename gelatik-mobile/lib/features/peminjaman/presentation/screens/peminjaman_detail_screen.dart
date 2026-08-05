@@ -1,21 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../models/pinjam_model.dart';
+import '../../providers/peminjaman_provider.dart';
 
 /// PeminjamanDetailScreen — Layar Detail Rincian Transaksi Peminjaman Aset TIK
-class PeminjamanDetailScreen extends StatelessWidget {
+class PeminjamanDetailScreen extends ConsumerStatefulWidget {
   final PinjamModel pinjam;
 
-  const PeminjamanDetailScreen({
-    super.key,
-    required this.pinjam,
-  });
+  const PeminjamanDetailScreen({super.key, required this.pinjam});
+
+  @override
+  ConsumerState<PeminjamanDetailScreen> createState() =>
+      _PeminjamanDetailScreenState();
+}
+
+class _PeminjamanDetailScreenState
+    extends ConsumerState<PeminjamanDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(
+      () => ref.read(peminjamanProvider.notifier).loadDetail(widget.pinjam.id),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(peminjamanProvider);
+    final pinjam = state.selectedPinjam?.id == widget.pinjam.id
+        ? state.selectedPinjam!
+        : widget.pinjam;
     final theme = Theme.of(context);
     final primaryTeal = AppColors.primaryTeal(context);
     final accentNavy = AppColors.accentNavy(context);
@@ -24,12 +42,11 @@ class PeminjamanDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Detail Peminjaman TRX-${pinjam.id.toString().padLeft(4, '0')}'),
+        title: Text(
+          'Detail Peminjaman TRX-${pinjam.id.toString().padLeft(4, '0')}',
+        ),
         centerTitle: true,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -37,6 +54,27 @@ class PeminjamanDetailScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (state.status == PeminjamanLoadStatus.error) ...[
+                AppCard(
+                  child: Column(
+                    children: [
+                      Text(
+                        state.errorMessage ?? 'Detail peminjaman gagal dimuat.',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () => ref
+                            .read(peminjamanProvider.notifier)
+                            .loadDetail(pinjam.id),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Coba Lagi'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
               // Header Card Status
               AppCard(
                 child: Row(
@@ -47,10 +85,7 @@ class PeminjamanDetailScreen extends StatelessWidget {
                       children: [
                         Text(
                           'Status Pengajuan',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: mutedText,
-                          ),
+                          style: TextStyle(fontSize: 12, color: mutedText),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -63,9 +98,7 @@ class PeminjamanDetailScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    StatusBadge(
-                      status: pinjam.status,
-                    ),
+                    StatusBadge(status: pinjam.status),
                   ],
                 ),
               ),
@@ -76,16 +109,21 @@ class PeminjamanDetailScreen extends StatelessWidget {
               if (pinjam.catatanPetugas != null &&
                   pinjam.catatanPetugas!.isNotEmpty) ...[
                 AppCard(
-                  backgroundColor:
-                      accentNavy.withValues(alpha: 0.08),
-                  border: Border.all(color: accentNavy.withValues(alpha: 0.4), width: 1.5),
+                  backgroundColor: accentNavy.withValues(alpha: 0.08),
+                  border: Border.all(
+                    color: accentNavy.withValues(alpha: 0.4),
+                    width: 1.5,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.rate_review_outlined,
-                              size: 18, color: accentNavy),
+                          Icon(
+                            Icons.rate_review_outlined,
+                            size: 18,
+                            color: accentNavy,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Catatan Petugas Helpdesk:',
@@ -138,8 +176,11 @@ class PeminjamanDetailScreen extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.devices_rounded,
-                                  color: primaryTeal, size: 24),
+                              Icon(
+                                Icons.devices_rounded,
+                                color: primaryTeal,
+                                size: 24,
+                              ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
@@ -167,7 +208,9 @@ class PeminjamanDetailScreen extends StatelessWidget {
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 4),
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: primaryTeal,
                                   borderRadius: BorderRadius.circular(12),
@@ -211,30 +254,104 @@ class PeminjamanDetailScreen extends StatelessWidget {
                     _buildDetailRow(context, 'Instansi', pinjam.instansiPic),
                     _buildDetailRow(context, 'Kontak WA', pinjam.kontakPic),
                     _buildDetailRow(
-                        context, 'Identitas', '${pinjam.jenisIdentitas}: ${pinjam.nomorIdentitas}'),
-                    _buildDetailRow(context, 'Alamat Lokasi', pinjam.alamatPeminjam),
+                      context,
+                      'Identitas',
+                      '${pinjam.jenisIdentitas}: ${pinjam.nomorIdentitas}',
+                    ),
+                    _buildDetailRow(
+                      context,
+                      'Alamat Lokasi',
+                      pinjam.alamatPeminjam,
+                    ),
                     const Divider(height: 20),
                     _buildDetailRow(
-                        context,
-                        'Tanggal Mulai',
-                        '${pinjam.tanggalMulai.day}/${pinjam.tanggalMulai.month}/${pinjam.tanggalMulai.year} (${pinjam.jamMulai ?? '08:00'})'),
+                      context,
+                      'Tanggal Mulai',
+                      '${pinjam.tanggalMulai.day}/${pinjam.tanggalMulai.month}/${pinjam.tanggalMulai.year} (${pinjam.jamMulai ?? '08:00'})',
+                    ),
                     _buildDetailRow(
-                        context, 'Durasi', '${pinjam.durasiPeminjaman} ${pinjam.jenisDurasi}'),
+                      context,
+                      'Durasi',
+                      '${pinjam.durasiPeminjaman} ${pinjam.jenisDurasi}',
+                    ),
                     if (pinjam.keterangan != null &&
                         pinjam.keterangan!.isNotEmpty)
-                      _buildDetailRow(context, 'Keterangan', pinjam.keterangan!),
+                      _buildDetailRow(
+                        context,
+                        'Keterangan',
+                        pinjam.keterangan!,
+                      ),
                     if (pinjam.urlDokumen != null &&
                         pinjam.urlDokumen!.isNotEmpty)
                       _buildDetailRow(
-                          context, 'Url Dokumen (url_dokumen)', pinjam.urlDokumen!),
+                        context,
+                        'Url Dokumen (url_dokumen)',
+                        pinjam.urlDokumen!,
+                      ),
                   ],
                 ),
               ),
+              if (pinjam.statusType == PinjamStatus.menunggu) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: state.isSubmitting
+                        ? null
+                        : () => _confirmCancel(context, pinjam.id),
+                    icon: const Icon(Icons.cancel_outlined),
+                    label: Text(
+                      state.isSubmitting
+                          ? 'Membatalkan...'
+                          : 'Batalkan Pengajuan',
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _confirmCancel(BuildContext context, int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Batalkan Pengajuan?'),
+        content: const Text(
+          'Pengajuan berstatus Menunggu akan dihapus dan tidak dapat dipulihkan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Kembali'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Batalkan Pengajuan'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final success = await ref
+        .read(peminjamanProvider.notifier)
+        .cancelPeminjaman(id);
+    if (!mounted) return;
+    if (success) {
+      Navigator.of(this.context).pop();
+    } else {
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ref.read(peminjamanProvider).errorMessage ??
+                'Pengajuan gagal dibatalkan.',
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildDetailRow(BuildContext context, String label, String value) {
@@ -250,10 +367,7 @@ class PeminjamanDetailScreen extends StatelessWidget {
             width: 130,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 13,
-                color: mutedText,
-              ),
+              style: TextStyle(fontSize: 13, color: mutedText),
             ),
           ),
           const Text(': '),

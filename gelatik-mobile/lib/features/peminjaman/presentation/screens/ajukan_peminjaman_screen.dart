@@ -10,6 +10,7 @@ import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../info_alat/models/master_item_model.dart';
 import '../../../info_alat/presentation/screens/pilih_aset_screen.dart';
+import '../../../info_alat/providers/info_alat_provider.dart';
 import '../../providers/peminjaman_provider.dart';
 import 'peminjaman_list_screen.dart';
 import '../../../home/presentation/screens/home_screen.dart';
@@ -39,12 +40,12 @@ class _AjukanPeminjamanScreenState
   late TextEditingController _alamatPeminjamController;
   late TextEditingController _durasiCountController;
   late TextEditingController _keteranganController;
+  late TextEditingController _dokumenUrlController;
 
   String _jenisIdentitas = 'NIP';
   String _jenisDurasi = 'harian'; // harian, jam, menit
   DateTime _tanggalMulai = DateTime.now();
   final TimeOfDay _jamMulai = const TimeOfDay(hour: 8, minute: 0);
-  String? _uploadedFileName;
   bool _agreeTerms = false;
 
   // Errors
@@ -63,16 +64,21 @@ class _AjukanPeminjamanScreenState
     final user = ref.read(authProvider).currentUser;
 
     _namaPicController = TextEditingController(text: user?.name ?? '');
-    _jabatanPicController =
-        TextEditingController(text: 'Pranata Komputer Ahli Muda');
+    _jabatanPicController = TextEditingController(
+      text: 'Pranata Komputer Ahli Muda',
+    );
     _instansiPicController = TextEditingController(text: user?.namaOpd ?? '');
     _kontakPicController = TextEditingController(text: user?.noHp ?? '');
-    _nomorIdentitasController =
-        TextEditingController(text: '198804122014031002');
-    _alamatPeminjamController =
-        TextEditingController(text: 'Jl. Wolter Monginsidi No. 69, Bandar Lampung');
+    _nomorIdentitasController = TextEditingController(
+      text: '198804122014031002',
+    );
+    _alamatPeminjamController = TextEditingController(
+      text: 'Jl. Wolter Monginsidi No. 69, Bandar Lampung',
+    );
     _durasiCountController = TextEditingController(text: '1');
     _keteranganController = TextEditingController();
+    _dokumenUrlController = TextEditingController();
+    Future.microtask(() => ref.read(infoAlatProvider.notifier).loadItems());
   }
 
   @override
@@ -85,6 +91,7 @@ class _AjukanPeminjamanScreenState
     _alamatPeminjamController.dispose();
     _durasiCountController.dispose();
     _keteranganController.dispose();
+    _dokumenUrlController.dispose();
     super.dispose();
   }
 
@@ -92,7 +99,9 @@ class _AjukanPeminjamanScreenState
     return _selectedQuantities.values.fold(0, (sum, qty) => sum + qty);
   }
 
-  Map<MasterItemModel, int> _getSelectedItemsMap(List<MasterItemModel> masterItems) {
+  Map<MasterItemModel, int> _getSelectedItemsMap(
+    List<MasterItemModel> masterItems,
+  ) {
     final Map<MasterItemModel, int> map = {};
     for (final item in masterItems) {
       final qty = _selectedQuantities[item.id] ?? 0;
@@ -136,7 +145,7 @@ class _AjukanPeminjamanScreenState
       'September',
       'Oktober',
       'November',
-      'Desember'
+      'Desember',
     ];
     final dateStr = '${dt.day} ${months[dt.month - 1]} ${dt.year}';
     if (jenisDurasi == 'jam' || jenisDurasi == 'menit') {
@@ -210,11 +219,11 @@ class _AjukanPeminjamanScreenState
 
     if (!isValid) return;
 
-    final user = ref.read(authProvider).currentUser;
     final selectedItemsMap = _getSelectedItemsMap(masterItems);
 
-    final success = await ref.read(peminjamanProvider.notifier).submitPengajuan(
-          userId: user?.id ?? 1,
+    final success = await ref
+        .read(peminjamanProvider.notifier)
+        .submitPengajuan(
           namaPic: _namaPicController.text.trim(),
           jabatanPic: _jabatanPicController.text.trim(),
           instansiPic: _instansiPicController.text.trim(),
@@ -224,12 +233,15 @@ class _AjukanPeminjamanScreenState
           alamatPeminjam: _alamatPeminjamController.text.trim(),
           jenisDurasi: _jenisDurasi,
           tanggalMulai: _tanggalMulai,
-          jamMulai: '${_jamMulai.hour.toString().padLeft(2, '0')}:${_jamMulai.minute.toString().padLeft(2, '0')}',
+          jamMulai:
+              '${_jamMulai.hour.toString().padLeft(2, '0')}:${_jamMulai.minute.toString().padLeft(2, '0')}',
           durasiPeminjaman: durasi!,
           keterangan: _keteranganController.text.trim().isNotEmpty
               ? _keteranganController.text.trim()
               : null,
-          urlDokumen: _uploadedFileName,
+          urlDokumen: _dokumenUrlController.text.trim().isEmpty
+              ? null
+              : _dokumenUrlController.text.trim(),
           selectedItemsWithQuantity: selectedItemsMap,
         );
 
@@ -242,14 +254,14 @@ class _AjukanPeminjamanScreenState
             children: [
               Icon(Icons.check_circle_rounded, color: Colors.white),
               SizedBox(width: 10),
-              Expanded(
-                child: Text('Pengajuan peminjaman berhasil dikirim!'),
-              ),
+              Expanded(child: Text('Pengajuan peminjaman berhasil dikirim!')),
             ],
           ),
           backgroundColor: AppColors.actionEmeraldLight,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           margin: const EdgeInsets.all(16),
         ),
       );
@@ -258,6 +270,13 @@ class _AjukanPeminjamanScreenState
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const PeminjamanListScreen()),
       );
+    } else {
+      final error = ref.read(peminjamanProvider).errorMessage;
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), behavior: SnackBarBehavior.floating),
+        );
+      }
     }
   }
 
@@ -272,7 +291,8 @@ class _AjukanPeminjamanScreenState
     final mutedText = AppColors.mutedText(context);
 
     final peminjamanState = ref.watch(peminjamanProvider);
-    final masterItems = peminjamanState.listMasterItem;
+    final infoAlatState = ref.watch(infoAlatProvider);
+    final masterItems = infoAlatState.items;
 
     return Scaffold(
       appBar: AppBar(
@@ -290,10 +310,7 @@ class _AjukanPeminjamanScreenState
             }
           },
         ),
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -327,19 +344,53 @@ class _AjukanPeminjamanScreenState
                 ),
                 const SizedBox(height: 16),
 
-                PilihAsetWidget(
-                  masterItems: masterItems,
-                  selectedQuantities: _selectedQuantities,
-                  onQuantityChanged: (item, newQty) {
-                    setState(() {
-                      if (newQty <= 0) {
-                        _selectedQuantities.remove(item.id);
-                      } else {
-                        _selectedQuantities[item.id] = newQty;
-                      }
-                    });
-                  },
-                ),
+                if (infoAlatState.status == InfoAlatStatus.loading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (infoAlatState.status == InfoAlatStatus.error)
+                  AppCard(
+                    child: Column(
+                      children: [
+                        Text(
+                          infoAlatState.errorMessage ??
+                              'Katalog alat gagal dimuat.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: () =>
+                              ref.read(infoAlatProvider.notifier).retry(),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Coba Lagi'),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (masterItems.isEmpty)
+                  const AppCard(
+                    child: Text(
+                      'Belum ada aset tersedia untuk dipinjam.',
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                else
+                  PilihAsetWidget(
+                    masterItems: masterItems,
+                    selectedQuantities: _selectedQuantities,
+                    onQuantityChanged: (item, newQty) {
+                      setState(() {
+                        if (newQty <= 0) {
+                          _selectedQuantities.remove(item.id);
+                        } else {
+                          _selectedQuantities[item.id] = newQty;
+                        }
+                      });
+                    },
+                  ),
 
                 const SizedBox(height: 24),
 
@@ -385,8 +436,11 @@ class _AjukanPeminjamanScreenState
                           ),
                           TextButton.icon(
                             onPressed: () => setState(() => _currentStep = 1),
-                            icon: Icon(Icons.edit_outlined,
-                                size: 16, color: primaryTeal),
+                            icon: Icon(
+                              Icons.edit_outlined,
+                              size: 16,
+                              color: primaryTeal,
+                            ),
                             label: Text(
                               'Ubah Aset',
                               style: TextStyle(
@@ -413,34 +467,34 @@ class _AjukanPeminjamanScreenState
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: _getSelectedItemsMap(masterItems)
-                            .entries
-                            .map((e) {
-                          return Chip(
-                            backgroundColor:
-                                theme.colorScheme.primaryContainer,
-                            side: BorderSide(color: strokeColor, width: 1),
-                            avatar: CircleAvatar(
-                              backgroundColor: primaryTeal,
-                              child: Text(
-                                '${e.value}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
+                        children: _getSelectedItemsMap(masterItems).entries.map(
+                          (e) {
+                            return Chip(
+                              backgroundColor:
+                                  theme.colorScheme.primaryContainer,
+                              side: BorderSide(color: strokeColor, width: 1),
+                              avatar: CircleAvatar(
+                                backgroundColor: primaryTeal,
+                                child: Text(
+                                  '${e.value}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
-                            ),
-                            label: Text(
-                              e.key.nama,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: theme.colorScheme.onPrimaryContainer,
+                              label: Text(
+                                e.key.nama,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                ),
                               ),
-                            ),
-                          );
-                        }).toList(),
+                            );
+                          },
+                        ).toList(),
                       ),
 
                       const SizedBox(height: 20),
@@ -506,7 +560,9 @@ class _AjukanPeminjamanScreenState
                           DropdownMenuItem(value: 'KTP', child: Text('KTP')),
                           DropdownMenuItem(value: 'SIM', child: Text('SIM')),
                           DropdownMenuItem(
-                              value: 'Passport', child: Text('Passport')),
+                            value: 'Passport',
+                            child: Text('Passport'),
+                          ),
                           DropdownMenuItem(value: 'NIP', child: Text('NIP')),
                         ],
                         onChanged: (val) {
@@ -521,8 +577,7 @@ class _AjukanPeminjamanScreenState
                         labelText: 'Nomor Identitas',
                         hintText: 'Masukkan nomor KTP/NIP',
                         controller: _nomorIdentitasController,
-                        prefixIcon:
-                            const Icon(Icons.credit_card_outlined),
+                        prefixIcon: const Icon(Icons.credit_card_outlined),
                         errorText: _nomorIdentitasError,
                       ),
                       const SizedBox(height: 12),
@@ -564,7 +619,8 @@ class _AjukanPeminjamanScreenState
                                         '${_tanggalMulai.day}/${_tanggalMulai.month}/${_tanggalMulai.year}',
                                   ),
                                   prefixIcon: const Icon(
-                                      Icons.calendar_today_outlined),
+                                    Icons.calendar_today_outlined,
+                                  ),
                                 ),
                               ),
                             ),
@@ -579,11 +635,17 @@ class _AjukanPeminjamanScreenState
                               ),
                               items: const [
                                 DropdownMenuItem(
-                                    value: 'harian', child: Text('Harian')),
+                                  value: 'harian',
+                                  child: Text('Harian'),
+                                ),
                                 DropdownMenuItem(
-                                    value: 'jam', child: Text('Jam')),
+                                  value: 'jam',
+                                  child: Text('Jam'),
+                                ),
                                 DropdownMenuItem(
-                                    value: 'menit', child: Text('Menit')),
+                                  value: 'menit',
+                                  child: Text('Menit'),
+                                ),
                               ],
                               onChanged: (val) {
                                 if (val != null) {
@@ -602,7 +664,7 @@ class _AjukanPeminjamanScreenState
                         controller: _durasiCountController,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
+                          FilteringTextInputFormatter.digitsOnly,
                         ],
                         prefixIcon: const Icon(Icons.numbers_rounded),
                         errorText: _durasiError,
@@ -614,7 +676,9 @@ class _AjukanPeminjamanScreenState
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surfaceContainerHighest
                               .withValues(alpha: 0.6),
@@ -623,8 +687,11 @@ class _AjukanPeminjamanScreenState
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.event_available_rounded,
-                                size: 18, color: primaryTeal),
+                            Icon(
+                              Icons.event_available_rounded,
+                              size: 18,
+                              color: primaryTeal,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -656,77 +723,12 @@ class _AjukanPeminjamanScreenState
                       const SizedBox(height: 16),
 
                       // 5. Upload Dokumen (opsional) — map to field url_dokumen
-                      Text(
-                        'Upload Dokumen Pendukung (opsional)',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: () {
-                          // Simulasi upload file
-                          setState(() {
-                            _uploadedFileName =
-                                'Surat_Permohonan_Pinjam_${DateTime.now().millisecondsSinceEpoch % 1000}.pdf';
-                          });
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _uploadedFileName != null
-                                  ? primaryTeal
-                                  : strokeColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                _uploadedFileName != null
-                                    ? Icons.task_rounded
-                                    : Icons.cloud_upload_outlined,
-                                size: 32,
-                                color: _uploadedFileName != null
-                                    ? actionEmerald
-                                    : primaryTeal,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                _uploadedFileName ??
-                                    'Klik untuk upload Surat Permohonan (.pdf/.jpg)',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: _uploadedFileName != null
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                  color: _uploadedFileName != null
-                                      ? primaryTeal
-                                      : mutedText,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              if (_uploadedFileName != null) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Terpetakan ke field: url_dokumen',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: actionEmerald,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
+                      AppTextField(
+                        labelText: 'URL Dokumen Pendukung (opsional)',
+                        hintText: 'https://contoh.go.id/surat-permohonan.pdf',
+                        controller: _dokumenUrlController,
+                        keyboardType: TextInputType.url,
+                        prefixIcon: const Icon(Icons.link_rounded),
                       ),
                       const SizedBox(height: 20),
 
@@ -787,8 +789,10 @@ class _AjukanPeminjamanScreenState
                         icon: Icons.send_rounded,
                         backgroundColor: actionEmerald,
                         textColor: Colors.white,
-                        isLoading: peminjamanState.isLoading,
-                        onPressed: () => _handleSubmit(masterItems),
+                        isLoading: peminjamanState.isSubmitting,
+                        onPressed: peminjamanState.isSubmitting
+                            ? null
+                            : () => _handleSubmit(masterItems),
                       ),
                     ],
                   ),
@@ -798,10 +802,13 @@ class _AjukanPeminjamanScreenState
 
                 // 8. Info Card Bawah (Bento, Icon info accentNavy)
                 AppCard(
-                  backgroundColor:
-                      accentNavy.withValues(alpha: isDark ? 0.2 : 0.08),
+                  backgroundColor: accentNavy.withValues(
+                    alpha: isDark ? 0.2 : 0.08,
+                  ),
                   border: Border.all(
-                      color: accentNavy.withValues(alpha: 0.4), width: 1.5),
+                    color: accentNavy.withValues(alpha: 0.4),
+                    width: 1.5,
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
