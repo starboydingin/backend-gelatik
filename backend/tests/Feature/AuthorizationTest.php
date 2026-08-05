@@ -102,6 +102,39 @@ class AuthorizationTest extends TestCase
             ->assertJsonPath('data.status', 'Proses');
     }
 
+    public function test_authenticated_user_can_create_pinjam_with_generated_parent_and_item_ids(): void
+    {
+        $this->actingAsApi($this->userA);
+
+        $response = $this->postJson('/api/pinjam', [
+            'nama_pic' => 'User A',
+            'jabatan_pic' => 'Staf TIK',
+            'instansi_pic' => 'Diskominfotik',
+            'kontak_pic' => '081234567890',
+            'jenis_identitas' => 'NIP',
+            'nomor_identitas' => '198804122014031002',
+            'alamat_peminjam' => 'Bandar Lampung',
+            'jenis_durasi' => 'harian',
+            'tanggal_mulai' => '2026-08-10',
+            'jam_mulai' => '08:00',
+            'durasi_peminjaman' => 2,
+            'keterangan' => 'Integrasi mobile',
+            'items' => [
+                ['item_id' => 501, 'quantity' => 1],
+            ],
+        ])->assertCreated()
+            ->assertJsonPath('data.user_id', $this->userA->id)
+            ->assertJsonPath('data.status', 'Menunggu');
+
+        $pinjamId = $response->json('data.id');
+        $this->assertIsInt($pinjamId);
+        $this->assertDatabaseHas('pinjam_item', [
+            'pinjam_id' => $pinjamId,
+            'item_id' => 501,
+            'quantity' => 1,
+        ]);
+    }
+
     public function test_konsultasi_detail_and_list_enforce_ownership(): void
     {
         $this->actingAsApi($this->userA);
@@ -317,12 +350,23 @@ class AuthorizationTest extends TestCase
             $table->timestamps();
         });
         Schema::create('tr_permintaan_pinjam', function (Blueprint $table): void {
-            $table->unsignedBigInteger('id')->primary();
+            $table->id();
             $table->unsignedBigInteger('user_id');
+            $table->string('nama_pic')->nullable();
+            $table->string('jabatan_pic')->nullable();
+            $table->string('instansi_pic')->nullable();
+            $table->string('kontak_pic')->nullable();
+            $table->string('jenis_identitas')->nullable();
+            $table->string('nomor_identitas')->nullable();
+            $table->string('alamat_peminjam')->nullable();
+            $table->string('jenis_durasi')->nullable();
             $table->date('tanggal_mulai')->nullable();
+            $table->time('jam_mulai')->nullable();
+            $table->unsignedBigInteger('durasi_peminjaman')->default(0);
             $table->dateTime('tanggal_selesai')->nullable();
             $table->string('status')->default('Menunggu');
             $table->text('keterangan')->nullable();
+            $table->text('url_dokumen')->nullable();
             $table->text('catatan_petugas')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('updated_by')->nullable();
@@ -332,7 +376,7 @@ class AuthorizationTest extends TestCase
             $table->timestamps();
         });
         Schema::create('pinjam_item', function (Blueprint $table): void {
-            $table->unsignedBigInteger('id')->primary();
+            $table->id();
             $table->unsignedBigInteger('pinjam_id');
             $table->unsignedBigInteger('item_id');
             $table->integer('quantity');

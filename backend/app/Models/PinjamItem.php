@@ -8,7 +8,7 @@ class PinjamItem extends Model
 {
     protected $table = 'pinjam_item';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     protected $fillable = [
         'id',

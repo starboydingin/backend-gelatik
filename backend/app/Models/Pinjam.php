@@ -12,7 +12,7 @@ class Pinjam extends Model
     // Tabel non-konvensi — wajib eksplisit
     protected $table = 'tr_permintaan_pinjam';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     protected $fillable = [
         'id',
