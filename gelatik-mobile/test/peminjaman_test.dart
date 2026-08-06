@@ -393,6 +393,18 @@ void main() {
       expect(notifier.state.status, PeminjamanLoadStatus.error);
     });
 
+    test('realtime event refreshes authoritative borrowing state', () async {
+      final repository = _FakeRepository(listResult: [_model]);
+      final notifier = PeminjamanNotifier(repository: repository);
+      await notifier.loadPeminjaman();
+      repository.listResult = [PinjamModel.fromJson(_json(status: 'Proses'))];
+
+      await notifier.refreshFromRealtime(_model.id);
+
+      expect(repository.listCalls, 2);
+      expect(notifier.state.listPinjam.single.status, 'Proses');
+    });
+
     test('prevents duplicate submit', () async {
       final completer = Completer<PinjamModel>();
       final repository = _FakeRepository(createCompleter: completer);

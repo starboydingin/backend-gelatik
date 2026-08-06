@@ -105,6 +105,12 @@ class PeminjamanNotifier extends StateNotifier<PeminjamanState> {
   Future<void> refresh() => _fetchList(refreshing: true);
   Future<void> retry() => _fetchList(refreshing: false);
 
+  Future<void> refreshFromRealtime(int entityId) async {
+    await _fetchList(refreshing: true);
+    if (!mounted) return;
+    if (state.selectedPinjam?.id == entityId) await loadDetail(entityId);
+  }
+
   Future<void> _fetchList({required bool refreshing}) async {
     final generation = ++_listGeneration;
     state = state.copyWith(

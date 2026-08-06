@@ -313,6 +313,24 @@ void main() {
       expect(consult.calls, 2);
     });
 
+    test('realtime event uses the same authoritative Home refresh', () async {
+      final items = _FakeMasterRepository(() async => const [_item]);
+      final borrow = _FakeBorrowingRepository(() async => _borrowPage());
+      final consult = _FakeConsultationRepository(() async => _consultPage());
+      final notifier = _notifier(
+        items: items,
+        borrowings: borrow,
+        consultations: consult,
+      );
+
+      await notifier.load();
+      await notifier.refreshFromRealtime();
+
+      expect(items.calls, 2);
+      expect(borrow.calls, 2);
+      expect(consult.calls, 2);
+    });
+
     test('unauthorized section invalidates the Home session state', () async {
       final notifier = _notifier(
         items: _FakeMasterRepository(

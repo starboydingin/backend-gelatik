@@ -101,6 +101,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
   Future<void> refresh() => _fetch(refreshing: true);
   Future<void> retry() => _fetch(refreshing: false);
+  Future<void> refreshFromRealtime() => _fetch(refreshing: true);
 
   Future<void> _fetch({required bool refreshing}) async {
     final itemRepository = masterItemRepository;

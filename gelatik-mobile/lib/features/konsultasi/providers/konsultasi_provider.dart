@@ -111,6 +111,12 @@ class KonsultasiNotifier extends StateNotifier<KonsultasiState> {
   Future<void> refresh() => _fetchList(refreshing: true);
   Future<void> retry() => _fetchList(refreshing: false);
 
+  Future<void> refreshFromRealtime(int entityId) async {
+    await _fetchList(refreshing: true);
+    if (!mounted) return;
+    if (state.selectedKonsultasi?.id == entityId) await loadDetail(entityId);
+  }
+
   Future<void> _fetchList({required bool refreshing}) async {
     final generation = ++_listGeneration;
     state = state.copyWith(

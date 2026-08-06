@@ -512,6 +512,20 @@ void main() {
       expect(repository.listCalls, 2);
     });
 
+    test('realtime event refreshes authoritative consultation state', () async {
+      final repository = _FakeRepository(listResult: [_model]);
+      final notifier = KonsultasiNotifier(repository: repository);
+      await notifier.loadKonsultasi();
+      repository.listResult = [
+        KonsultasiModel.fromJson(_json(status: 'Diproses')),
+      ];
+
+      await notifier.refreshFromRealtime(_model.id);
+
+      expect(repository.listCalls, 2);
+      expect(notifier.state.listKonsultasi.single.status, 'Diproses');
+    });
+
     test('create success updates list', () async {
       final notifier = KonsultasiNotifier(
         repository: _FakeRepository(createResult: _model),

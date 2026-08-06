@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/services/fcm_topic_service.dart';
+import '../../../core/realtime/realtime_socket_service.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../models/user_model.dart';
 import '../repositories/auth_repository.dart';
@@ -67,11 +68,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository? authRepository;
   final SecureStorageService? secureStorageService;
   final FcmTopicService? fcmTopicService;
+  final RealtimeSocketService? realtimeSocketService;
 
   AuthNotifier({
     this.authRepository,
     this.secureStorageService,
     this.fcmTopicService,
+    this.realtimeSocketService,
   }) : super(const AuthState());
 
   Future<void> loadOpds() async {
@@ -150,6 +153,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
 
       await fcmTopicService?.subscribeToUserTopics(user);
+      try {
+        await realtimeSocketService?.connect();
+      } catch (_) {
+        // Realtime is optional; REST session remains valid when it is offline.
+      }
       return true;
     } catch (e) {
       await secureStorageService?.deleteToken();
@@ -305,6 +313,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (_) {
       // Session remains valid even when optional notification subscription fails.
     }
+    try {
+      await realtimeSocketService?.connect();
+    } catch (_) {
+      // Realtime is optional; REST session remains valid when it is offline.
+    }
   }
 
   Map<String, String> _normalizeValidationErrors(Map<String, dynamic>? errors) {
@@ -325,6 +338,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Logout (FR-38)
   Future<void> logout() async {
+    await realtimeSocketService?.disconnect();
     await fcmTopicService?.unsubscribeFromAllTopics();
     await authRepository?.logout();
     await secureStorageService?.deleteToken();
@@ -343,9 +357,11 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
   final secureStorageService = ref.watch(secureStorageServiceProvider);
   final fcmTopicService = ref.watch(fcmTopicServiceProvider);
+  final realtimeSocketService = ref.watch(realtimeSocketServiceProvider);
   return AuthNotifier(
     authRepository: authRepository,
     secureStorageService: secureStorageService,
     fcmTopicService: fcmTopicService,
+    realtimeSocketService: realtimeSocketService,
   );
 });
