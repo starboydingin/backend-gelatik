@@ -12,6 +12,7 @@ class AppButton extends StatelessWidget {
   final IconData? icon;
   final bool isLoading;
   final bool isFullWidth;
+  final bool allowTextWrap;
 
   const AppButton({
     super.key,
@@ -23,16 +24,19 @@ class AppButton extends StatelessWidget {
     this.icon,
     this.isLoading = false,
     this.isFullWidth = true,
+    this.allowTextWrap = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final effectiveBgColor = backgroundColor ??
+    final effectiveBgColor =
+        backgroundColor ??
         (variant == AppButtonVariant.filled
             ? theme.colorScheme.primary
             : Colors.transparent);
-    final effectiveTextColor = textColor ??
+    final effectiveTextColor =
+        textColor ??
         (variant == AppButtonVariant.filled
             ? theme.colorScheme.onPrimary
             : theme.colorScheme.primary);
@@ -54,14 +58,28 @@ class AppButton extends StatelessWidget {
                 Icon(icon, size: 20, color: effectiveTextColor),
                 const SizedBox(width: 8),
               ],
-              Text(
-                text,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: effectiveTextColor,
+              if (allowTextWrap)
+                Flexible(
+                  child: Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: effectiveTextColor,
+                    ),
+                  ),
+                )
+              else
+                Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: effectiveTextColor,
+                  ),
                 ),
-              ),
             ],
           );
 

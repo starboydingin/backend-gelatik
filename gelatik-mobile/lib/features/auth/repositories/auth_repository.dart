@@ -62,7 +62,7 @@ class AuthRepository {
   }
 
   /// POST /api/register
-  Future<bool> register({
+  Future<Map<String, dynamic>> register({
     required String name,
     required String email,
     required String nip,
@@ -84,7 +84,13 @@ class AuthRepository {
           'password_confirmation': passwordConfirmation,
         },
       );
-      return response.statusCode == 200 || response.statusCode == 201;
+      final data = response.data;
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          data is Map<String, dynamic> &&
+          data['data'] is Map) {
+        return Map<String, dynamic>.from(data['data'] as Map);
+      }
+      throw ApiException(message: 'Format response register tidak valid.');
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

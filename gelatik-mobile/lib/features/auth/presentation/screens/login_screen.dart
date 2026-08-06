@@ -1,6 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
 import 'register_screen.dart';
 import '../../../home/presentation/screens/home_screen.dart';
@@ -10,6 +11,7 @@ import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/pending_activation_banner.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../theme/auth_typography.dart';
 
 /// LoginScreen — Layar Utama Autentikasi (BAGIAN 2 & FR-35 Compliance)
 /// Menggunakan Design Tokens resmi (primaryTeal, actionEmerald, accentNavy, accentGold).
@@ -39,6 +41,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
+    if (ref.read(authProvider).isLoading) return;
+
     // Reset state error
     setState(() {
       _identifierError = null;
@@ -79,7 +83,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final authState = ref.read(authProvider);
       final backendMessage =
           authState.pendingActivationMessage ??
-          'Akun Anda belum aktif atau telah dinonaktifkan.';
+          'Akun Anda sedang tidak aktif atau telah dinonaktifkan. Hubungi administrator jika Anda memerlukan bantuan.';
 
       setState(() {
         _showPendingBanner = true;
@@ -88,7 +92,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Tampilkan Dialog Peringatan Eksplisit FR-35 dengan pesan PERSIS
       PendingActivationBanner.show(
         context,
-        title: 'Akun Belum Aktif',
+        title: 'Akun Tidak Aktif',
         message: backendMessage,
       );
     } else if (result == AuthResultStatus.error) {
@@ -137,223 +141,232 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: Stack(
         children: [
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Column(
-                children: [
-                  // ---------------------------------------------------------------
-                  // Header: Logo Gelatik + Wordmark GELATIK + Subtitle
-                  // ---------------------------------------------------------------
-                  Image.asset(
-                    'assets/images/logo-nobackground&teksgelatik.png',
-                    height: 110,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Image.asset(
-                        'images/logo-nobackground&teksgelatik.png',
-                        height: 110,
-                        fit: BoxFit.contain,
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'GELATIK',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 38,
-                      fontWeight: FontWeight.w800,
-                      color: primaryTeal,
-                      letterSpacing: 4,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Gerbang Layanan TIK',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: mutedText,
-                    ),
-                  ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+                final minHeight = math.max(
+                  0.0,
+                  constraints.maxHeight - keyboardInset - 24,
+                );
+                final logoWidth = math.max(
+                  150.0,
+                  math.min(constraints.maxWidth * 0.44, 180.0),
+                );
+                final sigerWidth = math.max(
+                  65.0,
+                  math.min(constraints.maxWidth * 0.19, 82.0),
+                );
 
-                  const SizedBox(height: 24),
+                return SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(20, 12, 20, keyboardInset + 12),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: minHeight),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // ---------------------------------------------------------------
+                        // Header: Logo Gelatik + Wordmark GELATIK + Subtitle
+                        // ---------------------------------------------------------------
+                        Image.asset(
+                          'assets/images/logo-tanpabackground.png',
+                          key: const Key('login_gelatik_logo'),
+                          width: logoWidth,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'GERBANG LAYANAN TIK',
+                          textAlign: TextAlign.center,
+                          style: AuthTypography.brandTitle(
+                            context,
+                            fontSize: 13,
+                          ).copyWith(color: mutedText, letterSpacing: 1.4),
+                        ),
 
-                  // ---------------------------------------------------------------
-                  // Card Form Login (Design Token Compliant)
-                  // ---------------------------------------------------------------
-                  AppCard(
-                    padding: const EdgeInsets.all(24),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Selamat Datang',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: primaryTeal,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Silakan masuk menggunakan email atau NIP Anda.',
-                            style: TextStyle(fontSize: 14, color: mutedText),
-                          ),
+                        const SizedBox(height: 24),
 
-                          const SizedBox(height: 20),
-
-                          // Banner Peringatan Pending Activation (FR-35)
-                          if (_showPendingBanner) ...[
-                            PendingActivationBanner(
-                              title: 'Akun Belum Aktif',
-                              message:
-                                  authState.pendingActivationMessage ??
-                                  'Akun Anda belum aktif atau telah dinonaktifkan.',
-                              onDismiss: () {
-                                setState(() => _showPendingBanner = false);
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-
-                          // Banner General Error
-                          if (_generalError != null) ...[
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.errorContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.error_outline_rounded,
-                                    color: theme.colorScheme.onErrorContainer,
-                                    size: 18,
+                        // ---------------------------------------------------------------
+                        // Card Form Login (Design Token Compliant)
+                        // ---------------------------------------------------------------
+                        AppCard(
+                          padding: const EdgeInsets.all(24),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Selamat Datang',
+                                  style: AuthTypography.screenHeading(
+                                    context,
+                                    primaryTeal,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _generalError!,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color:
-                                            theme.colorScheme.onErrorContainer,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Silakan masuk menggunakan email atau NIP Anda.',
+                                  style: AuthTypography.subtitle(
+                                    context,
+                                    mutedText,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 20),
+
+                                // Banner Peringatan Pending Activation (FR-35)
+                                if (_showPendingBanner) ...[
+                                  PendingActivationBanner(
+                                    title: 'Akun Tidak Aktif',
+                                    message:
+                                        authState.pendingActivationMessage ??
+                                        'Akun Anda sedang tidak aktif atau telah dinonaktifkan. Hubungi administrator jika Anda memerlukan bantuan.',
+                                    onDismiss: () {
+                                      setState(
+                                        () => _showPendingBanner = false,
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+
+                                // Banner General Error
+                                if (_generalError != null) ...[
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.errorContainer,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.error_outline_rounded,
+                                          color: theme
+                                              .colorScheme
+                                              .onErrorContainer,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            _generalError!,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: theme
+                                                  .colorScheme
+                                                  .onErrorContainer,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
+                                  const SizedBox(height: 16),
                                 ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
 
-                          // Field Email atau NIP
-                          AppTextField(
-                            labelText: 'Email atau NIP',
-                            hintText: 'Masukkan email atau NIP Anda',
-                            controller: _identifierController,
-                            keyboardType: TextInputType.text,
-                            prefixIcon: const Icon(Icons.person_outline),
-                            errorText: _identifierError,
-                            onChanged: (_) {
-                              if (_identifierError != null) {
-                                setState(() => _identifierError = null);
-                              }
-                            },
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Field Password
-                          AppTextField(
-                            labelText: 'Kata Sandi',
-                            hintText: '••••••••',
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            prefixIcon: const Icon(Icons.lock_outline_rounded),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                            errorText: _passwordError,
-                            onChanged: (_) {
-                              if (_passwordError != null) {
-                                setState(() => _passwordError = null);
-                              }
-                            },
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // Tombol Masuk Utama (KHUSUS actionEmerald)
-                          AppButton(
-                            text: 'Masuk',
-                            backgroundColor: actionEmerald,
-                            textColor: Colors.white,
-                            isLoading: authState.isLoading,
-                            onPressed: _handleLogin,
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Tombol Daftar Akun Baru (Outlined)
-                          AppButton(
-                            text: 'Daftar Akun Baru',
-                            variant: AppButtonVariant.outlined,
-                            textColor: primaryTeal,
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const RegisterScreen(),
+                                // Field Email atau NIP
+                                AppTextField(
+                                  labelText: 'Email atau NIP',
+                                  hintText: 'Masukkan email atau NIP Anda',
+                                  controller: _identifierController,
+                                  keyboardType: TextInputType.text,
+                                  prefixIcon: const Icon(Icons.person_outline),
+                                  errorText: _identifierError,
+                                  onChanged: (_) {
+                                    if (_identifierError != null) {
+                                      setState(() => _identifierError = null);
+                                    }
+                                  },
                                 ),
-                              );
-                            },
+
+                                const SizedBox(height: 16),
+
+                                // Field Password
+                                AppTextField(
+                                  labelText: 'Kata Sandi',
+                                  hintText: '••••••••',
+                                  controller: _passwordController,
+                                  obscureText: _obscurePassword,
+                                  prefixIcon: const Icon(
+                                    Icons.lock_outline_rounded,
+                                  ),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      size: 20,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      });
+                                    },
+                                  ),
+                                  errorText: _passwordError,
+                                  onChanged: (_) {
+                                    if (_passwordError != null) {
+                                      setState(() => _passwordError = null);
+                                    }
+                                  },
+                                ),
+
+                                const SizedBox(height: 24),
+
+                                // Tombol Masuk Utama (KHUSUS actionEmerald)
+                                AppButton(
+                                  text: 'Masuk',
+                                  backgroundColor: actionEmerald,
+                                  textColor: Colors.white,
+                                  isLoading: authState.isLoading,
+                                  allowTextWrap: true,
+                                  onPressed: _handleLogin,
+                                ),
+
+                                const SizedBox(height: 12),
+
+                                // Tombol Daftar Akun Baru (Outlined)
+                                AppButton(
+                                  text: 'Daftar Akun Baru',
+                                  variant: AppButtonVariant.outlined,
+                                  textColor: primaryTeal,
+                                  allowTextWrap: true,
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const RegisterScreen(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // ---------------------------------------------------------------
+                        // Footer: Motif Siger Crown (Asset Lokal)
+                        // ---------------------------------------------------------------
+                        Opacity(
+                          opacity: 0.5,
+                          child: Image.asset(
+                            'assets/images/SIGER.png',
+                            key: const Key('login_siger_logo'),
+                            width: sigerWidth,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+                      ],
                     ),
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // ---------------------------------------------------------------
-                  // Footer: Motif Siger Crown (Asset Lokal)
-                  // ---------------------------------------------------------------
-                  Opacity(
-                    opacity: 0.5,
-                    child: Image.asset(
-                      'assets/images/SIGER.png',
-                      height: 70,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Image.asset(
-                          'images/SIGER.png',
-                          height: 70,
-                          fit: BoxFit.contain,
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-                ],
-              ),
+                );
+              },
             ),
           ),
 

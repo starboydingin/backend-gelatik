@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'app_button.dart';
 
-/// PendingActivationBanner — Komponen khusus peringatan "Akun Belum Aktif" (FR-35 / SRS §6.1)
+/// Banner untuk akun yang sedang tidak aktif atau dinonaktifkan admin.
 class PendingActivationBanner extends StatelessWidget {
   final String title;
   final String message;
@@ -11,8 +11,9 @@ class PendingActivationBanner extends StatelessWidget {
 
   const PendingActivationBanner({
     super.key,
-    this.title = 'Akun Belum Aktif',
-    this.message = 'Akun Anda belum aktif atau telah dinonaktifkan oleh administrator. Silakan hubungi admin Diskominfotik untuk proses verifikasi.',
+    this.title = 'Akun Tidak Aktif',
+    this.message =
+        'Akun Anda sedang tidak aktif atau telah dinonaktifkan. Hubungi administrator jika Anda memerlukan bantuan.',
     this.onDismiss,
     this.isDialogStyle = false,
   });
@@ -29,8 +30,10 @@ class PendingActivationBanner extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: PendingActivationBanner(
-            title: title ?? 'Akun Belum Aktif',
-            message: message ?? 'Akun Anda belum aktif atau telah dinonaktifkan oleh administrator. Silakan hubungi admin Diskominfotik untuk proses verifikasi.',
+            title: title ?? 'Akun Tidak Aktif',
+            message:
+                message ??
+                'Akun Anda sedang tidak aktif atau telah dinonaktifkan. Hubungi administrator jika Anda memerlukan bantuan.',
             isDialogStyle: true,
             onDismiss: () => Navigator.of(context).pop(),
           ),
@@ -50,9 +53,7 @@ class PendingActivationBanner extends StatelessWidget {
     final borderCol = isDark
         ? AppColors.accentGoldDark
         : AppColors.accentGoldLight;
-    final textCol = isDark
-        ? AppColors.onSurfaceDark
-        : const Color(0xFF92400E);
+    final textCol = isDark ? AppColors.onSurfaceDark : const Color(0xFF92400E);
 
     final content = Column(
       mainAxisSize: MainAxisSize.min,

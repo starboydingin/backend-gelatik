@@ -16,6 +16,7 @@ class AuthState {
   final List<String> opds;
   final bool isOpdLoading;
   final String? opdErrorMessage;
+  final Map<String, String> validationErrors;
 
   const AuthState({
     this.isLoggedIn = false,
@@ -26,6 +27,7 @@ class AuthState {
     this.opds = const [],
     this.isOpdLoading = false,
     this.opdErrorMessage,
+    this.validationErrors = const {},
   });
 
   AuthState copyWith({
@@ -37,6 +39,7 @@ class AuthState {
     List<String>? opds,
     bool? isOpdLoading,
     String? opdErrorMessage,
+    Map<String, String>? validationErrors,
     bool clearErrors = false,
     bool clearOpdError = false,
   }) {
@@ -53,6 +56,9 @@ class AuthState {
       opdErrorMessage: clearOpdError
           ? null
           : (opdErrorMessage ?? this.opdErrorMessage),
+      validationErrors: clearErrors
+          ? const {}
+          : (validationErrors ?? this.validationErrors),
     );
   }
 }
@@ -132,7 +138,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isLoggedIn: false,
           currentUser: null,
           pendingActivationMessage:
-              'Akun Anda belum aktif atau telah dinonaktifkan.',
+              'Akun Anda sedang tidak aktif atau telah dinonaktifkan. Hubungi administrator jika Anda memerlukan bantuan.',
         );
         return false;
       }
@@ -174,34 +180,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       final loginData = await repo.login(identifier, password);
-      final String? token = loginData['access_token'] as String?;
-
-      if (token == null || token.isEmpty) {
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: 'Token autentikasi tidak ditemukan dari server.',
-        );
-        return AuthResultStatus.error;
-      }
-
-      await storage.saveToken(token);
-
-      UserModel user;
-      if (loginData['user'] != null &&
-          loginData['user'] is Map<String, dynamic>) {
-        user = UserModel.fromJson(Map<String, dynamic>.from(loginData['user']));
-      } else {
-        final userData = await repo.getMe();
-        user = UserModel.fromJson(userData);
-      }
-
-      state = state.copyWith(
-        isLoading: false,
-        isLoggedIn: true,
-        currentUser: user,
-      );
-
-      await fcmTopicService?.subscribeToUserTopics(user);
+      await _storeAuthenticatedSession(loginData, repo, storage);
 
       return AuthResultStatus.authenticated;
     } on ApiException catch (e) {
@@ -222,7 +201,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Registrasi via AuthRepository (FR-36)
-  Future<bool> register({
+  Future<AuthResultStatus> register({
     required String name,
     required String nip,
     required String email,
@@ -231,6 +210,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String password,
     required String passwordConfirmation,
   }) async {
+    if (state.isLoading) return AuthResultStatus.error;
+
     state = state.copyWith(isLoading: true, clearErrors: true);
 
     if (password != passwordConfirmation) {
@@ -238,17 +219,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         errorMessage: 'Konfirmasi password tidak cocok.',
       );
-      return false;
+      return AuthResultStatus.error;
     }
 
     final repo = authRepository;
     if (repo == null) {
-      state = state.copyWith(isLoading: false);
-      return true;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'AuthRepository belum diinisialisasi.',
+      );
+      return AuthResultStatus.error;
     }
 
     try {
-      final success = await repo.register(
+      final registerData = await repo.register(
         name: name,
         email: email,
         nip: nip,
@@ -258,15 +242,80 @@ class AuthNotifier extends StateNotifier<AuthState> {
         passwordConfirmation: passwordConfirmation,
       );
 
-      state = state.copyWith(isLoading: false);
-      return success;
+      final storage = secureStorageService;
+      if (storage == null) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'SecureStorageService belum diinisialisasi.',
+        );
+        return AuthResultStatus.error;
+      }
+
+      await _storeAuthenticatedSession(registerData, repo, storage);
+      return AuthResultStatus.authenticated;
     } on ApiException catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.message);
-      return false;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.message,
+        validationErrors: _normalizeValidationErrors(e.errors),
+      );
+      return AuthResultStatus.error;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
-      return false;
+      return AuthResultStatus.error;
     }
+  }
+
+  Future<void> _storeAuthenticatedSession(
+    Map<String, dynamic> authData,
+    AuthRepository repo,
+    SecureStorageService storage,
+  ) async {
+    final token = authData['access_token'] as String?;
+    if (token == null || token.isEmpty) {
+      throw ApiException(
+        message: 'Token autentikasi tidak ditemukan dari server.',
+      );
+    }
+
+    await storage.saveToken(token);
+
+    late final UserModel user;
+    try {
+      if (authData['user'] is Map) {
+        user = UserModel.fromJson(
+          Map<String, dynamic>.from(authData['user'] as Map),
+        );
+      } else {
+        user = UserModel.fromJson(await repo.getMe());
+      }
+    } catch (_) {
+      await storage.deleteToken();
+      rethrow;
+    }
+
+    state = state.copyWith(
+      isLoading: false,
+      isLoggedIn: true,
+      currentUser: user,
+      clearErrors: true,
+    );
+    try {
+      await fcmTopicService?.subscribeToUserTopics(user);
+    } catch (_) {
+      // Session remains valid even when optional notification subscription fails.
+    }
+  }
+
+  Map<String, String> _normalizeValidationErrors(Map<String, dynamic>? errors) {
+    if (errors == null) return const {};
+
+    return errors.map((field, value) {
+      if (value is List && value.isNotEmpty) {
+        return MapEntry(field, value.first.toString());
+      }
+      return MapEntry(field, value.toString());
+    });
   }
 
   /// Membersihkan pesan error atau banner

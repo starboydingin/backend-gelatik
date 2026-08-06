@@ -44,7 +44,10 @@ class FakeAuthRepository extends AuthRepository {
   final List<String> opds;
   final Object? opdFailure;
   int opdRequestCount = 0;
+  int registerRequestCount = 0;
   Map<String, String>? lastRegisterPayload;
+  Object? registerFailure;
+  Map<String, dynamic>? registerResponse;
 
   @override
   Future<List<String>> getOpds() async {
@@ -61,7 +64,8 @@ class FakeAuthRepository extends AuthRepository {
 
     if (trimmed == DummyData.pendingUser.email.toLowerCase()) {
       throw ApiException(
-        message: 'Akun Anda belum aktif atau telah dinonaktifkan.',
+        message:
+            'Akun Anda sedang tidak aktif atau telah dinonaktifkan. Hubungi administrator jika Anda memerlukan bantuan.',
         statusCode: 403,
       );
     }
@@ -80,7 +84,7 @@ class FakeAuthRepository extends AuthRepository {
   }
 
   @override
-  Future<bool> register({
+  Future<Map<String, dynamic>> register({
     required String name,
     required String email,
     required String nip,
@@ -89,6 +93,8 @@ class FakeAuthRepository extends AuthRepository {
     required String password,
     required String passwordConfirmation,
   }) async {
+    registerRequestCount++;
+    if (registerFailure != null) throw registerFailure!;
     if (password != passwordConfirmation) {
       throw ApiException(message: 'Konfirmasi password tidak cocok.');
     }
@@ -101,7 +107,12 @@ class FakeAuthRepository extends AuthRepository {
       'password': password,
       'password_confirmation': passwordConfirmation,
     };
-    return true;
+    return registerResponse ??
+        {
+          'access_token': 'register_access_token_456',
+          'token_type': 'Bearer',
+          'user': DummyData.activeUser.toJson(),
+        };
   }
 
   @override
@@ -118,6 +129,25 @@ class DeferredOpdAuthRepository extends FakeAuthRepository {
 
   @override
   Future<List<String>> getOpds() => completer.future;
+}
+
+class DeferredRegisterAuthRepository extends FakeAuthRepository {
+  final Completer<Map<String, dynamic>> completer =
+      Completer<Map<String, dynamic>>();
+
+  @override
+  Future<Map<String, dynamic>> register({
+    required String name,
+    required String email,
+    required String nip,
+    required String noHp,
+    required String namaOpd,
+    required String password,
+    required String passwordConfirmation,
+  }) {
+    registerRequestCount++;
+    return completer.future;
+  }
 }
 
 void main() {
@@ -178,7 +208,7 @@ void main() {
         expect(state.isLoggedIn, isFalse);
         expect(
           state.pendingActivationMessage,
-          'Akun Anda belum aktif atau telah dinonaktifkan.',
+          'Akun Anda sedang tidak aktif atau telah dinonaktifkan. Hubungi administrator jika Anda memerlukan bantuan.',
         );
       },
     );
@@ -202,11 +232,11 @@ void main() {
     );
 
     test(
-      '4. Register flow (FR-36) should return true without auto-login',
+      '4. Register flow stores token and authenticates immediately',
       () async {
         final notifier = container.read(authProvider.notifier);
 
-        final success = await notifier.register(
+        final result = await notifier.register(
           name: 'Pegawai Baru, S.T.',
           nip: '199501012022031001',
           email: 'pegawai.baru@gmail.com',
@@ -218,9 +248,10 @@ void main() {
 
         final state = container.read(authProvider);
 
-        expect(success, isTrue);
-        expect(state.isLoggedIn, isFalse); // FR-36: JANGAN auto login
-        expect(await fakeStorage.getToken(), isNull);
+        expect(result, AuthResultStatus.authenticated);
+        expect(state.isLoggedIn, isTrue);
+        expect(state.currentUser?.status, '1');
+        expect(await fakeStorage.getToken(), 'register_access_token_456');
         expect(fakeAuthRepo.lastRegisterPayload?['nip'], '199501012022031001');
         expect(
           fakeAuthRepo.lastRegisterPayload?.containsKey('username'),
@@ -234,7 +265,7 @@ void main() {
       () async {
         final notifier = container.read(authProvider.notifier);
 
-        final success = await notifier.register(
+        final result = await notifier.register(
           name: 'Pegawai Baru, S.T.',
           nip: '199501012022031001',
           email: 'pegawai.baru@gmail.com',
@@ -246,7 +277,7 @@ void main() {
 
         final state = container.read(authProvider);
 
-        expect(success, isFalse);
+        expect(result, AuthResultStatus.error);
         expect(state.errorMessage, 'Konfirmasi password tidak cocok.');
       },
     );
@@ -349,6 +380,143 @@ void main() {
         expect(await repository.getOpds(), ['Dinas A', 'Dinas B', 'Dinas C']);
       },
     );
+
+    test(
+      '10. Register token failure is handled without a false session',
+      () async {
+        fakeAuthRepo.registerResponse = {
+          'token_type': 'Bearer',
+          'user': DummyData.activeUser.toJson(),
+        };
+
+        final result = await container
+            .read(authProvider.notifier)
+            .register(
+              name: 'Pegawai Baru',
+              nip: '199501012022031001',
+              email: 'pegawai@example.test',
+              noHp: '081234567890',
+              namaOpd: fakeAuthRepo.opds.first,
+              password: 'password123',
+              passwordConfirmation: 'password123',
+            );
+
+        final state = container.read(authProvider);
+        expect(result, AuthResultStatus.error);
+        expect(state.isLoggedIn, isFalse);
+        expect(await fakeStorage.getToken(), isNull);
+        expect(state.errorMessage, contains('Token autentikasi'));
+      },
+    );
+
+    test('11. Concurrent register submit is ignored while loading', () async {
+      final deferredRepo = DeferredRegisterAuthRepository();
+      final deferredContainer = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(deferredRepo),
+          secureStorageServiceProvider.overrideWithValue(fakeStorage),
+        ],
+      );
+      addTearDown(deferredContainer.dispose);
+      final notifier = deferredContainer.read(authProvider.notifier);
+
+      final first = notifier.register(
+        name: 'Pegawai Baru',
+        nip: '199501012022031001',
+        email: 'pegawai@example.test',
+        noHp: '081234567890',
+        namaOpd: deferredRepo.opds.first,
+        password: 'password123',
+        passwordConfirmation: 'password123',
+      );
+      final second = await notifier.register(
+        name: 'Pegawai Baru',
+        nip: '199501012022031001',
+        email: 'pegawai@example.test',
+        noHp: '081234567890',
+        namaOpd: deferredRepo.opds.first,
+        password: 'password123',
+        passwordConfirmation: 'password123',
+      );
+
+      expect(second, AuthResultStatus.error);
+      expect(deferredRepo.registerRequestCount, 1);
+      deferredRepo.completer.complete({
+        'access_token': 'deferred_token',
+        'user': DummyData.activeUser.toJson(),
+      });
+      expect(await first, AuthResultStatus.authenticated);
+    });
+
+    test('12. Register validation errors remain mapped by field', () async {
+      fakeAuthRepo.registerFailure = ApiException(
+        message: 'Data tidak valid.',
+        statusCode: 422,
+        errors: {
+          'email': ['Email sudah digunakan.'],
+          'nip': ['NIP sudah digunakan.'],
+        },
+      );
+
+      final result = await container
+          .read(authProvider.notifier)
+          .register(
+            name: 'Pegawai Baru',
+            nip: '199501012022031001',
+            email: 'pegawai@example.test',
+            noHp: '081234567890',
+            namaOpd: fakeAuthRepo.opds.first,
+            password: 'password123',
+            passwordConfirmation: 'password123',
+          );
+
+      expect(result, AuthResultStatus.error);
+      expect(
+        container.read(authProvider).validationErrors,
+        containsPair('email', 'Email sudah digunakan.'),
+      );
+    });
+
+    test('13. AuthRepository parses the register auth envelope', () async {
+      final dio = Dio();
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) => handler.resolve(
+            Response<dynamic>(
+              requestOptions: options,
+              statusCode: 201,
+              data: {
+                'success': true,
+                'data': {
+                  'access_token': 'server_register_token',
+                  'token_type': 'Bearer',
+                  'user': DummyData.activeUser.toJson(),
+                },
+              },
+            ),
+          ),
+        ),
+      );
+      final repository = AuthRepository(
+        apiClient: ApiClient(
+          secureStorageService: fakeStorage,
+          dioOverride: dio,
+        ),
+      );
+
+      final data = await repository.register(
+        name: 'Pegawai Baru',
+        email: 'pegawai@example.test',
+        nip: '199501012022031001',
+        noHp: '081234567890',
+        namaOpd: fakeAuthRepo.opds.first,
+        password: 'password123',
+        passwordConfirmation: 'password123',
+      );
+
+      expect(data['access_token'], 'server_register_token');
+      expect(data['user']['status'], '1');
+    });
   });
 
   group('Auth Screens Widget Tests', () {
@@ -374,7 +542,16 @@ void main() {
       );
 
       expect(find.text('MEMUAT SISTEM...'), findsOneWidget);
-      expect(find.text('Gerbang Layanan TIK'), findsOneWidget);
+      expect(find.text('GERBANG LAYANAN TIK'), findsOneWidget);
+      expect(find.byKey(const Key('splash_gelatik_logo')), findsOneWidget);
+      expect(find.text('GELATIK'), findsNothing);
+      final splashLogo = tester.widget<Image>(
+        find.byKey(const Key('splash_gelatik_logo')),
+      );
+      expect(
+        (splashLogo.image as AssetImage).assetName,
+        'assets/images/logo-tanpabackground.png',
+      );
 
       await tester.pump(const Duration(seconds: 2));
       await tester.pump(const Duration(milliseconds: 500));
@@ -407,9 +584,12 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.text('Akun Anda belum aktif atau telah dinonaktifkan.'),
+          find.text(
+            'Akun Anda sedang tidak aktif atau telah dinonaktifkan. Hubungi administrator jika Anda memerlukan bantuan.',
+          ),
           findsWidgets,
         );
+        expect(find.text('Akun Tidak Aktif'), findsWidgets);
         expect(
           find.text('Home - akan dibangun di fase berikutnya'),
           findsNothing,
@@ -436,7 +616,7 @@ void main() {
     });
 
     testWidgets(
-      'RegisterScreen form submit shows FR-36 confirmation dialog and pops back to LoginScreen',
+      'RegisterScreen auto-login stores a session and navigates to Home',
       (tester) async {
         await tester.pumpWidget(
           ProviderScope(
@@ -444,7 +624,12 @@ void main() {
               authRepositoryProvider.overrideWithValue(fakeAuthRepo),
               secureStorageServiceProvider.overrideWithValue(fakeStorage),
             ],
-            child: const MaterialApp(home: RegisterScreen()),
+            child: MaterialApp(
+              home: RegisterScreen(
+                homeBuilder: (_) =>
+                    const Scaffold(key: Key('home_destination')),
+              ),
+            ),
           ),
         );
 
@@ -491,12 +676,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 1500));
         await tester.pumpAndSettle();
 
-        expect(
-          find.text(
-            'Registrasi berhasil. Akun Anda akan diaktifkan oleh admin sebelum dapat digunakan.',
-          ),
-          findsOneWidget,
-        );
+        expect(find.byKey(const Key('home_destination')), findsOneWidget);
+        expect(find.textContaining('diaktifkan oleh admin'), findsNothing);
+        expect(await fakeStorage.getToken(), 'register_access_token_456');
         expect(
           fakeAuthRepo.lastRegisterPayload?['nama_opd'],
           fakeAuthRepo.opds.first,
@@ -506,11 +688,146 @@ void main() {
           fakeAuthRepo.lastRegisterPayload?.containsKey('username'),
           isFalse,
         );
+      },
+    );
 
-        await tester.tap(find.text('Kembali ke Login'));
+    testWidgets('Auth screens use the expected branding assets', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+            secureStorageServiceProvider.overrideWithValue(fakeStorage),
+          ],
+          child: const MaterialApp(home: LoginScreen()),
+        ),
+      );
+
+      expect(find.byKey(const Key('login_gelatik_logo')), findsOneWidget);
+      expect(find.byKey(const Key('login_siger_logo')), findsOneWidget);
+      expect(find.text('GELATIK'), findsNothing);
+      final loginLogo = tester.widget<Image>(
+        find.byKey(const Key('login_gelatik_logo')),
+      );
+      final loginSiger = tester.widget<Image>(
+        find.byKey(const Key('login_siger_logo')),
+      );
+      expect(
+        (loginLogo.image as AssetImage).assetName,
+        'assets/images/logo-tanpabackground.png',
+      );
+      expect(
+        (loginSiger.image as AssetImage).assetName,
+        'assets/images/SIGER.png',
+      );
+      final brandText = tester.widget<Text>(find.text('GERBANG LAYANAN TIK'));
+      expect(brandText.style?.fontFamily, contains('Montserrat'));
+
+      await tester.tap(find.text('Daftar Akun Baru'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('register_gelatik_logo')), findsOneWidget);
+      expect(find.byKey(const Key('register_siger_logo')), findsOneWidget);
+      final registerLogo = tester.widget<Image>(
+        find.byKey(const Key('register_gelatik_logo')),
+      );
+      expect(
+        (registerLogo.image as AssetImage).assetName,
+        'assets/images/logo-tanpabackground.png',
+      );
+    });
+
+    for (final size in const [Size(360, 640), Size(390, 844), Size(412, 915)]) {
+      testWidgets(
+        'Login renders without overflow at ${size.width}x${size.height}',
+        (tester) async {
+          await tester.binding.setSurfaceSize(size);
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+
+          await tester.pumpWidget(
+            ProviderScope(
+              overrides: [
+                authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+                secureStorageServiceProvider.overrideWithValue(fakeStorage),
+              ],
+              child: MaterialApp(
+                builder: (context, child) => MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: const TextScaler.linear(1.3)),
+                  child: child!,
+                ),
+                home: const LoginScreen(),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
+          expect(find.text('Email atau NIP'), findsOneWidget);
+          expect(find.text('Kata Sandi'), findsOneWidget);
+        },
+      );
+    }
+
+    testWidgets('Login remains scrollable with a simulated keyboard inset', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(360, 640));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+            secureStorageServiceProvider.overrideWithValue(fakeStorage),
+          ],
+          child: MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(viewInsets: const EdgeInsets.only(bottom: 280)),
+              child: child!,
+            ),
+            home: const LoginScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SingleChildScrollView), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+      'Register remains scrollable on a small screen with keyboard and scaled text',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(360, 640));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+              secureStorageServiceProvider.overrideWithValue(fakeStorage),
+            ],
+            child: MaterialApp(
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  viewInsets: const EdgeInsets.only(bottom: 240),
+                  textScaler: const TextScaler.linear(1.2),
+                ),
+                child: child!,
+              ),
+              home: const RegisterScreen(),
+            ),
+          ),
+        );
         await tester.pumpAndSettle();
 
-        expect(find.text('Selamat Datang'), findsOneWidget);
+        expect(find.byType(SingleChildScrollView), findsOneWidget);
+        expect(find.byKey(const Key('register_gelatik_logo')), findsOneWidget);
+        expect(tester.takeException(), isNull);
       },
     );
   });
