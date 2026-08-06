@@ -6,6 +6,7 @@ use App\Events\PinjamStatusChanged;
 use App\Models\WhatsappSubscription;
 use App\Services\FcmNotificationService;
 use App\Services\NodeServiceClient;
+use App\Services\RealtimeEventPayload;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -31,12 +32,11 @@ class SendPinjamNotification implements ShouldQueue
         $nodeService->broadcastToUser(
             $event->pinjam->user_id,
             'pinjam.status_changed',
-            [
-                'pinjam_id' => $event->pinjam->id,
+            RealtimeEventPayload::make('pinjam.status_changed', (int) $event->pinjam->id, [
                 'old_status' => $event->oldStatus,
-                'new_status' => $event->newStatus,
+                'status' => $event->newStatus,
                 'message' => 'Status peminjaman Anda telah diubah menjadi ' . $event->newStatus
-            ]
+            ])
         );
 
         // 2. WhatsApp Notification (F-WA)

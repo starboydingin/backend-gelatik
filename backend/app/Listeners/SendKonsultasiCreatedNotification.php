@@ -5,6 +5,7 @@ namespace App\Listeners;
 use App\Events\KonsultasiCreated;
 use App\Services\FcmNotificationService;
 use App\Services\NodeServiceClient;
+use App\Services\RealtimeEventPayload;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 
@@ -17,13 +18,13 @@ class SendKonsultasiCreatedNotification implements ShouldQueue
         $nodeService = new NodeServiceClient();
 
         // 1. Broadcast Socket.io ke admin/all
-        $nodeService->broadcastToAll(
+        $nodeService->broadcastToRole(
+            'admin',
             'konsultasi.created',
-            [
-                'konsultasi_id' => $event->konsultasi->id,
-                'user_id' => $event->konsultasi->user_id,
+            RealtimeEventPayload::make('konsultasi.created', (int) $event->konsultasi->id, [
+                'status' => $event->konsultasi->status,
                 'message' => 'Sebuah permintaan konsultasi telah diminta.'
-            ]
+            ])
         );
 
         // 2. FCM Push Notification ke Topic Admin

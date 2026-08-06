@@ -6,6 +6,7 @@ use App\Events\KonsultasiResponseCreated;
 use App\Models\WhatsappSubscription;
 use App\Services\FcmNotificationService;
 use App\Services\NodeServiceClient;
+use App\Services\RealtimeEventPayload;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -29,15 +30,26 @@ class SendKonsultasiNotification implements ShouldQueue
         $nodeService = new NodeServiceClient();
         
         // 1. Broadcast via Socket.io (F-RT)
-        $nodeService->broadcastToUser(
-            $event->konsultasi->user_id,
+        $targetIsAdmin = (int) $event->response->user_id === (int) $event->konsultasi->user_id;
+        $payload = RealtimeEventPayload::make('konsultasi.responded', (int) $event->konsultasi->id, [
+            'status' => $event->konsultasi->status,
+            'response_id' => (int) $event->response->id,
+            'message' => 'Anda mendapat balasan baru pada konsultasi: ' . $event->konsultasi->judul,
+        ]);
+
+        if ($targetIsAdmin) {
+            $nodeService->broadcastToRole(
+                'admin',
+                'konsultasi.responded',
+                $payload
+            );
+        } else {
+            $nodeService->broadcastToUser(
+                $event->konsultasi->user_id,
             'konsultasi.responded',
-            [
-                'konsultasi_id' => $event->konsultasi->id,
-                'response_id' => $event->response->id,
-                'message' => 'Anda mendapat balasan baru pada konsultasi: ' . $event->konsultasi->judul
-            ]
-        );
+                $payload
+            );
+        }
 
         // 2. WhatsApp Notification (F-WA)
         try {

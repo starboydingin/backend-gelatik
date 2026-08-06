@@ -62,6 +62,29 @@ class NodeServiceClient
     }
 
     /**
+     * Mengirim event ke room role yang dibentuk dari identity tervalidasi.
+     */
+    public function broadcastToRole(string $role, string $event, array $payload)
+    {
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Accept' => 'application/json',
+            ])->timeout(5)->post($this->baseUrl . '/internal/broadcast', [
+                'target' => 'role',
+                'role' => $role,
+                'event' => $event,
+                'payload' => $payload,
+            ]);
+
+            return $response->json();
+        } catch (\Throwable $e) {
+            Log::error('Gagal mengirim role broadcast ke Node.js: ' . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
      * Mengirim pesan WhatsApp melalui Node.js service.
      */
     public function sendWhatsApp($nomorWa, $message, $reference = [])

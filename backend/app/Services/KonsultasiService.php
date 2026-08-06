@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\KonsultasiCreated;
 use App\Events\KonsultasiResponseCreated;
+use App\Events\KonsultasiStatusChanged;
 use App\Models\Konsultasi;
 use App\Models\KonsultasiResponse;
 use App\Models\User;
@@ -90,6 +91,8 @@ class KonsultasiService
             'status'     => $statusBaru,
             'updated_by' => $admin ? $admin->id : null,
         ]);
+
+        event(new KonsultasiStatusChanged($konsultasi, $oldStatus, $statusBaru));
 
         return $konsultasi;
     }
