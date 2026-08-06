@@ -58,7 +58,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Register user baru (BAGIAN 2: default status = '0' pending admin activation)
+     * Register user baru dan terbitkan access token agar dapat langsung masuk.
      * POST /api/register
      */
     public function register(Request $request)
@@ -80,23 +80,31 @@ class AuthController extends Controller
             ]);
         }
 
-        $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'username' => $request->nip,
-            'nip'      => $request->nip,
-            'no_hp'    => $request->no_hp,
-            'nama_opd' => $request->nama_opd,
-            'password' => Hash::make($request->password),
-            'status'   => '0', // Default nonaktif (menunggu aktivasi admin)
-        ]);
+        $authData = DB::transaction(function () use ($request): array {
+            $user = User::create([
+                'name'     => $request->name,
+                'email'    => $request->email,
+                'username' => $request->nip,
+                'nip'      => $request->nip,
+                'no_hp'    => $request->no_hp,
+                'nama_opd' => $request->nama_opd,
+                'password' => Hash::make($request->password),
+                'status'   => '1',
+            ]);
 
-        $user->assignRole('user');
+            $user->assignRole('user');
+
+            return [
+                'user'         => $user,
+                'access_token' => $user->createToken('LayanantikToken')->accessToken,
+                'token_type'   => 'Bearer',
+            ];
+        });
 
         return response()->json([
             'success' => true,
-            'message' => 'Registrasi berhasil. Akun Anda akan diaktifkan oleh admin sebelum dapat digunakan.',
-            'data'    => $user,
+            'message' => 'Registrasi berhasil. Akun Anda sudah aktif.',
+            'data'    => $authData,
         ], 201);
     }
 

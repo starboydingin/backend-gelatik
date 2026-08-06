@@ -133,9 +133,29 @@
                                 "register"
                             ]
                         },
-                        "description": "Fungsi: Pendaftaran akun baru pengguna OPD/Pegawai. Field username akan otomatis terisi sama dengan NIP.\nPermission/Role: Publik.\nCatatan: Akun yang terdaftar berstatus pending (status=0) menunggu aktivasi admin dan mendapatkan role 'user'."
+                        "description": "Fungsi: Pendaftaran akun baru pengguna OPD/Pegawai. Field username akan otomatis terisi sama dengan NIP.\nPermission/Role: Publik.\nCatatan: Akun baru langsung aktif (status=1), mendapatkan role 'user', dan response mengembalikan user, access_token, serta token_type agar client dapat langsung membuat session. Script otomatis menyimpan access_token ke environment variable {{access_token}}."
                     },
-                    "response": []
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "pm.test(\"Register returns an active user and auth token\", function () {",
+                                    "    pm.expect(pm.response.code).to.eql(201);",
+                                    "    pm.expect(jsonData.data.user.status.toString()).to.eql(\"1\");",
+                                    "    pm.expect(jsonData.data.token_type).to.eql(\"Bearer\");",
+                                    "    pm.expect(jsonData.data.access_token).to.be.a(\"string\").and.not.empty;",
+                                    "});",
+                                    "if (jsonData.data && jsonData.data.access_token) {",
+                                    "    pm.environment.set(\"access_token\", jsonData.data.access_token);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
                 },
                 {
                     "name": "GET Profil Saya (Me)",
