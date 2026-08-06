@@ -11,7 +11,6 @@ import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../chatbot/presentation/screens/chatbot_native_screen.dart';
-import '../../../chatbot/presentation/screens/chatbot_web_view_screen.dart';
 import '../../../email/presentation/screens/usulan_email_list_screen.dart';
 import '../../../info_alat/presentation/screens/info_alat_screen.dart';
 import '../../../internet/presentation/screens/layanan_internet_screen.dart';
@@ -118,7 +117,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _open(const ChatbotWebViewScreen()),
+        onPressed: () => _open(const ChatbotNativeScreen()),
         backgroundColor: actionEmerald,
         foregroundColor: Colors.white,
         shape: const CircleBorder(),

@@ -1,180 +1,327 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:gelatik/core/network/api_client.dart';
+import 'package:gelatik/core/storage/secure_storage_service.dart';
+import 'package:gelatik/features/chatbot/models/chat_message_model.dart';
+import 'package:gelatik/features/chatbot/models/chatbot_request.dart';
+import 'package:gelatik/features/chatbot/models/chatbot_response_model.dart';
 import 'package:gelatik/features/chatbot/presentation/screens/chatbot_native_screen.dart';
-import 'package:gelatik/features/chatbot/providers/chatbot_provider.dart';
-import 'package:gelatik/features/home/presentation/screens/home_screen.dart';
+import 'package:gelatik/features/chatbot/repositories/chatbot_repository.dart';
 import 'package:gelatik/features/home/models/home_dashboard_model.dart';
+import 'package:gelatik/features/home/presentation/screens/home_screen.dart';
 import 'package:gelatik/features/home/providers/home_provider.dart';
 
+class _MemoryStorage extends SecureStorageService {
+  String? sessionId;
+
+  @override
+  Future<String?> getChatbotSessionId() async => sessionId;
+
+  @override
+  Future<void> saveChatbotSessionId(String value) async => sessionId = value;
+
+  @override
+  Future<void> deleteChatbotSessionId() async => sessionId = null;
+}
+
+class _WidgetRepository extends ChatbotRepository {
+  _WidgetRepository()
+    : super(
+        apiClient: ApiClient(
+          secureStorageService: _MemoryStorage(),
+          dioOverride: Dio(),
+        ),
+      );
+
+  List<ChatMessageModel> history = const [];
+  Object? historyError;
+  Object? sendError;
+  Completer<ChatbotResponseModel>? sendCompleter;
+  int deleteCalls = 0;
+
+  @override
+  Future<List<ChatMessageModel>> getHistory(String sessionId) async {
+    if (historyError != null) throw historyError!;
+    return history;
+  }
+
+  @override
+  Future<ChatbotResponseModel> sendMessage(
+    ChatbotMessageRequest request,
+  ) async {
+    if (sendError != null) throw sendError!;
+    if (sendCompleter != null) return sendCompleter!.future;
+    return const ChatbotResponseModel(
+      sessionId: 'session-1',
+      reply: 'Jawaban dari backend',
+      provider: 'gemini',
+    );
+  }
+
+  @override
+  Future<void> deleteHistory(String sessionId) async {
+    deleteCalls++;
+  }
+}
+
+ChatMessageModel _historyMessage(String id, String text) => ChatMessageModel(
+  id: id,
+  sender: ChatMessageSender.assistant,
+  text: text,
+  timestamp: DateTime(2026, 8, 6, 10),
+);
+
+ChatbotRepositoryException _error(ChatbotErrorType type, String message) =>
+    ChatbotRepositoryException(message: message, type: type);
+
+Future<void> _pumpChat(
+  WidgetTester tester,
+  _WidgetRepository repository,
+  _MemoryStorage storage,
+) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        chatbotRepositoryProvider.overrideWithValue(repository),
+        secureStorageServiceProvider.overrideWithValue(storage),
+      ],
+      child: const MaterialApp(home: ChatbotNativeScreen()),
+    ),
+  );
+}
+
 void main() {
-  group('ChatbotNative (F-BOT) Provider Unit Tests', () {
-    test(
-      '1. Sending a message adds user message and dummy assistant reply',
-      () async {
-        final container = ProviderContainer();
-        addTearDown(container.dispose);
-
-        final notifier = container.read(chatbotProvider.notifier);
-
-        expect(container.read(chatbotProvider).messages.length, 1);
-        expect(
-          container.read(chatbotProvider).messages.first.isAssistant,
-          isTrue,
-        );
-
-        final future = notifier.sendMessage('Bagaimana cara pinjam proyektor?');
-
-        expect(container.read(chatbotProvider).messages.length, 2);
-        expect(container.read(chatbotProvider).messages.last.isUser, isTrue);
-        expect(
-          container.read(chatbotProvider).messages.last.text,
-          'Bagaimana cara pinjam proyektor?',
-        );
-        expect(container.read(chatbotProvider).isTyping, isTrue);
-
-        await future;
-
-        final messages = container.read(chatbotProvider).messages;
-        expect(messages.length, 3);
-        expect(messages.last.isAssistant, isTrue);
-        expect(messages.last.text, contains('Peminjaman Aset'));
-        expect(container.read(chatbotProvider).isTyping, isFalse);
-      },
-    );
-
-    test('2. clearHistory empties the messages list', () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      final notifier = container.read(chatbotProvider.notifier);
-      expect(container.read(chatbotProvider).messages.isNotEmpty, isTrue);
-
-      notifier.clearHistory();
-
-      expect(container.read(chatbotProvider).messages.isEmpty, isTrue);
+  group('Chatbot native UI', () {
+    testWidgets('29. loading history terlihat', (tester) async {
+      final storage = _MemoryStorage()..sessionId = 'session-1';
+      final completer = Completer<List<ChatMessageModel>>();
+      final blocking = _BlockingHistoryRepository(completer);
+      await _pumpChat(tester, blocking, storage);
+      await tester.pump();
+      expect(find.byKey(const Key('chatbot-loading')), findsOneWidget);
+      completer.complete([]);
+      await tester.pumpAndSettle();
     });
-  });
 
-  group('ChatbotNativeScreen Widget Tests', () {
-    testWidgets(
-      '1. Kirim pesan baru muncul sebagai bubble user & balasan dummy muncul sebagai bubble asisten',
-      (tester) async {
-        await tester.pumpWidget(
-          const ProviderScope(child: MaterialApp(home: ChatbotNativeScreen())),
-        );
-        await tester.pump();
+    testWidgets('30. empty conversation terlihat', (tester) async {
+      await _pumpChat(tester, _WidgetRepository(), _MemoryStorage());
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('chatbot-empty')), findsOneWidget);
+      expect(find.textContaining('Riwayat pesan kosong'), findsOneWidget);
+    });
 
-        // Check AppBar Title
-        expect(find.text('Asisten Gelatik'), findsOneWidget);
-        expect(find.text('Ditenagai AI'), findsOneWidget);
+    testWidgets('31. history success dirender', (tester) async {
+      final storage = _MemoryStorage()..sessionId = 'session-1';
+      final repository = _WidgetRepository()
+        ..history = [_historyMessage('1', 'History backend')];
+      await _pumpChat(tester, repository, storage);
+      await tester.pumpAndSettle();
+      expect(find.text('History backend'), findsOneWidget);
+    });
 
-        // Initial welcome message from assistant
-        expect(find.text('Asisten Gelatik (AI)'), findsOneWidget);
-
-        // Enter user message
-        final textField = find.byType(TextField);
-        expect(textField, findsOneWidget);
-        await tester.enterText(textField, 'Tanya soal layanan internet');
-
-        final sendButton = find.byIcon(Icons.send_rounded);
-        expect(sendButton, findsOneWidget);
-        await tester.tap(sendButton);
-        await tester.pump(); // Update UI for user message & typing state
-
-        // User bubble appears
-        expect(find.text('Anda'), findsOneWidget);
-        expect(find.text('Tanya soal layanan internet'), findsOneWidget);
-        expect(find.text('Asisten Gelatik sedang mengetik...'), findsOneWidget);
-
-        // Fast forward past dummy delay (1.2s)
-        await tester.pump(const Duration(milliseconds: 1300));
-        await tester.pump();
-
-        // Assistant response bubble appears
-        expect(find.text('Asisten Gelatik sedang mengetik...'), findsNothing);
-        expect(find.textContaining('Layanan Internet'), findsOneWidget);
-      },
-    );
-
-    testWidgets('2. Hapus riwayat mengosongkan list setelah konfirmasi', (
+    testWidgets('32. sending indicator dan duplicate tap terkunci', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        const ProviderScope(child: MaterialApp(home: ChatbotNativeScreen())),
+      final completer = Completer<ChatbotResponseModel>();
+      final repository = _WidgetRepository()..sendCompleter = completer;
+      await _pumpChat(tester, repository, _MemoryStorage());
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('chatbot-input')),
+        'Tanya TIK',
       );
       await tester.pump();
-
-      expect(find.text('Asisten Gelatik (AI)'), findsOneWidget);
-
-      // Tap trash icon in AppBar
-      final trashIcon = find.byIcon(Icons.delete_outline_rounded);
-      expect(trashIcon, findsOneWidget);
-      await tester.tap(trashIcon);
-      await tester.pumpAndSettle();
-
-      // Confirmation dialog pops up
-      expect(find.text('Hapus Riwayat Chat'), findsOneWidget);
       expect(
-        find.text(
-          'Apakah Anda yakin ingin menghapus semua riwayat percakapan dengan Asisten Gelatik?',
-        ),
-        findsOneWidget,
+        tester
+            .widget<IconButton>(find.byKey(const Key('chatbot-send')))
+            .onPressed,
+        isNotNull,
       );
-
-      // Tap 'Hapus' button in dialog
-      final hapusButton = find.widgetWithText(ElevatedButton, 'Hapus');
-      expect(hapusButton, findsOneWidget);
-      await tester.tap(hapusButton);
+      await tester.tap(find.byKey(const Key('chatbot-send')));
+      await tester.pump();
+      expect(find.byKey(const Key('chatbot-typing')), findsOneWidget);
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const Key('chatbot-send')))
+            .onPressed,
+        isNull,
+      );
+      completer.complete(
+        const ChatbotResponseModel(sessionId: 'session-1', reply: 'Selesai'),
+      );
       await tester.pumpAndSettle();
+    });
 
-      // Dialog closed & messages empty state visible
-      expect(find.textContaining('Riwayat pesan kosong.'), findsOneWidget);
-      expect(find.text('Asisten Gelatik (AI)'), findsNothing);
+    testWidgets('33. send success menampilkan user dan assistant', (
+      tester,
+    ) async {
+      await _pumpChat(tester, _WidgetRepository(), _MemoryStorage());
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('chatbot-input')), 'Halo');
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('chatbot-send')));
+      await tester.pumpAndSettle();
+      expect(find.text('Halo'), findsOneWidget);
+      expect(find.text('Jawaban dari backend'), findsOneWidget);
+    });
+
+    testWidgets('34. send failure menampilkan retry dan retry berhasil', (
+      tester,
+    ) async {
+      final repository = _WidgetRepository()
+        ..sendError = _error(ChatbotErrorType.network, 'Jaringan terputus');
+      await _pumpChat(tester, repository, _MemoryStorage());
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('chatbot-input')), 'Halo');
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('chatbot-send')));
+      await tester.pumpAndSettle();
+      expect(find.text('Coba lagi'), findsOneWidget);
+      expect(find.text('Jaringan terputus'), findsOneWidget);
+      repository.sendError = null;
+      await tester.tap(find.text('Coba lagi'));
+      await tester.pumpAndSettle();
+      expect(find.text('Jawaban dari backend'), findsOneWidget);
+      expect(find.text('Coba lagi'), findsNothing);
+    });
+
+    testWidgets('35. rate limit message ramah tampil', (tester) async {
+      final repository = _WidgetRepository()
+        ..sendError = _error(
+          ChatbotErrorType.rateLimit,
+          'Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.',
+        );
+      await _pumpChat(tester, repository, _MemoryStorage());
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('chatbot-input')), 'Halo');
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('chatbot-send')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Terlalu banyak permintaan'), findsOneWidget);
+    });
+
+    testWidgets('36. input kosong membuat send disabled', (tester) async {
+      await _pumpChat(tester, _WidgetRepository(), _MemoryStorage());
+      await tester.pumpAndSettle();
+      final button = tester.widget<IconButton>(
+        find.byKey(const Key('chatbot-send')),
+      );
+      expect(button.onPressed, isNull);
     });
 
     testWidgets(
-      '3. HomeScreen Bento Grid contains Asisten Gelatik tile with AI badge',
+      '37. keyboard submit, scroll, dan text scaling tidak overflow',
       (tester) async {
-        await tester.pumpWidget(
-          ProviderScope(
-            overrides: [
-              homeProvider.overrideWith(
-                (ref) => HomeNotifier.preview(
-                  const HomeDashboardModel(
-                    userName: 'Test User',
-                    userRole: 'user',
-                    availableItemCount: 0,
-                    totalBorrowingCount: 0,
-                    totalConsultationCount: 0,
-                  ),
-                ),
-              ),
-            ],
-            child: const MaterialApp(home: HomeScreen()),
-          ),
+        await tester.binding.setSurfaceSize(const Size(360, 640));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await _pumpChat(tester, _WidgetRepository(), _MemoryStorage());
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('chatbot-input')),
+          'Pesan melalui keyboard',
         );
+        await tester.testTextInput.receiveAction(TextInputAction.send);
         await tester.pumpAndSettle();
-
-        await tester.drag(
-          find.byKey(const Key('home-scroll')),
-          const Offset(0, -900),
-        );
-        await tester.pumpAndSettle();
-
-        // Verify tile exists
-        expect(find.text('Asisten Gelatik'), findsOneWidget);
-        expect(find.text('Tanya AI TIK'), findsOneWidget);
-        expect(find.text('AI'), findsOneWidget);
-
-        // Tap Asisten Gelatik tile -> navigates to ChatbotNativeScreen
-        await tester.ensureVisible(find.text('Asisten Gelatik'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Asisten Gelatik'));
-        await tester.pumpAndSettle();
-
-        expect(find.byType(ChatbotNativeScreen), findsOneWidget);
+        expect(find.text('Pesan melalui keyboard'), findsOneWidget);
+        expect(tester.takeException(), isNull);
       },
     );
+
+    testWidgets('38. unauthorized menawarkan masuk ulang', (tester) async {
+      final storage = _MemoryStorage()..sessionId = 'session-1';
+      final repository = _WidgetRepository()
+        ..historyError = _error(
+          ChatbotErrorType.unauthorized,
+          'Sesi Anda telah berakhir. Silakan login kembali.',
+        );
+      await _pumpChat(tester, repository, storage);
+      await tester.pumpAndSettle();
+      expect(find.text('Masuk ulang'), findsOneWidget);
+      expect(find.byKey(const Key('chatbot-error-banner')), findsOneWidget);
+    });
+
+    test(
+      '39. source production Chatbot bebas DummyData dan fake response',
+      () async {
+        final files = await Directory('lib/features/chatbot')
+            .list(recursive: true)
+            .where((entry) => entry is File && entry.path.endsWith('.dart'))
+            .cast<File>()
+            .toList();
+        final source = (await Future.wait(
+          files.map((file) => file.readAsString()),
+        )).join('\n');
+        expect(source, isNot(contains('DummyData')));
+        expect(source, isNot(contains('_generateDummyResponse')));
+        expect(source, isNot(contains('dart:math')));
+      },
+    );
+
+    testWidgets('hapus history memanggil API lalu menampilkan empty state', (
+      tester,
+    ) async {
+      final storage = _MemoryStorage()..sessionId = 'session-1';
+      final repository = _WidgetRepository()
+        ..history = [_historyMessage('1', 'Akan dihapus')];
+      await _pumpChat(tester, repository, storage);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('chatbot-delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Hapus'));
+      await tester.pumpAndSettle();
+      expect(repository.deleteCalls, 1);
+      expect(find.byKey(const Key('chatbot-empty')), findsOneWidget);
+    });
+
+    testWidgets('Home tile membuka Chatbot Native', (tester) async {
+      final repository = _WidgetRepository();
+      final storage = _MemoryStorage();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            chatbotRepositoryProvider.overrideWithValue(repository),
+            secureStorageServiceProvider.overrideWithValue(storage),
+            homeProvider.overrideWith(
+              (ref) => HomeNotifier.preview(
+                const HomeDashboardModel(
+                  userName: 'Test User',
+                  userRole: 'user',
+                  availableItemCount: 0,
+                  totalBorrowingCount: 0,
+                  totalConsultationCount: 0,
+                ),
+              ),
+            ),
+          ],
+          child: const MaterialApp(home: HomeScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const Key('home-scroll')),
+        const Offset(0, -900),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Asisten Gelatik'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Asisten Gelatik'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ChatbotNativeScreen), findsOneWidget);
+    });
   });
+}
+
+class _BlockingHistoryRepository extends _WidgetRepository {
+  final Completer<List<ChatMessageModel>> completer;
+
+  _BlockingHistoryRepository(this.completer);
+
+  @override
+  Future<List<ChatMessageModel>> getHistory(String sessionId) =>
+      completer.future;
 }

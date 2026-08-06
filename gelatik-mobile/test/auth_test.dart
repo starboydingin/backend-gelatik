@@ -16,6 +16,7 @@ import 'package:gelatik/features/auth/presentation/screens/register_screen.dart'
 
 class FakeSecureStorageService implements SecureStorageService {
   String? _token;
+  String? _chatbotSessionId;
 
   @override
   Future<void> saveToken(String token) async {
@@ -30,6 +31,20 @@ class FakeSecureStorageService implements SecureStorageService {
   @override
   Future<void> deleteToken() async {
     _token = null;
+    _chatbotSessionId = null;
+  }
+
+  @override
+  Future<void> saveChatbotSessionId(String sessionId) async {
+    _chatbotSessionId = sessionId;
+  }
+
+  @override
+  Future<String?> getChatbotSessionId() async => _chatbotSessionId;
+
+  @override
+  Future<void> deleteChatbotSessionId() async {
+    _chatbotSessionId = null;
   }
 }
 

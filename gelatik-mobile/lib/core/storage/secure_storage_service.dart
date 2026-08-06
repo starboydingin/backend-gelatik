@@ -5,9 +5,10 @@ class SecureStorageService {
   final FlutterSecureStorage _storage;
 
   static const String _tokenKey = 'auth_token';
+  static const String _chatbotSessionKey = 'chatbot_session_id';
 
   SecureStorageService({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   Future<void> saveToken(String token) async {
     await _storage.write(key: _tokenKey, value: token);
@@ -19,6 +20,19 @@ class SecureStorageService {
 
   Future<void> deleteToken() async {
     await _storage.delete(key: _tokenKey);
+    await deleteChatbotSessionId();
+  }
+
+  Future<void> saveChatbotSessionId(String sessionId) async {
+    await _storage.write(key: _chatbotSessionKey, value: sessionId);
+  }
+
+  Future<String?> getChatbotSessionId() async {
+    return _storage.read(key: _chatbotSessionKey);
+  }
+
+  Future<void> deleteChatbotSessionId() async {
+    await _storage.delete(key: _chatbotSessionKey);
   }
 }
 

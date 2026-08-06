@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../models/chat_message_model.dart';
 import '../../providers/chatbot_provider.dart';
 
-/// ChatbotNativeScreen — Screen Chatbot Native (F-BOT) dengan Data Dummy & State Provider
 class ChatbotNativeScreen extends ConsumerStatefulWidget {
   const ChatbotNativeScreen({super.key});
 
@@ -15,82 +17,90 @@ class ChatbotNativeScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
-  final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
+  final _messageController = TextEditingController();
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _messageController.addListener(_onInputChanged);
+  }
+
+  void _onInputChanged() => setState(() {});
 
   @override
   void dispose() {
-    _messageController.dispose();
+    _messageController
+      ..removeListener(_onInputChanged)
+      ..dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
     });
   }
 
-  Future<void> _handleSendMessage() async {
+  Future<void> _send() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
-
+    final state = ref.read(chatbotProvider);
+    if (text.isEmpty || state.isTyping) return;
     _messageController.clear();
     FocusScope.of(context).unfocus();
-
-    _scrollToBottom();
     await ref.read(chatbotProvider.notifier).sendMessage(text);
-    _scrollToBottom();
   }
 
-  void _confirmClearHistory() {
-    showDialog(
+  Future<void> _loginAgain() async {
+    await ref.read(authProvider.notifier).logout();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
+  }
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Hapus Riwayat Chat'),
         content: const Text(
           'Apakah Anda yakin ingin menghapus semua riwayat percakapan dengan Asisten Gelatik?',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Batal'),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              ref.read(chatbotProvider.notifier).clearHistory();
-              Navigator.of(ctx).pop();
-            },
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Hapus'),
           ),
         ],
       ),
     );
+    if (confirmed == true) {
+      await ref.read(chatbotProvider.notifier).deleteHistory();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(chatbotProvider);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     final primaryTeal = AppColors.primaryTeal(context);
-    final actionEmerald = AppColors.actionEmerald(context);
     final strokeColor = AppColors.cardStroke(context);
     final mutedText = AppColors.mutedText(context);
+    final canSend =
+        _messageController.text.trim().isNotEmpty && !state.isTyping;
 
-    final chatbotState = ref.watch(chatbotProvider);
-
-    // Auto scroll when state changes
     ref.listen<ChatbotState>(chatbotProvider, (previous, next) {
       if (previous?.messages.length != next.messages.length ||
           previous?.isTyping != next.isTyping) {
@@ -104,349 +114,344 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
           children: [
             const Text(
               'Asisten Gelatik',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             Text(
               'Ditenagai AI',
-              style: TextStyle(
-                fontSize: 11,
-                color: mutedText,
-              ),
+              style: TextStyle(fontSize: 11, color: mutedText),
             ),
           ],
         ),
         centerTitle: true,
         actions: [
           IconButton(
+            key: const Key('chatbot-delete'),
             icon: const Icon(Icons.delete_outline_rounded),
             tooltip: 'Hapus Riwayat',
-            onPressed: _confirmClearHistory,
+            onPressed: state.isTyping || state.isRefreshing
+                ? null
+                : _confirmDelete,
           ),
           const ThemeToggleButton(),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
         ],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // -----------------------------------------------------------------
-            // Chat Messages Area
-            // -----------------------------------------------------------------
+            if (state.errorMessage != null)
+              _ErrorBanner(
+                message: state.errorMessage!,
+                unauthorized: state.isUnauthorized,
+                onAction: state.isUnauthorized
+                    ? _loginAgain
+                    : () => ref.read(chatbotProvider.notifier).refreshHistory(),
+              ),
             Expanded(
-              child: chatbotState.messages.isEmpty && !chatbotState.isTyping
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.smart_toy_outlined,
-                              size: 48,
-                              color: mutedText.withValues(alpha: 0.5),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Riwayat pesan kosong.\nSilakan ketik pertanyaan di bawah untuk memulai percakapan.',
-                              style: TextStyle(fontSize: 13, color: mutedText),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(16),
-                      itemCount: chatbotState.messages.length +
-                          (chatbotState.isTyping ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index < chatbotState.messages.length) {
-                          final msg = chatbotState.messages[index];
-                          return _buildChatBubble(
-                            context: context,
-                            message: msg,
-                            primaryTeal: primaryTeal,
-                            strokeColor: strokeColor,
-                            mutedText: mutedText,
-                            theme: theme,
-                            isDark: isDark,
-                          );
-                        } else {
-                          // Typing Indicator Bubble
-                          return _buildTypingIndicator(
-                            context: context,
-                            primaryTeal: primaryTeal,
-                            strokeColor: strokeColor,
-                            mutedText: mutedText,
-                            theme: theme,
-                          );
-                        }
-                      },
-                    ),
-            ),
-
-            // -----------------------------------------------------------------
-            // Bottom Reply Input Field
-            // -----------------------------------------------------------------
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                border: Border(
-                  top: BorderSide(color: strokeColor, width: 1.5),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      onSubmitted: (_) => _handleSendMessage(),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Tanya apa saja soal layanan TIK...',
-                        filled: true,
-                        fillColor: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.5),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: strokeColor, width: 1.5),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: strokeColor, width: 1.5),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: primaryTeal, width: 2),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: _handleSendMessage,
-                    borderRadius: BorderRadius.circular(24),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: actionEmerald,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ],
+              child: _buildMessages(
+                state: state,
+                theme: theme,
+                primaryTeal: primaryTeal,
+                strokeColor: strokeColor,
+                mutedText: mutedText,
               ),
             ),
+            _buildInput(theme, primaryTeal, strokeColor, canSend),
           ],
         ),
       ),
     );
   }
 
-  /// Chat Bubble Helper Builder
-  Widget _buildChatBubble({
-    required BuildContext context,
-    required ChatMessageModel message,
+  Widget _buildMessages({
+    required ChatbotState state,
+    required ThemeData theme,
     required Color primaryTeal,
     required Color strokeColor,
     required Color mutedText,
-    required ThemeData theme,
-    required bool isDark,
   }) {
-    final isAssistant = message.isAssistant;
-    final alignment =
-        isAssistant ? Alignment.centerLeft : Alignment.centerRight;
-
-    final borderRadius = isAssistant
-        ? const BorderRadius.only(
-            topLeft: Radius.circular(4),
-            topRight: Radius.circular(16),
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-          )
-        : const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(4),
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-          );
-
-    final bgColor = isAssistant
-        ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
-        : primaryTeal;
-
-    final textColor = isAssistant
-        ? theme.colorScheme.onSurface
-        : Colors.white;
-
-    final border = isAssistant
-        ? Border.all(color: strokeColor, width: 1.5)
-        : null;
-
-    final formattedTime =
-        '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
-
-    return Align(
-      alignment: alignment,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 12.0),
-        child: Container(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.82,
-          ),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: borderRadius,
-            border: border,
-          ),
-          child: Column(
-            crossAxisAlignment: isAssistant
-                ? CrossAxisAlignment.start
-                : CrossAxisAlignment.end,
-            children: [
-              // Header Sender Info
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isAssistant) ...[
-                    Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: primaryTeal.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.smart_toy_rounded,
-                        size: 14,
-                        color: primaryTeal,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Asisten Gelatik (AI)',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: primaryTeal,
-                      ),
-                    ),
-                  ] else ...[
-                    const Icon(
-                      Icons.person_rounded,
-                      size: 14,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'Anda',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(width: 8),
-                  Text(
-                    formattedTime,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isAssistant
-                          ? mutedText
-                          : Colors.white.withValues(alpha: 0.75),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 6),
-
-              // Message Body Text
-              Text(
-                message.text,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.4,
-                  color: textColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Helper Builder Typing Indicator
-  Widget _buildTypingIndicator({
-    required BuildContext context,
-    required Color primaryTeal,
-    required Color strokeColor,
-    required Color mutedText,
-    required ThemeData theme,
-  }) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 12.0),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(4),
-              topRight: Radius.circular(16),
-              bottomLeft: Radius.circular(16),
-              bottomRight: Radius.circular(16),
+    if (state.isLoadingHistory) {
+      return const Center(
+        key: Key('chatbot-loading'),
+        child: CircularProgressIndicator(),
+      );
+    }
+    if (state.messages.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: ref.read(chatbotProvider.notifier).refreshHistory,
+        child: ListView(
+          key: const Key('chatbot-empty'),
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(height: MediaQuery.sizeOf(context).height * .2),
+            Icon(
+              state.errorMessage == null
+                  ? Icons.smart_toy_outlined
+                  : Icons.cloud_off_rounded,
+              size: 48,
+              color: mutedText.withValues(alpha: .55),
             ),
-            border: Border.all(color: strokeColor, width: 1.5),
+            const SizedBox(height: 12),
+            Text(
+              state.errorMessage == null
+                  ? 'Riwayat pesan kosong.\nKetik pertanyaan untuk memulai percakapan.'
+                  : 'Riwayat belum dapat dimuat.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: mutedText),
+            ),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: ref.read(chatbotProvider.notifier).refreshHistory,
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(16),
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: state.messages.length + (state.isTyping ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == state.messages.length) {
+            return _TypingIndicator(
+              primaryTeal: primaryTeal,
+              strokeColor: strokeColor,
+              mutedText: mutedText,
+            );
+          }
+          final message = state.messages[index];
+          return _MessageBubble(
+            message: message,
+            primaryTeal: primaryTeal,
+            strokeColor: strokeColor,
+            mutedText: mutedText,
+            onRetry: message.status == ChatMessageStatus.failed
+                ? () => ref
+                      .read(chatbotProvider.notifier)
+                      .retryMessage(message.id)
+                : null,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildInput(
+    ThemeData theme,
+    Color primaryTeal,
+    Color strokeColor,
+    bool canSend,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(top: BorderSide(color: strokeColor, width: 1.5)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              key: const Key('chatbot-input'),
+              controller: _messageController,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => canSend ? _send() : null,
+              decoration: InputDecoration(
+                hintText: 'Tanya soal layanan TIK...',
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: .5,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: strokeColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: primaryTeal, width: 2),
+                ),
+              ),
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.smart_toy_rounded,
-                size: 14,
-                color: primaryTeal,
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(primaryTeal),
+          const SizedBox(width: 8),
+          IconButton.filled(
+            key: const Key('chatbot-send'),
+            onPressed: canSend ? _send : null,
+            icon: const Icon(Icons.send_rounded),
+            tooltip: 'Kirim pesan',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MessageBubble extends StatelessWidget {
+  final ChatMessageModel message;
+  final Color primaryTeal;
+  final Color strokeColor;
+  final Color mutedText;
+  final VoidCallback? onRetry;
+
+  const _MessageBubble({
+    required this.message,
+    required this.primaryTeal,
+    required this.strokeColor,
+    required this.mutedText,
+    this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isUser = message.isUser;
+    final failed = message.status == ChatMessageStatus.failed;
+    final time =
+        '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
+    return Align(
+      key: Key('chat-message-${message.id}'),
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width * .82,
+        ),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isUser
+              ? (failed ? theme.colorScheme.error : primaryTeal)
+              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: .5),
+          borderRadius: BorderRadius.circular(16),
+          border: isUser ? null : Border.all(color: strokeColor),
+        ),
+        child: Column(
+          crossAxisAlignment: isUser
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  isUser ? 'Anda' : 'Asisten Gelatik (AI)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isUser ? Colors.white : primaryTeal,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Asisten Gelatik sedang mengetik...',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
-                  color: mutedText,
+                Text(
+                  time,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isUser ? Colors.white70 : mutedText,
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              message.text,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: isUser ? Colors.white : theme.colorScheme.onSurface,
+              ),
+            ),
+            if (failed) ...[
+              const SizedBox(height: 4),
+              TextButton.icon(
+                key: Key('chatbot-retry-${message.id}'),
+                onPressed: onRetry,
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
+                icon: const Icon(Icons.refresh_rounded, size: 16),
+                label: const Text('Coba lagi'),
               ),
             ],
-          ),
+          ],
         ),
       ),
     );
   }
+}
+
+class _TypingIndicator extends StatelessWidget {
+  final Color primaryTeal;
+  final Color strokeColor;
+  final Color mutedText;
+
+  const _TypingIndicator({
+    required this.primaryTeal,
+    required this.strokeColor,
+    required this.mutedText,
+  });
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.centerLeft,
+    child: Container(
+      key: const Key('chatbot-typing'),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: .5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: strokeColor),
+      ),
+      child: Wrap(
+        spacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: primaryTeal,
+            ),
+          ),
+          Text(
+            'Asisten Gelatik sedang mengetik...',
+            style: TextStyle(fontSize: 12, color: mutedText),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _ErrorBanner extends StatelessWidget {
+  final String message;
+  final bool unauthorized;
+  final Future<void> Function() onAction;
+
+  const _ErrorBanner({
+    required this.message,
+    required this.unauthorized,
+    required this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) => Material(
+    key: const Key('chatbot-error-banner'),
+    color: Theme.of(context).colorScheme.errorContainer,
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+      child: Row(
+        children: [
+          Expanded(child: Text(message, maxLines: 3)),
+          TextButton(
+            onPressed: onAction,
+            child: Text(unauthorized ? 'Masuk ulang' : 'Muat ulang'),
+          ),
+        ],
+      ),
+    ),
+  );
 }

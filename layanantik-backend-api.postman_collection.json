@@ -2750,9 +2750,23 @@
                                 "message"
                             ]
                         },
-                        "description": "Fungsi: Fitur Baru F-BOT: Mengirim pesan pertanyaan ke engine AI Chatbot Gelatik Native dan memperoleh jawaban otomatis.\nPermission/Role: Terautentikasi."
+                        "description": "Fungsi: Fitur Baru F-BOT: Mengirim pesan pertanyaan ke engine AI Chatbot Gelatik Native dan memperoleh jawaban otomatis. Field session_id opsional untuk pesan pertama dan wajib memakai ID response untuk melanjutkan percakapan.\nPermission/Role: Terautentikasi."
                     },
-                    "response": []
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.session_id) {",
+                                    "    pm.environment.set(\"chatbot_session_id\", jsonData.data.session_id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
                 },
                 {
                     "name": "GET Riwayat Chatbot Native",
@@ -2776,13 +2790,19 @@
                             ]
                         },
                         "url": {
-                            "raw": "{{base_url}}/chatbot/history",
+                            "raw": "{{base_url}}/chatbot/history?session_id={{chatbot_session_id}}",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
                                 "chatbot",
                                 "history"
+                            ],
+                            "query": [
+                                {
+                                    "key": "session_id",
+                                    "value": "{{chatbot_session_id}}"
+                                }
                             ]
                         },
                         "description": "Fungsi: Fitur Baru F-BOT: Mengambil riwayat percakapan interaktif pengguna dengan AI Chatbot Gelatik.\nPermission/Role: Terautentikasi."
@@ -2811,13 +2831,19 @@
                             ]
                         },
                         "url": {
-                            "raw": "{{base_url}}/chatbot/history",
+                            "raw": "{{base_url}}/chatbot/history?session_id={{chatbot_session_id}}",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
                                 "chatbot",
                                 "history"
+                            ],
+                            "query": [
+                                {
+                                    "key": "session_id",
+                                    "value": "{{chatbot_session_id}}"
+                                }
                             ]
                         },
                         "description": "Fungsi: Fitur Baru F-BOT: Menghapus seluruh riwayat obrolan pengguna dengan AI Chatbot.\nPermission/Role: Terautentikasi."
