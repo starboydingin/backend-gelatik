@@ -1,89 +1,161 @@
 const { Server } = require('socket.io');
 const axios = require('axios');
-require('dotenv').config();
+const { getRuntimeConfig } = require('../config');
 
 let io;
+const connectionRegistry = createConnectionRegistry();
 
-const getAllowedOrigins = () => {
-    if (process.env.SOCKET_CORS_ORIGINS) {
-        const origins = process.env.SOCKET_CORS_ORIGINS.split(',').map(o => o.trim()).filter(Boolean);
-        if (origins.length > 0) return origins;
+function getAllowedOrigins() {
+    return getRuntimeConfig().allowedOrigins;
+}
+
+function getRole(identity) {
+    if (typeof identity?.role === 'string') return identity.role.toLowerCase();
+    if (Array.isArray(identity?.roles) && typeof identity.roles[0] === 'string') {
+        return identity.roles[0].toLowerCase();
     }
-    // Fallback aman jika env tidak diset (hanya localhost, TANPA wildcard '*')
-    return ['http://localhost:8000', 'http://localhost:3000'];
-};
+    if (Array.isArray(identity?.roles) && identity.roles[0]?.name) {
+        return String(identity.roles[0].name).toLowerCase();
+    }
+    return 'user';
+}
 
-const initSocket = (server) => {
+function getRoomsForIdentity(identity) {
+    const userId = Number.parseInt(identity?.id, 10);
+    if (!Number.isInteger(userId) || userId <= 0) {
+        throw new Error('Authenticated identity has no valid user id');
+    }
+
+    const rooms = [`user_${userId}`];
+    const role = getRole(identity);
+    if (role === 'admin') rooms.push('role_admin');
+    if (role === 'superadmin') rooms.push('role_superadmin');
+    return rooms;
+}
+
+function getRoleRooms(target) {
+    if (target === 'admin') return ['role_admin', 'role_superadmin'];
+    throw new Error('Unsupported role target');
+}
+
+function extractToken(socket) {
+    const token = socket?.handshake?.auth?.token;
+    return typeof token === 'string' && token.trim() ? token.trim() : null;
+}
+
+async function verifyLaravelToken(token) {
+    const { laravelBaseUrl } = getRuntimeConfig();
+    const response = await axios.get(`${laravelBaseUrl}/api/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 5000,
+    });
+    const identity = response.data?.data || response.data?.user || response.data;
+    if (!identity || !identity.id) throw new Error('Laravel returned no identity');
+    if (String(identity.status) === '0') throw new Error('Inactive user');
+    return identity;
+}
+
+function createAuthMiddleware({ verifyToken = verifyLaravelToken } = {}) {
+    return async (socket, next) => {
+        const token = extractToken(socket);
+        if (!token) return next(new Error('unauthorized'));
+
+        try {
+            socket.user = await verifyToken(token);
+            socket.authenticatedRooms = getRoomsForIdentity(socket.user);
+            return next();
+        } catch (_) {
+            return next(new Error('unauthorized'));
+        }
+    };
+}
+
+function createConnectionRegistry() {
+    const connections = new Map();
+    return {
+        add(socketId, rooms) {
+            connections.set(socketId, [...rooms]);
+        },
+        remove(socketId) {
+            connections.delete(socketId);
+        },
+        has(socketId) {
+            return connections.has(socketId);
+        },
+        size() {
+            return connections.size;
+        },
+        rooms(socketId) {
+            return connections.get(socketId) || [];
+        },
+    };
+}
+
+function createBroadcaster(socketServer) {
+    return {
+        broadcastToUser(userId, eventName, payload) {
+            socketServer.to(`user_${Number.parseInt(userId, 10)}`).emit(eventName, payload);
+        },
+        broadcastToRole(target, eventName, payload) {
+            for (const room of getRoleRooms(target)) socketServer.to(room).emit(eventName, payload);
+        },
+        broadcastToAll(eventName, payload) {
+            socketServer.emit(eventName, payload);
+        },
+    };
+}
+
+function initSocket(server, { verifyToken } = {}) {
     const allowedOrigins = getAllowedOrigins();
     io = new Server(server, {
         cors: {
             origin: allowedOrigins,
             credentials: true,
-            methods: ["GET", "POST"]
-        }
+            methods: ['GET', 'POST'],
+        },
     });
 
-    io.on('connection', async (socket) => {
-        const token = socket.handshake.auth.token;
-        if (!token) {
-            console.log('Socket disconnected: No token provided');
-            return socket.disconnect();
-        }
-
-        try {
-            // Validasi token ke Laravel
-            const response = await axios.get(`${process.env.LARAVEL_BASE_URL}/api/me`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-
-            const userId = response.data.id || response.data.user?.id; // Sesuaikan dengan struktur response Laravel
-            if (userId) {
-                const roomName = `user_${userId}`;
-                socket.join(roomName);
-                console.log(`User ${userId} joined room ${roomName}`);
-            } else {
-                console.log('Socket disconnected: User ID not found in response');
-                socket.disconnect();
-            }
-
-        } catch (error) {
-            console.log('Socket disconnected: Invalid token', error.message);
-            socket.disconnect();
-        }
+    io.use(createAuthMiddleware({ verifyToken }));
+    io.on('connection', (socket) => {
+        const rooms = socket.authenticatedRooms;
+        for (const room of rooms) socket.join(room);
+        connectionRegistry.add(socket.id, rooms);
 
         socket.on('disconnect', () => {
-            console.log('User disconnected', socket.id);
+            connectionRegistry.remove(socket.id);
         });
     });
-};
 
-const broadcastToUser = (userId, eventName, payload) => {
-    if (io) {
-        io.to(`user_${userId}`).emit(eventName, payload);
-        console.log(`Broadcast to user_${userId}: ${eventName}`);
-    }
-};
+    return io;
+}
 
-const broadcastToAll = (eventName, payload) => {
-    if (io) {
-        io.emit(eventName, payload);
-        console.log(`Broadcast to all: ${eventName}`);
-    }
-};
+function broadcastToUser(userId, eventName, payload) {
+    if (io) createBroadcaster(io).broadcastToUser(userId, eventName, payload);
+}
 
-const getSocketConnectionsCount = () => {
-    if (io) {
-        return io.engine.clientsCount;
-    }
-    return 0;
-};
+function broadcastToRole(target, eventName, payload) {
+    if (io) createBroadcaster(io).broadcastToRole(target, eventName, payload);
+}
+
+function broadcastToAll(eventName, payload) {
+    if (io) createBroadcaster(io).broadcastToAll(eventName, payload);
+}
+
+function getSocketConnectionsCount() {
+    return io?.engine?.clientsCount || 0;
+}
 
 module.exports = {
-    initSocket,
-    broadcastToUser,
     broadcastToAll,
+    broadcastToRole,
+    broadcastToUser,
+    createAuthMiddleware,
+    createBroadcaster,
+    createConnectionRegistry,
+    getAllowedOrigins,
+    getRole,
+    getRoleRooms,
+    getRoomsForIdentity,
     getSocketConnectionsCount,
-    getAllowedOrigins
+    initSocket,
 };
