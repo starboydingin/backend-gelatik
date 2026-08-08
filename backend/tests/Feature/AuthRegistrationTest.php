@@ -73,6 +73,21 @@ class AuthRegistrationTest extends TestCase
             ->assertJsonStructure(['data' => ['access_token']]);
     }
 
+    public function test_me_exposes_spatie_roles_for_realtime_room_authorization(): void
+    {
+        $admin = $this->createUser('realtime.admin@example.test', '1');
+        $admin->assignRole('admin');
+
+        Passport::actingAs($admin);
+
+        $this->getJson('/api/me')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.id', $admin->id)
+            ->assertJsonPath('data.roles.0.name', 'admin')
+            ->assertJsonMissingPath('data.password');
+    }
+
     public function test_inactive_existing_user_remains_inactive_and_cannot_login(): void
     {
         $inactive = $this->createUser('inactive@example.test', '0');

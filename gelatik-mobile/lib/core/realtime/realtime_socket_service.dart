@@ -33,7 +33,6 @@ class SocketIoRealtimeTransport implements RealtimeTransport {
             .setTransports(['websocket'])
             .setAuth({'token': token})
             .disableAutoConnect()
-            .setReconnectionAttempts(-1)
             .setReconnectionDelay(500)
             .setReconnectionDelayMax(10000)
             .build(),
@@ -110,6 +109,10 @@ class RealtimeSocketService {
     }
 
     _setState(RealtimeConnectionState.connecting);
+    final previousTransport = _transport;
+    if (previousTransport != null) {
+      _detachTransport(previousTransport);
+    }
     final transport = transportFactory(baseUrl, token);
     _transport = transport;
     transport.on(
@@ -142,16 +145,20 @@ class RealtimeSocketService {
     final transport = _transport;
     _transport = null;
     if (transport != null) {
-      for (final eventName in _eventNames) {
-        transport.off(eventName);
-      }
-      transport.off('connect');
-      transport.off('reconnect_attempt');
-      transport.off('connect_error');
-      transport.off('disconnect');
-      transport.disconnect();
+      _detachTransport(transport);
     }
     _setState(RealtimeConnectionState.disconnected);
+  }
+
+  void _detachTransport(RealtimeTransport transport) {
+    for (final eventName in _eventNames) {
+      transport.off(eventName);
+    }
+    transport.off('connect');
+    transport.off('reconnect_attempt');
+    transport.off('connect_error');
+    transport.off('disconnect');
+    transport.disconnect();
   }
 
   void handleLifecycle(AppLifecycleState lifecycleState) {

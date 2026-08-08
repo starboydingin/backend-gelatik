@@ -114,9 +114,11 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
+        $user = $request->user()->loadMissing('roles:id,name');
+
         return response()->json([
             'success' => true,
-            'data'    => $request->user(),
+            'data'    => $user,
         ]);
     }
 
