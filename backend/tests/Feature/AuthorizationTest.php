@@ -301,6 +301,36 @@ class AuthorizationTest extends TestCase
         $this->getJson('/api/admin/users')->assertOk();
     }
 
+    public function test_only_superadmin_can_provision_an_active_admin_account(): void
+    {
+        $payload = [
+            'name' => 'Provisioned Admin',
+            'email' => 'provisioned.admin@example.test',
+            'username' => 'provisioned-admin',
+            'password' => 'safe-development-password',
+            'role' => 'superadmin',
+        ];
+
+        $this->postJson('/api/admin/users', $payload)->assertUnauthorized();
+
+        $this->actingAsApi($this->userA);
+        $this->postJson('/api/admin/users', $payload)->assertForbidden();
+
+        $this->actingAsApi($this->admin);
+        $this->postJson('/api/admin/users', $payload)->assertForbidden();
+
+        $this->actingAsApi($this->superadmin);
+        $response = $this->postJson('/api/admin/users', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.status', '1')
+            ->assertJsonPath('data.roles.0.name', 'admin');
+
+        $created = User::findOrFail($response->json('data.id'));
+        $this->assertTrue($created->hasRole('admin'));
+        $this->assertFalse($created->hasRole('superadmin'));
+        $this->assertNotSame($payload['password'], $created->password);
+    }
+
     private function actingAsApi(User $user): void
     {
         Passport::actingAs($user);
@@ -365,8 +395,9 @@ class AuthorizationTest extends TestCase
         Schema::dropAllTables();
 
         Schema::create('users', function (Blueprint $table): void {
-            $table->unsignedBigInteger('id')->primary();
+            $table->id();
             $table->string('name');
+            $table->string('nama_opd')->nullable();
             $table->string('username')->unique();
             $table->string('email')->unique();
             $table->string('password');

@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -29,7 +30,7 @@ class UserController extends Controller
         return response()->json(['success' => true, 'data' => $users]);
     }
 
-    /** POST /api/admin/users */
+    /** POST /api/admin/users (superadmin provisions an admin account) */
     public function store(Request $request)
     {
         $request->validate([
@@ -37,28 +38,29 @@ class UserController extends Controller
             'email'    => 'required|email|unique:users,email',
             'username' => 'required|string|unique:users,username',
             'password' => 'required|string|min:6',
-            'role'     => 'nullable|string',
             'nama_opd' => 'nullable|string',
         ]);
 
-        $user = User::create([
+        $attributes = [
             'name'     => $request->name,
             'email'    => $request->email,
             'username' => $request->username,
             'password' => Hash::make($request->password),
-            'nama_opd' => $request->nama_opd,
             'status'   => '1',
-        ]);
-
-        if ($request->filled('role')) {
-            $role = \Spatie\Permission\Models\Role::where('name', $request->role)
-                ->where('guard_name', 'web')->first();
-            if ($role) {
-                $user->assignRole($role);
-            }
+        ];
+        if ($request->filled('nama_opd')) {
+            $attributes['nama_opd'] = $request->nama_opd;
         }
 
-        return response()->json(['success' => true, 'message' => 'User berhasil dibuat.', 'data' => $user], 201);
+        $user = User::create($attributes);
+
+        $user->assignRole(Role::findByName('admin', 'web'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Akun admin berhasil dibuat.',
+            'data' => $user->load('roles:id,name'),
+        ], 201);
     }
 
     /** GET /api/admin/users/{id} */

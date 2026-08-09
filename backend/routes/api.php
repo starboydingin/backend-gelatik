@@ -115,7 +115,8 @@ Route::middleware('auth:api')->group(function () {
 
         // Admin: User Management
         Route::get('/admin/users', [UserController::class, 'index']);
-        Route::post('/admin/users', [UserController::class, 'store']);
+        Route::post('/admin/users', [UserController::class, 'store'])
+            ->middleware('role:superadmin,api');
         Route::get('/admin/users/{id}', [UserController::class, 'show']);
         Route::put('/admin/users/{id}', [UserController::class, 'update']);
         Route::delete('/admin/users/{id}', [UserController::class, 'destroy']);

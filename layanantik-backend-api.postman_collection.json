@@ -2004,7 +2004,7 @@
                     "response": []
                 },
                 {
-                    "name": "POST Buat User Sistem Baru",
+                    "name": "POST Provision Admin Account (Superadmin)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -2031,7 +2031,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"User Admin Created\",\n    \"email\": \"useradmincreated@lampungprov.go.id\",\n    \"username\": \"useradmincreated\",\n    \"no_hp\": \"081234123412\",\n    \"nama_opd\": \"Dinas Komunikasi Informasi dan Statistik\",\n    \"password\": \"password123\",\n    \"role\": \"user\"\n}",
+                            "raw": "{\n    \"name\": \"Local Admin Provisioning Test\",\n    \"email\": \"local.admin@example.test\",\n    \"username\": \"local-admin\",\n    \"nama_opd\": \"Dinas Komunikasi Informasi dan Statistik\",\n    \"password\": \"{{admin_dev_password}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2048,7 +2048,7 @@
                                 "users"
                             ]
                         },
-                        "description": "Fungsi: Menambahkan akun pengguna baru secara manual dari panel admin.\nPermission/Role: Admin / Superadmin."
+                        "description": "Fungsi: Memprovisikan akun Mobile Admin aktif. Role ditetapkan server-side sebagai admin; request tidak menerima role.\nPermission/Role: Superadmin saja. Gunakan {{access_token}} milik superadmin dan variabel lokal sensitif {{admin_dev_password}}; jangan simpan kredensial nyata di collection."
                     },
                     "response": []
                 },

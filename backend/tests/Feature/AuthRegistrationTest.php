@@ -73,6 +73,18 @@ class AuthRegistrationTest extends TestCase
             ->assertJsonStructure(['data' => ['access_token']]);
     }
 
+    public function test_public_registration_cannot_self_assign_a_privileged_role(): void
+    {
+        $this->postJson('/api/register', $this->validPayload([
+            'role' => 'admin',
+            'is_admin' => true,
+        ]))->assertCreated();
+
+        $user = User::where('email', 'pegawai.baru@example.test')->firstOrFail();
+        $this->assertTrue($user->hasRole('user'));
+        $this->assertFalse($user->hasAnyRole(['admin', 'superadmin']));
+    }
+
     public function test_me_exposes_spatie_roles_for_realtime_room_authorization(): void
     {
         $admin = $this->createUser('realtime.admin@example.test', '1');
