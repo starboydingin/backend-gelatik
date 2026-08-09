@@ -14,6 +14,11 @@ import 'notifikasi_whatsapp_screen.dart';
 class ProfilScreen extends ConsumerWidget {
   const ProfilScreen({super.key});
 
+  String _display(String? value) {
+    final text = value?.trim() ?? '';
+    return text.isEmpty ? '-' : text;
+  }
+
   /// Helper untuk mengambil inisial nama (maksimal 2 huruf)
   String _getInitials(String name) {
     if (name.trim().isEmpty) return 'U';
@@ -60,17 +65,25 @@ class ProfilScreen extends ConsumerWidget {
                 ],
               ),
               const Divider(height: 24),
-              _buildInfoRow(context, 'Nama Lengkap', user?.name ?? '-'),
+              _buildInfoRow(context, 'Nama Lengkap', _display(user?.name)),
               const SizedBox(height: 12),
-              _buildInfoRow(context, 'Email', user?.email ?? '-'),
+              _buildInfoRow(context, 'Email', _display(user?.email)),
               const SizedBox(height: 12),
-              _buildInfoRow(context, 'No. WhatsApp / HP', user?.noHp ?? '-'),
+              _buildInfoRow(context, 'No. WhatsApp / HP', _display(user?.noHp)),
               const SizedBox(height: 12),
-              _buildInfoRow(context, 'NIP / Username', user?.username ?? '-'),
+              _buildInfoRow(
+                context,
+                'NIP / Username',
+                _display(user?.username),
+              ),
               const SizedBox(height: 12),
-              _buildInfoRow(context, 'OPD / Instansi', user?.namaOpd ?? '-'),
+              _buildInfoRow(context, 'OPD / Instansi', _display(user?.namaOpd)),
               const SizedBox(height: 12),
-              _buildInfoRow(context, 'Role Pengguna', user?.role?.toUpperCase() ?? '-'),
+              _buildInfoRow(
+                context,
+                'Role Pengguna',
+                _display(user?.role).toUpperCase(),
+              ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -118,7 +131,9 @@ class ProfilScreen extends ConsumerWidget {
 
   void _showLogoutConfirmation(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final errorColor = isDark ? AppColors.statusErrorDark : AppColors.statusErrorLight;
+    final errorColor = isDark
+        ? AppColors.statusErrorDark
+        : AppColors.statusErrorLight;
 
     showDialog(
       context: context,
@@ -163,10 +178,15 @@ class ProfilScreen extends ConsumerWidget {
     final strokeColor = AppColors.cardStroke(context);
     final mutedText = AppColors.mutedText(context);
     final isDark = theme.brightness == Brightness.dark;
-    final errorColor = isDark ? AppColors.statusErrorDark : AppColors.statusErrorLight;
+    final errorColor = isDark
+        ? AppColors.statusErrorDark
+        : AppColors.statusErrorLight;
 
     final authState = ref.watch(authProvider);
     final user = authState.currentUser;
+    final profileName = _display(user?.name);
+    final profileOpd = _display(user?.namaOpd);
+    final profileEmail = _display(user?.email);
     final waState = ref.watch(waNotificationProvider);
     final waSub = waState.subscription;
 
@@ -174,17 +194,11 @@ class ProfilScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           'Profil Pengguna',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: primaryTeal,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: primaryTeal),
         ),
         centerTitle: true,
         automaticallyImplyLeading: false,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -211,7 +225,9 @@ class ProfilScreen extends ConsumerWidget {
                       ),
                       child: Center(
                         child: Text(
-                          _getInitials(user?.name ?? 'Pengguna'),
+                          _getInitials(
+                            profileName == '-' ? 'User' : profileName,
+                          ),
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -226,7 +242,7 @@ class ProfilScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            user?.name ?? 'Pengguna Gelatik',
+                            profileName,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -235,17 +251,14 @@ class ProfilScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            user?.namaOpd ?? 'Dinas Komunikasi, Informatika dan Statistik',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: mutedText,
-                            ),
+                            profileOpd,
+                            style: TextStyle(fontSize: 12, color: mutedText),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            user?.email ?? 'email@lampungprov.go.id',
+                            profileEmail,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
@@ -349,7 +362,8 @@ class ProfilScreen extends ConsumerWidget {
                     context: context,
                     applicationName: 'Gelatik Mobile',
                     applicationVersion: '1.0.0',
-                    applicationLegalese: '© 2026 Diskominfotik Provinsi Lampung',
+                    applicationLegalese:
+                        '© 2026 Diskominfotik Provinsi Lampung',
                   );
                 },
               ),
@@ -363,9 +377,15 @@ class ProfilScreen extends ConsumerWidget {
                   onTap: () => _showLogoutConfirmation(context, ref),
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
                     decoration: BoxDecoration(
-                      border: Border.all(color: errorColor.withValues(alpha: 0.5), width: 1.5),
+                      border: Border.all(
+                        color: errorColor.withValues(alpha: 0.5),
+                        width: 1.5,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(

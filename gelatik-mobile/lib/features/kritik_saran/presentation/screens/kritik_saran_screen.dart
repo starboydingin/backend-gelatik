@@ -5,7 +5,6 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
-import '../../../auth/providers/auth_provider.dart';
 import '../../providers/kritik_saran_provider.dart';
 
 /// KritikSaranScreen — Form Kritik & Saran Pengguna Layanan TIK (M-G)
@@ -31,6 +30,8 @@ class _KritikSaranScreenState extends ConsumerState<KritikSaranScreen> {
   }
 
   Future<void> _submit() async {
+    if (ref.read(kritikSaranProvider).isLoading) return;
+
     setState(() {
       _kritikError = null;
       _saranError = null;
@@ -49,19 +50,19 @@ class _KritikSaranScreenState extends ConsumerState<KritikSaranScreen> {
       return;
     }
 
-    final user = ref.read(authProvider).currentUser;
-
-    final success =
-        await ref.read(kritikSaranProvider.notifier).submitKritikSaran(
-              userId: user?.id,
-              kritik: kritikText,
-              saran: saranText,
-            );
+    final success = await ref
+        .read(kritikSaranProvider.notifier)
+        .submitKritikSaran(kritik: kritikText, saran: saranText);
 
     if (!mounted) return;
 
     if (success) {
       _showSuccessDialog();
+    } else {
+      final message = ref.read(kritikSaranProvider).errorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message ?? 'Kritik dan saran gagal dikirim.')),
+      );
     }
   }
 
@@ -74,8 +75,9 @@ class _KritikSaranScreenState extends ConsumerState<KritikSaranScreen> {
       barrierDismissible: false,
       builder: (dialogContext) {
         return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -141,10 +143,7 @@ class _KritikSaranScreenState extends ConsumerState<KritikSaranScreen> {
       appBar: AppBar(
         title: const Text('Kritik & Saran'),
         centerTitle: true,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -203,7 +202,8 @@ class _KritikSaranScreenState extends ConsumerState<KritikSaranScreen> {
                 AppTextField(
                   controller: _kritikController,
                   labelText: 'Kritik Layanan TIK',
-                  hintText: 'Sampaikan hal-hal yang perlu dievaluasi atau kendala yang ditemui...',
+                  hintText:
+                      'Sampaikan hal-hal yang perlu dievaluasi atau kendala yang ditemui...',
                   maxLines: 4,
                   errorText: _kritikError,
                   prefixIcon: const Icon(Icons.feedback_outlined),
@@ -215,7 +215,8 @@ class _KritikSaranScreenState extends ConsumerState<KritikSaranScreen> {
                 AppTextField(
                   controller: _saranController,
                   labelText: 'Saran & Masukan Perbaikan',
-                  hintText: 'Sampaikan saran konstruktif untuk pengembangan aplikasi/layanan ke depan...',
+                  hintText:
+                      'Sampaikan saran konstruktif untuk pengembangan aplikasi/layanan ke depan...',
                   maxLines: 4,
                   errorText: _saranError,
                   prefixIcon: const Icon(Icons.lightbulb_outline_rounded),

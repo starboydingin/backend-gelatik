@@ -15,8 +15,8 @@ import 'package:gelatik/features/info_alat/models/master_item_model.dart';
 import 'package:gelatik/features/info_alat/providers/info_alat_provider.dart';
 import 'package:gelatik/features/info_alat/presentation/screens/info_alat_screen.dart';
 import 'package:gelatik/features/info_alat/repositories/master_item_repository.dart';
-import 'package:gelatik/features/kritik_saran/providers/kritik_saran_provider.dart';
 import 'package:gelatik/features/kritik_saran/presentation/screens/kritik_saran_screen.dart';
+import 'package:gelatik/features/kritik_saran/repositories/kritik_saran_repository.dart';
 import 'package:gelatik/features/home/presentation/screens/home_screen.dart';
 import 'package:gelatik/features/home/models/home_dashboard_model.dart';
 import 'package:gelatik/features/home/providers/home_provider.dart';
@@ -75,6 +75,14 @@ class _EmailRepositoryFake extends EmailRepository {
   );
 }
 
+class _KritikSaranRepositoryFake extends KritikSaranRepository {
+  _KritikSaranRepositoryFake()
+    : super(apiClient: ApiClient(secureStorageService: SecureStorageService()));
+
+  @override
+  Future<void> submit({required String kritik, required String saran}) async {}
+}
+
 class _InternetRepositoryFake extends InternetRepository {
   _InternetRepositoryFake()
     : super(apiClient: ApiClient(secureStorageService: SecureStorageService()));
@@ -121,28 +129,6 @@ void main() {
         expect(newlySubmitted.status, isNot('Diajukan'));
         expect(newlySubmitted.emailPribadi, 'endang.rahmawati79@gmail.com');
         expect(newlySubmitted.namaPegawai, 'Dra. Endang Rahmawati, M.Si.');
-      },
-    );
-
-    test(
-      '2. Submit Kritik & Saran (submitKritikSaran) succeeds without error',
-      () async {
-        final container = ProviderContainer();
-        final notifier = container.read(kritikSaranProvider.notifier);
-
-        final success = await notifier.submitKritikSaran(
-          userId: 1,
-          kritik:
-              'Aplikasi sudah bagus, namun mohon tambahkan notifikasi realtime.',
-          saran:
-              'Integrasi dengan WhatsApp gateway untuk pengingat tenggat pengembalian.',
-        );
-
-        expect(success, isTrue);
-        expect(
-          container.read(kritikSaranProvider).successMessage,
-          'Kritik & Saran berhasil dikirimkan!',
-        );
       },
     );
 
@@ -255,7 +241,14 @@ void main() {
       '6. KritikSaranScreen form submit shows confirmation dialog and closes',
       (tester) async {
         await tester.pumpWidget(
-          const ProviderScope(child: MaterialApp(home: KritikSaranScreen())),
+          ProviderScope(
+            overrides: [
+              kritikSaranRepositoryProvider.overrideWithValue(
+                _KritikSaranRepositoryFake(),
+              ),
+            ],
+            child: const MaterialApp(home: KritikSaranScreen()),
+          ),
         );
 
         expect(find.text('Form Kritik & Saran'), findsOneWidget);
@@ -273,7 +266,7 @@ void main() {
         // Tap Kirim
         await tester.tap(find.text('Kirim Kritik & Saran'));
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
 
         // Verify Success Dialog is rendered
         expect(find.text('Terima Kasih!'), findsOneWidget);

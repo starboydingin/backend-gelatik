@@ -23,16 +23,33 @@ class UserModel {
   bool get isActive => status == '1';
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final directRole = json['role']?.toString().trim();
+    final roles = json['roles'];
+    final roleFromRelation =
+        roles is List && roles.isNotEmpty && roles.first is Map
+        ? (roles.first as Map)['name']?.toString().trim()
+        : null;
+
     return UserModel(
-      id: json['id'] as int? ?? 0,
-      name: json['name'] as String? ?? '',
-      email: json['email'] as String? ?? '',
-      username: json['username'] as String? ?? '',
-      noHp: (json['no_hp'] ?? json['noHp']) as String? ?? '',
-      namaOpd: (json['nama_opd'] ?? json['namaOpd']) as String? ?? '',
-      role: json['role'] as String? ?? 'user',
-      status: json['status'] as String? ?? '1',
+      id: _asInt(json['id']),
+      name: _asString(json['name']),
+      email: _asString(json['email']),
+      username: _asString(json['username']),
+      noHp: _asString(json['no_hp'] ?? json['noHp']),
+      namaOpd: _asString(json['nama_opd'] ?? json['namaOpd']),
+      role: directRole?.isNotEmpty == true
+          ? directRole!
+          : (roleFromRelation?.isNotEmpty == true ? roleFromRelation! : 'user'),
+      status: _asString(json['status'], fallback: '1'),
     );
+  }
+
+  static int _asInt(dynamic value) =>
+      value is int ? value : int.tryParse('$value') ?? 0;
+
+  static String _asString(dynamic value, {String fallback = ''}) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? fallback : text;
   }
 
   Map<String, dynamic> toJson() {
