@@ -6,6 +6,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../konsultasi/presentation/screens/buat_konsultasi_screen.dart';
 import '../../providers/internet_provider.dart';
+import '../../utils/faq_html_formatter.dart';
 
 /// SelfAssessmentScreen — Card FAQ mandiri sebelum buat pengaduan internet (M-E)
 class SelfAssessmentScreen extends ConsumerStatefulWidget {
@@ -132,8 +133,8 @@ class _SelfAssessmentScreenState extends ConsumerState<SelfAssessmentScreen> {
                         const SizedBox(height: 8),
                         const Divider(height: 1),
                         const SizedBox(height: 8),
-                        Text(
-                          faq['jawaban'] ?? '',
+                        SelectableText(
+                          faqHtmlToPlainText(faq['jawaban']?.toString() ?? ''),
                           style: TextStyle(
                             fontSize: 12,
                             height: 1.4,

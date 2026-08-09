@@ -98,123 +98,18 @@ class _LayananInternetScreenState extends ConsumerState<LayananInternetScreen> {
                         StatusBadge(status: info['status'] ?? 'Normal'),
                       ],
                     ),
-                    const SizedBox(height: 18),
-                    const Divider(height: 1),
-                    const SizedBox(height: 18),
-
-                    // Download / Upload Large Statistics Numbers
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: primaryTeal.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: AppColors.cardStroke(context),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.arrow_downward_rounded,
-                                      size: 16,
-                                      color: primaryTeal,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'DOWNLOAD',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: primaryTeal,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  '${info['download_mbps']}',
-                                  style: TextStyle(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.w900,
-                                    color: primaryTeal,
-                                  ),
-                                ),
-                                Text(
-                                  'Mbps',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: mutedText,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: accentGold.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: AppColors.cardStroke(context),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.arrow_upward_rounded,
-                                      size: 16,
-                                      color: accentGold,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'UPLOAD',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: accentGold,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  '${info['upload_mbps']}',
-                                  style: TextStyle(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.w900,
-                                    color: accentGold,
-                                  ),
-                                ),
-                                Text(
-                                  'Mbps',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: mutedText,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 14),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: primaryTeal.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Metrik download dan upload belum tersedia dari API.',
+                        style: TextStyle(fontSize: 12, color: mutedText),
+                      ),
                     ),
                   ],
                 ),
@@ -282,6 +177,8 @@ class _LayananInternetScreenState extends ConsumerState<LayananInternetScreen> {
                                       fontWeight: FontWeight.bold,
                                       color: theme.colorScheme.onSurface,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
@@ -290,6 +187,8 @@ class _LayananInternetScreenState extends ConsumerState<LayananInternetScreen> {
                                       fontSize: 11,
                                       color: mutedText,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
@@ -318,12 +217,17 @@ class _LayananInternetScreenState extends ConsumerState<LayananInternetScreen> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            Text(
-                              'Traffic: ${r['beban_traffic']}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: primaryTeal,
+                            Flexible(
+                              child: Text(
+                                'Traffic: ${r['beban_traffic']}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryTeal,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.end,
                               ),
                             ),
                           ],

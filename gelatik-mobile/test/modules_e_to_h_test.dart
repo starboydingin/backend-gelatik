@@ -10,6 +10,7 @@ import 'package:gelatik/features/email/repositories/email_repository.dart';
 import 'package:gelatik/features/email/presentation/screens/daftar_pegawai_screen.dart';
 import 'package:gelatik/features/internet/presentation/screens/layanan_internet_screen.dart';
 import 'package:gelatik/features/internet/repositories/internet_repository.dart';
+import 'package:gelatik/features/internet/utils/faq_html_formatter.dart';
 import 'package:gelatik/features/info_alat/models/master_item_model.dart';
 import 'package:gelatik/features/info_alat/providers/info_alat_provider.dart';
 import 'package:gelatik/features/info_alat/presentation/screens/info_alat_screen.dart';
@@ -146,7 +147,7 @@ void main() {
     );
 
     testWidgets(
-      '3. LayananInternetScreen renders bandwidth statistics and router cards',
+      '3. LayananInternetScreen renders a compact unavailable bandwidth state',
       (tester) async {
         await tester.pumpWidget(
           ProviderScope(
@@ -160,12 +161,25 @@ void main() {
         );
 
         expect(find.text('Layanan Internet OPD'), findsOneWidget);
-        expect(find.text('DOWNLOAD'), findsOneWidget);
-        expect(find.text('UPLOAD'), findsOneWidget);
+        expect(find.text('DOWNLOAD'), findsNothing);
+        expect(find.text('UPLOAD'), findsNothing);
         expect(find.text('Informasi bandwidth belum tersedia'), findsOneWidget);
+        expect(
+          find.text('Metrik download dan upload belum tersedia dari API.'),
+          findsOneWidget,
+        );
         expect(find.text('Buat Pengaduan Internet'), findsOneWidget);
       },
     );
+
+    test('FAQ HTML is converted into readable text', () {
+      final text = faqHtmlToPlainText(
+        '<p>Periksa koneksi.</p><ul><li>Restart perangkat</li></ul>',
+      );
+
+      expect(text, 'Periksa koneksi.\n\n• Restart perangkat');
+      expect(text, isNot(contains('<li>')));
+    });
 
     testWidgets(
       '4. DaftarPegawaiScreen renders list of employees without email',

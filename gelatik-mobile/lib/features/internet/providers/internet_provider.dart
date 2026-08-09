@@ -16,7 +16,7 @@ class InternetState {
     this.bandwidthInfo = const {
       'opd': 'Informasi bandwidth belum tersedia',
       'provider': 'Tidak tersedia dari API',
-      'status': '-',
+      'status': 'Belum tersedia',
       'download_mbps': '-',
       'upload_mbps': '-',
     },
