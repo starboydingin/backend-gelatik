@@ -25,8 +25,9 @@ class UsulanEmailController extends Controller
 
         $usulan = $this->usulanEmailService->ajukanUsulan(
             $request->user(),
-            (string) $idPeg,
-            $request->email_pribadi
+            $idPeg === null ? null : (string) $idPeg,
+            $request->email_pribadi,
+            $request->nip
         );
 
         return response()->json([

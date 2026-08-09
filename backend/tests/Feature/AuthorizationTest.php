@@ -261,6 +261,31 @@ class AuthorizationTest extends TestCase
         ])->assertOk()->assertJsonPath('data.status', 'disetujui');
     }
 
+    public function test_email_submission_accepts_visible_nip_and_legacy_id_without_exposing_id_peg(): void
+    {
+        $this->actingAsApi($this->userA);
+
+        $this->getJson('/api/pegawai')
+            ->assertOk()
+            ->assertJsonPath('data.data.0.NIP_Baru', '198001012010011001')
+            ->assertJsonMissing(['ID_Peg' => '9101']);
+
+        $this->postJson('/api/pengajuan-email', [
+            'nip' => '198001012010011001',
+            'email_pribadi' => 'nip-flow@example.test',
+        ])->assertCreated()->assertJsonPath('data.status', 'diajukan');
+
+        $this->postJson('/api/pengajuan-email', [
+            'id_peg' => '9101',
+            'email_pribadi' => 'legacy-flow@example.test',
+        ])->assertCreated()->assertJsonPath('data.status', 'diajukan');
+
+        $this->postJson('/api/pengajuan-email', [
+            'nip' => '000000000000000000',
+            'email_pribadi' => 'missing@example.test',
+        ])->assertUnprocessable()->assertJsonValidationErrors('nip');
+    }
+
     public function test_admin_routes_reject_user_and_allow_admin(): void
     {
         $this->actingAsApi($this->userA);
@@ -451,7 +476,7 @@ class AuthorizationTest extends TestCase
             $table->timestamps();
         });
         Schema::create('usulan_email', function (Blueprint $table): void {
-            $table->unsignedBigInteger('id')->primary();
+            $table->id();
             $table->unsignedBigInteger('id_peg_bkd');
             $table->string('email_pribadi');
             $table->string('email_resmi')->nullable();
@@ -462,6 +487,16 @@ class AuthorizationTest extends TestCase
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamps();
+        });
+        Schema::create('PegawaiBelumPunyaEMail', function (Blueprint $table): void {
+            $table->string('ID_Peg', 32)->primary();
+            $table->string('NIP_Baru', 24)->nullable();
+            $table->string('Nama', 117)->nullable();
+            $table->string('Unit_Kerja', 255)->nullable();
+            $table->string('NJab', 255)->nullable();
+            $table->string('NUnKer', 255)->nullable();
+            $table->string('EmailUsulan', 35)->nullable();
+            $table->string('EmailPribadi', 150)->nullable();
         });
 
         \DB::table('master_item')->insert([
@@ -474,6 +509,11 @@ class AuthorizationTest extends TestCase
             'id' => 601,
             'topik' => 'Jaringan',
             'status' => '1',
+        ]);
+        \DB::table('PegawaiBelumPunyaEMail')->insert([
+            'ID_Peg' => '9101',
+            'NIP_Baru' => '198001012010011001',
+            'Nama' => 'Pegawai Test',
         ]);
     }
 }

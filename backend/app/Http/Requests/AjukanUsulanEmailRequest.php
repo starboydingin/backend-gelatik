@@ -14,8 +14,9 @@ class AjukanUsulanEmailRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'id_peg'        => 'required_without:id_peg_bkd|string',
+            'id_peg'        => 'required_without_all:id_peg_bkd,nip|string',
             'id_peg_bkd'    => 'nullable|string',
+            'nip'           => 'required_without_all:id_peg,id_peg_bkd|string',
             'email_pribadi' => 'required|email',
         ];
     }

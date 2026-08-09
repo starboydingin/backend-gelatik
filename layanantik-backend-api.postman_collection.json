@@ -1369,7 +1369,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"nama_pegawai\": \"Ahmad Subardjo\",\n    \"nip\": \"198501012010011001\",\n    \"jabatan\": \"Pranata Komputer\",\n    \"email_diusulkan\": \"ahmad.subardjo@lampungprov.go.id\",\n    \"no_hp\": \"081298765432\"\n}",
+                            "raw": "{\n    \"nip\": \"NIP dari respons GET /pegawai\",\n    \"email_pribadi\": \"pegawai@example.test\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"

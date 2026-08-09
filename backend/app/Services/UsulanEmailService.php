@@ -16,10 +16,23 @@ class UsulanEmailService
     /**
      * Ajukan usulan email resmi baru.
      */
-    public function ajukanUsulan(User $user, string $idPeg, string $emailPribadi): UsulanEmail
+    public function ajukanUsulan(User $user, ?string $idPeg, string $emailPribadi, ?string $nip = null): UsulanEmail
     {
-        // 1. Aturan defensif: cek apakah idPeg murni angka
-        if (!is_numeric($idPeg)) {
+        // ID_Peg is intentionally hidden by FR-B07. A listed NIP is a safe
+        // client selection key; legacy id_peg clients remain supported.
+        $pegawai = null;
+        if ($idPeg === null && !empty($nip)) {
+            $pegawai = PegawaiBelumPunyaEmail::where('NIP_Baru', $nip)->first();
+            if (!$pegawai) {
+                throw ValidationException::withMessages([
+                    'nip' => 'Data pegawai tidak ditemukan.'
+                ]);
+            }
+            $idPeg = (string) $pegawai->getKey();
+        }
+
+        // Aturan defensif: cek apakah ID yang dipakai untuk persistence murni angka.
+        if ($idPeg === null || !is_numeric($idPeg)) {
             Log::warning("UsulanEmailService: idPeg '{$idPeg}' bukan angka murni. User ID: {$user->id}");
             throw ValidationException::withMessages([
                 'id_peg' => 'Data pegawai tidak valid untuk diajukan usulan email.'
@@ -27,7 +40,7 @@ class UsulanEmailService
         }
 
         // 2. Cek keberadaan data pegawai di PegawaiBelumPunyaEmail
-        $pegawai = PegawaiBelumPunyaEmail::where('ID_Peg', (string) $idPeg)->first();
+        $pegawai = $pegawai ?? PegawaiBelumPunyaEmail::where('ID_Peg', (string) $idPeg)->first();
         if (!$pegawai) {
             throw ValidationException::withMessages([
                 'id_peg' => 'Data pegawai tidak ditemukan.'
