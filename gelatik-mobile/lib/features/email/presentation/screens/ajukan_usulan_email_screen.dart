@@ -5,7 +5,6 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
-import '../../../auth/providers/auth_provider.dart';
 import '../../providers/email_provider.dart';
 import 'usulan_email_list_screen.dart';
 
@@ -13,10 +12,7 @@ import 'usulan_email_list_screen.dart';
 class AjukanUsulanEmailScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> pegawaiData;
 
-  const AjukanUsulanEmailScreen({
-    super.key,
-    required this.pegawaiData,
-  });
+  const AjukanUsulanEmailScreen({super.key, required this.pegawaiData});
 
   @override
   ConsumerState<AjukanUsulanEmailScreen> createState() =>
@@ -53,10 +49,9 @@ class _AjukanUsulanEmailScreenState
       return;
     }
 
-    final user = ref.read(authProvider).currentUser;
-
-    final success = await ref.read(emailProvider.notifier).tambahUsulanEmail(
-          userId: user?.id ?? 1,
+    final success = await ref
+        .read(emailProvider.notifier)
+        .tambahUsulanEmail(
           pegawaiData: widget.pegawaiData,
           emailPribadi: emailText,
         );
@@ -74,9 +69,7 @@ class _AjukanUsulanEmailScreenState
 
       // Redirect to UsulanEmailListScreen
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const UsulanEmailListScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const UsulanEmailListScreen()),
       );
     }
   }
@@ -100,10 +93,7 @@ class _AjukanUsulanEmailScreenState
       appBar: AppBar(
         title: const Text('Form Usulan Email'),
         centerTitle: true,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -163,7 +153,12 @@ class _AjukanUsulanEmailScreenState
                     const SizedBox(height: 6),
                     _buildDataRow('Jabatan', jabatan, primaryTeal, mutedText),
                     const SizedBox(height: 6),
-                    _buildDataRow('OPD / Instansi', opd, primaryTeal, mutedText),
+                    _buildDataRow(
+                      'OPD / Instansi',
+                      opd,
+                      primaryTeal,
+                      mutedText,
+                    ),
                     const SizedBox(height: 6),
                     _buildDataRow(
                       'Email Usulan (Sistem)',
@@ -240,10 +235,7 @@ class _AjukanUsulanEmailScreenState
       children: [
         SizedBox(
           width: 140,
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 12, color: mutedText),
-          ),
+          child: Text(label, style: TextStyle(fontSize: 12, color: mutedText)),
         ),
         Expanded(
           child: Text(

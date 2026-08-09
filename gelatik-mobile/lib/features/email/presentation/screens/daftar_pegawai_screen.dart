@@ -22,6 +22,12 @@ class _DaftarPegawaiScreenState extends ConsumerState<DaftarPegawaiScreen> {
   String _searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(emailProvider.notifier).loadPegawai());
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -111,7 +117,9 @@ class _DaftarPegawaiScreenState extends ConsumerState<DaftarPegawaiScreen> {
                         final initials = _getInitials(nama);
 
                         // Alternating Avatar Background Colors (accentNavy / accentGold)
-                        final avatarBg = index % 2 == 0 ? accentNavy : accentGold;
+                        final avatarBg = index % 2 == 0
+                            ? accentNavy
+                            : accentGold;
 
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12.0),
@@ -184,8 +192,11 @@ class _DaftarPegawaiScreenState extends ConsumerState<DaftarPegawaiScreen> {
                                 // Jabatan & Unit Kerja
                                 Row(
                                   children: [
-                                    Icon(Icons.badge_outlined,
-                                        size: 14, color: mutedText),
+                                    Icon(
+                                      Icons.badge_outlined,
+                                      size: 14,
+                                      color: mutedText,
+                                    ),
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
@@ -204,8 +215,11 @@ class _DaftarPegawaiScreenState extends ConsumerState<DaftarPegawaiScreen> {
                                 // Email Usulan System Recommendation
                                 Row(
                                   children: [
-                                    Icon(Icons.alternate_email_rounded,
-                                        size: 14, color: primaryTeal),
+                                    Icon(
+                                      Icons.alternate_email_rounded,
+                                      size: 14,
+                                      color: primaryTeal,
+                                    ),
                                     const SizedBox(width: 6),
                                     Text(
                                       'Rekomendasi: ${p['email_usulan'] ?? '-'}',
@@ -231,7 +245,12 @@ class _DaftarPegawaiScreenState extends ConsumerState<DaftarPegawaiScreen> {
   }
 
   String _getInitials(String name) {
-    final clean = name.replaceAll(RegExp(r'(Dra\.|Ir\.|M\.Si\.|S\.IP\.|S\.Kom\.|S\.E\.|Ns\.|S\.Kep\.)'), '').trim();
+    final clean = name
+        .replaceAll(
+          RegExp(r'(Dra\.|Ir\.|M\.Si\.|S\.IP\.|S\.Kom\.|S\.E\.|Ns\.|S\.Kep\.)'),
+          '',
+        )
+        .trim();
     final parts = clean.split(' ').where((p) => p.isNotEmpty).toList();
     if (parts.isEmpty) return 'P';
     if (parts.length == 1) return parts[0][0].toUpperCase();

@@ -51,22 +51,42 @@ class UsulanEmailModel {
   }
 
   String get namaPegawai => pegawai?['nama'] as String? ?? 'Pegawai OPD';
-  String get nipPegawai => (pegawai?['nip_baru'] ?? pegawai?['nip']) as String? ?? '-';
+  String get nipPegawai =>
+      (pegawai?['nip_baru'] ?? pegawai?['nip']) as String? ?? '-';
 
   factory UsulanEmailModel.fromJson(Map<String, dynamic> json) {
+    final rawPegawai = json['pegawai'];
+    final pegawai = rawPegawai is Map
+        ? {
+            'nama': rawPegawai['nama'] ?? rawPegawai['Nama'] ?? '',
+            'nip_baru':
+                rawPegawai['nip_baru'] ??
+                rawPegawai['NIP_Baru'] ??
+                rawPegawai['nip'] ??
+                '',
+          }
+        : null;
     return UsulanEmailModel(
       id: json['id'] as int? ?? 0,
       userId: (json['user_id'] ?? json['userId']) as int? ?? 0,
       idPegBkd: (json['id_peg_bkd'] ?? json['idPegBkd']) as int? ?? 0,
-      emailPribadi: (json['email_pribadi'] ?? json['emailPribadi'] ?? json['email_diusulkan']) as String? ?? '',
+      emailPribadi:
+          (json['email_pribadi'] ??
+                  json['emailPribadi'] ??
+                  json['email_diusulkan'])
+              as String? ??
+          '',
       emailResmi: (json['email_resmi'] ?? json['emailResmi']) as String?,
       tanggalVerifikasi: json['tanggal_verifikasi'] != null
           ? DateTime.parse(json['tanggal_verifikasi'].toString())
-          : (json['tanggalVerifikasi'] is DateTime ? json['tanggalVerifikasi'] as DateTime : null),
-      diverifikasiOleh: (json['diverifikasi_oleh'] ?? json['diverifikasiOleh']) as String?,
+          : (json['tanggalVerifikasi'] is DateTime
+                ? json['tanggalVerifikasi'] as DateTime
+                : null),
+      diverifikasiOleh:
+          (json['diverifikasi_oleh'] ?? json['diverifikasiOleh']) as String?,
       catatan: json['catatan'] as String?,
       status: (json['status'] as String? ?? 'draft').toLowerCase(),
-      pegawai: json['pegawai'] as Map<String, dynamic>?,
+      pegawai: pegawai,
     );
   }
 

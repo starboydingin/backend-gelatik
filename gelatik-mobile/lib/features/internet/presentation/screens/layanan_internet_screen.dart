@@ -8,11 +8,23 @@ import '../../providers/internet_provider.dart';
 import 'self_assessment_screen.dart';
 
 /// LayananInternetScreen — Informasi Bandwidth & Router OPD (M-E)
-class LayananInternetScreen extends ConsumerWidget {
+class LayananInternetScreen extends ConsumerStatefulWidget {
   const LayananInternetScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LayananInternetScreen> createState() =>
+      _LayananInternetScreenState();
+}
+
+class _LayananInternetScreenState extends ConsumerState<LayananInternetScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(internetProvider.notifier).loadRouters());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryTeal = AppColors.primaryTeal(context);
     final actionEmerald = AppColors.actionEmerald(context);
@@ -28,10 +40,7 @@ class LayananInternetScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Layanan Internet OPD'),
         centerTitle: true,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -112,8 +121,11 @@ class LayananInternetScreen extends ConsumerWidget {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.arrow_downward_rounded,
-                                        size: 16, color: primaryTeal),
+                                    Icon(
+                                      Icons.arrow_downward_rounded,
+                                      size: 16,
+                                      color: primaryTeal,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       'DOWNLOAD',
@@ -164,8 +176,11 @@ class LayananInternetScreen extends ConsumerWidget {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.arrow_upward_rounded,
-                                        size: 16, color: accentGold),
+                                    Icon(
+                                      Icons.arrow_upward_rounded,
+                                      size: 16,
+                                      color: accentGold,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       'UPLOAD',
@@ -287,8 +302,11 @@ class LayananInternetScreen extends ConsumerWidget {
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                            Icon(Icons.location_on_outlined,
-                                size: 14, color: mutedText),
+                            Icon(
+                              Icons.location_on_outlined,
+                              size: 14,
+                              color: mutedText,
+                            ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -322,9 +340,7 @@ class LayananInternetScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const SelfAssessmentScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const SelfAssessmentScreen()),
           );
         },
         backgroundColor: actionEmerald,

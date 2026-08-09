@@ -20,6 +20,12 @@ class _SelfAssessmentScreenState extends ConsumerState<SelfAssessmentScreen> {
   bool _readFaqChecked = false;
 
   @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(internetProvider.notifier).loadFaq());
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryTeal = AppColors.primaryTeal(context);
@@ -34,10 +40,7 @@ class _SelfAssessmentScreenState extends ConsumerState<SelfAssessmentScreen> {
       appBar: AppBar(
         title: const Text('Self Assessment Internet'),
         centerTitle: true,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -77,10 +80,7 @@ class _SelfAssessmentScreenState extends ConsumerState<SelfAssessmentScreen> {
                           const SizedBox(height: 2),
                           Text(
                             'Bacalah petunjuk penanganan cepat berikut sebelum mengajukan tiket pengaduan.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: mutedText,
-                            ),
+                            style: TextStyle(fontSize: 12, color: mutedText),
                           ),
                         ],
                       ),
@@ -111,8 +111,11 @@ class _SelfAssessmentScreenState extends ConsumerState<SelfAssessmentScreen> {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.help_outline_rounded,
-                                size: 18, color: primaryTeal),
+                            Icon(
+                              Icons.help_outline_rounded,
+                              size: 18,
+                              color: primaryTeal,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(

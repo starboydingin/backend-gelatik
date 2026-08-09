@@ -9,10 +9,7 @@ import '../../models/usulan_email_model.dart';
 class UsulanEmailDetailScreen extends StatelessWidget {
   final UsulanEmailModel usulan;
 
-  const UsulanEmailDetailScreen({
-    super.key,
-    required this.usulan,
-  });
+  const UsulanEmailDetailScreen({super.key, required this.usulan});
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +26,7 @@ class UsulanEmailDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text('Detail Usulan #${usulan.id}'),
         centerTitle: true,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -85,7 +79,12 @@ class UsulanEmailDetailScreen extends StatelessWidget {
                     const Divider(height: 1),
                     const SizedBox(height: 12),
 
-                    _buildInfoRow('Email Pribadi', usulan.emailPribadi, mutedText, theme),
+                    _buildInfoRow(
+                      'Email Pribadi',
+                      usulan.emailPribadi,
+                      mutedText,
+                      theme,
+                    ),
                     const SizedBox(height: 8),
 
                     // Approved Email Resmi Display
@@ -99,8 +98,11 @@ class UsulanEmailDetailScreen extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.verified_user_rounded,
-                                color: actionEmerald, size: 20),
+                            Icon(
+                              Icons.verified_user_rounded,
+                              color: actionEmerald,
+                              size: 20,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
@@ -134,7 +136,12 @@ class UsulanEmailDetailScreen extends StatelessWidget {
                     ],
 
                     if (usulan.diverifikasiOleh != null) ...[
-                      _buildInfoRow('Diverifikasi Oleh', usulan.diverifikasiOleh!, mutedText, theme),
+                      _buildInfoRow(
+                        'Diverifikasi Oleh',
+                        usulan.diverifikasiOleh!,
+                        mutedText,
+                        theme,
+                      ),
                       const SizedBox(height: 8),
                     ],
 
@@ -189,16 +196,18 @@ class UsulanEmailDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, Color mutedText, ThemeData theme) {
+  Widget _buildInfoRow(
+    String label,
+    String value,
+    Color mutedText,
+    ThemeData theme,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           width: 130,
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 12, color: mutedText),
-          ),
+          child: Text(label, style: TextStyle(fontSize: 12, color: mutedText)),
         ),
         Expanded(
           child: Text(

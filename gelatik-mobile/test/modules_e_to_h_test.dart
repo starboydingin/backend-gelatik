@@ -5,8 +5,11 @@ import 'package:gelatik/core/network/api_client.dart';
 import 'package:gelatik/core/storage/secure_storage_service.dart';
 import 'package:gelatik/core/dummy/dummy_data.dart';
 import 'package:gelatik/features/email/providers/email_provider.dart';
+import 'package:gelatik/features/email/models/usulan_email_model.dart';
+import 'package:gelatik/features/email/repositories/email_repository.dart';
 import 'package:gelatik/features/email/presentation/screens/daftar_pegawai_screen.dart';
 import 'package:gelatik/features/internet/presentation/screens/layanan_internet_screen.dart';
+import 'package:gelatik/features/internet/repositories/internet_repository.dart';
 import 'package:gelatik/features/info_alat/models/master_item_model.dart';
 import 'package:gelatik/features/info_alat/providers/info_alat_provider.dart';
 import 'package:gelatik/features/info_alat/presentation/screens/info_alat_screen.dart';
@@ -31,18 +34,78 @@ class MockInfoAlatNotifier extends InfoAlatNotifier {
   Future<void> loadItems({bool force = false}) async {}
 }
 
+class _EmailRepositoryFake extends EmailRepository {
+  _EmailRepositoryFake()
+    : super(apiClient: ApiClient(secureStorageService: SecureStorageService()));
+
+  @override
+  Future<List<Map<String, dynamic>>> getPegawai({String? search}) async => [
+    {
+      'nama': 'Dra. Endang Rahmawati, M.Si.',
+      'nip_baru': '197901012005012001',
+      'jabatan': 'Kepala Bidang',
+      'unit_kerja': 'Diskominfotik',
+      'opd': 'Diskominfotik',
+      'email_usulan': 'endang@lampungprov.go.id',
+      'email_pribadi': '',
+    },
+    {
+      'nama': 'Ir. Bambang Triyono, M.T.',
+      'nip_baru': '197801012004011001',
+      'jabatan': 'Pranata Komputer',
+      'unit_kerja': 'Diskominfotik',
+      'opd': 'Diskominfotik',
+      'email_usulan': 'bambang@lampungprov.go.id',
+      'email_pribadi': '',
+    },
+  ];
+
+  @override
+  Future<UsulanEmailModel> submit({
+    required String nip,
+    required String emailPribadi,
+  }) async => UsulanEmailModel(
+    id: 901,
+    userId: 1,
+    idPegBkd: 1,
+    emailPribadi: emailPribadi,
+    status: 'diajukan',
+    pegawai: {'nama': 'Dra. Endang Rahmawati, M.Si.', 'nip_baru': nip},
+  );
+}
+
+class _InternetRepositoryFake extends InternetRepository {
+  _InternetRepositoryFake()
+    : super(apiClient: ApiClient(secureStorageService: SecureStorageService()));
+
+  @override
+  Future<List<Map<String, dynamic>>> getRouters() async => [
+    {
+      'nama_router': 'Router OPD',
+      'ip_address': '10.0.0.1',
+      'tipe': 'MikroTik',
+      'status': 'Aktif',
+      'lokasi': 'Kantor',
+      'beban_traffic': '-',
+    },
+  ];
+}
+
 void main() {
   group('Modules M-E s.d. M-H Unit & Widget Tests', () {
     test(
       '1. Submit Usulan Email Resmi (tambahUsulanEmail) creates item with LOWERCASE status "diajukan"',
       () async {
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            emailRepositoryProvider.overrideWithValue(_EmailRepositoryFake()),
+          ],
+        );
         final notifier = container.read(emailProvider.notifier);
 
         final pegawaiData = DummyData.pegawaiBelumPunyaEmail[0];
 
         final success = await notifier.tambahUsulanEmail(
-          userId: 1,
           pegawaiData: pegawaiData,
           emailPribadi: 'endang.rahmawati79@gmail.com',
         );
@@ -86,7 +149,12 @@ void main() {
       '3. LayananInternetScreen renders bandwidth statistics and router cards',
       (tester) async {
         await tester.pumpWidget(
-          const ProviderScope(
+          ProviderScope(
+            overrides: [
+              internetRepositoryProvider.overrideWithValue(
+                _InternetRepositoryFake(),
+              ),
+            ],
             child: MaterialApp(home: LayananInternetScreen()),
           ),
         );
@@ -94,7 +162,7 @@ void main() {
         expect(find.text('Layanan Internet OPD'), findsOneWidget);
         expect(find.text('DOWNLOAD'), findsOneWidget);
         expect(find.text('UPLOAD'), findsOneWidget);
-        expect(find.text('500'), findsNWidgets(2));
+        expect(find.text('Informasi bandwidth belum tersedia'), findsOneWidget);
         expect(find.text('Buat Pengaduan Internet'), findsOneWidget);
       },
     );
@@ -103,8 +171,14 @@ void main() {
       '4. DaftarPegawaiScreen renders list of employees without email',
       (tester) async {
         await tester.pumpWidget(
-          const ProviderScope(child: MaterialApp(home: DaftarPegawaiScreen())),
+          ProviderScope(
+            overrides: [
+              emailRepositoryProvider.overrideWithValue(_EmailRepositoryFake()),
+            ],
+            child: const MaterialApp(home: DaftarPegawaiScreen()),
+          ),
         );
+        await tester.pumpAndSettle();
 
         expect(find.text('Usulkan Email Pegawai'), findsOneWidget);
         expect(find.text('Dra. Endang Rahmawati, M.Si.'), findsOneWidget);

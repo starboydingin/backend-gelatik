@@ -28,6 +28,12 @@ class _AdminUsulanEmailListScreenState
   ];
 
   @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(emailProvider.notifier).loadUsulan());
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryTeal = AppColors.primaryTeal(context);
@@ -49,16 +55,10 @@ class _AdminUsulanEmailListScreenState
         ),
         title: Text(
           'Kelola Usulan Email',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: primaryTeal,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: primaryTeal),
         ),
         centerTitle: true,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: Column(
@@ -77,7 +77,9 @@ class _AdminUsulanEmailListScreenState
                       label: Text(filter),
                       labelStyle: TextStyle(
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                         color: isSelected
                             ? theme.colorScheme.onPrimaryContainer
                             : theme.colorScheme.onSurface,
@@ -106,13 +108,15 @@ class _AdminUsulanEmailListScreenState
               child: filteredList.isEmpty
                   ? EmptyState(
                       title: 'Tidak Ada Usulan Email',
-                      message: 'Tidak ada usulan email dengan status "$_selectedFilter".',
+                      message:
+                          'Tidak ada usulan email dengan status "$_selectedFilter".',
                       icon: Icons.mark_email_read_rounded,
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: filteredList.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final item = filteredList[index];
 
@@ -120,7 +124,9 @@ class _AdminUsulanEmailListScreenState
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => AdminUsulanEmailDetailScreen(usulanId: item.id),
+                                builder: (_) => AdminUsulanEmailDetailScreen(
+                                  usulanId: item.id,
+                                ),
                               ),
                             );
                           },
@@ -128,7 +134,8 @@ class _AdminUsulanEmailListScreenState
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     '#EMAIL-${item.id}',
@@ -161,7 +168,11 @@ class _AdminUsulanEmailListScreenState
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  Icon(Icons.email_outlined, size: 14, color: mutedText),
+                                  Icon(
+                                    Icons.email_outlined,
+                                    size: 14,
+                                    color: mutedText,
+                                  ),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
@@ -177,11 +188,16 @@ class _AdminUsulanEmailListScreenState
                                   ),
                                 ],
                               ),
-                              if (item.emailResmi != null && item.emailResmi!.isNotEmpty) ...[
+                              if (item.emailResmi != null &&
+                                  item.emailResmi!.isNotEmpty) ...[
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Icon(Icons.verified_user_outlined, size: 14, color: primaryTeal),
+                                    Icon(
+                                      Icons.verified_user_outlined,
+                                      size: 14,
+                                      color: primaryTeal,
+                                    ),
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(

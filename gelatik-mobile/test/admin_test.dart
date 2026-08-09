@@ -11,6 +11,7 @@ import 'package:gelatik/features/auth/models/user_model.dart';
 import 'package:gelatik/features/auth/providers/auth_provider.dart';
 import 'package:gelatik/features/email/models/usulan_email_model.dart';
 import 'package:gelatik/features/email/providers/email_provider.dart';
+import 'package:gelatik/features/email/repositories/email_repository.dart';
 import 'package:gelatik/features/home/presentation/screens/home_screen.dart';
 import 'package:gelatik/features/home/models/home_dashboard_model.dart';
 import 'package:gelatik/features/home/providers/home_provider.dart';
@@ -39,6 +40,22 @@ class _AdminFakePeminjamanRepository extends PeminjamanRepository {
         detail ?? DummyData.pinjamList.firstWhere((item) => item.id == id);
     return source.copyWith(status: status, catatanPetugas: catatan);
   }
+}
+
+class _AdminFakeEmailRepository extends EmailRepository {
+  _AdminFakeEmailRepository()
+    : super(apiClient: ApiClient(secureStorageService: SecureStorageService()));
+
+  @override
+  Future<UsulanEmailModel> approve(int id, String emailResmi) async =>
+      UsulanEmailModel(
+        id: id,
+        userId: 1,
+        idPegBkd: 1,
+        emailPribadi: 'pegawai@example.test',
+        emailResmi: emailResmi,
+        status: 'disetujui',
+      );
 }
 
 HomeNotifier _homePreview(UserModel user) => HomeNotifier.preview(
@@ -217,7 +234,27 @@ void main() {
     test(
       '5. Admin setujuUsulanEmail updates status to "disetujui" and assigns emailResmi',
       () async {
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            emailProvider.overrideWith((ref) {
+              final notifier = EmailNotifier(
+                repository: _AdminFakeEmailRepository(),
+              );
+              notifier.state = const EmailState(
+                listUsulanEmail: [
+                  UsulanEmailModel(
+                    id: 501,
+                    userId: 1,
+                    idPegBkd: 1,
+                    emailPribadi: 'pegawai@example.test',
+                    status: 'diajukan',
+                  ),
+                ],
+              );
+              return notifier;
+            }),
+          ],
+        );
         addTearDown(container.dispose);
 
         final notifier = container.read(emailProvider.notifier);

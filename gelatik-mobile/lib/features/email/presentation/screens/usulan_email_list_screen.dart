@@ -12,11 +12,23 @@ import 'daftar_pegawai_screen.dart';
 import 'usulan_email_detail_screen.dart';
 
 /// UsulanEmailListScreen — Daftar Riwayat Pengajuan Email Resmi (M-F)
-class UsulanEmailListScreen extends ConsumerWidget {
+class UsulanEmailListScreen extends ConsumerStatefulWidget {
   const UsulanEmailListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<UsulanEmailListScreen> createState() =>
+      _UsulanEmailListScreenState();
+}
+
+class _UsulanEmailListScreenState extends ConsumerState<UsulanEmailListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(emailProvider.notifier).loadUsulan());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryTeal = AppColors.primaryTeal(context);
     final actionEmerald = AppColors.actionEmerald(context);
@@ -37,10 +49,7 @@ class UsulanEmailListScreen extends ConsumerWidget {
             );
           },
         ),
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: list.isEmpty
@@ -104,18 +113,18 @@ class UsulanEmailListScreen extends ConsumerWidget {
                           const SizedBox(height: 2),
                           Text(
                             'NIP: ${item.nipPegawai}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: mutedText,
-                            ),
+                            style: TextStyle(fontSize: 12, color: mutedText),
                           ),
                           const SizedBox(height: 10),
                           const Divider(height: 1),
                           const SizedBox(height: 10),
                           Row(
                             children: [
-                              Icon(Icons.email_outlined,
-                                  size: 14, color: primaryTeal),
+                              Icon(
+                                Icons.email_outlined,
+                                size: 14,
+                                color: primaryTeal,
+                              ),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
@@ -152,9 +161,7 @@ class UsulanEmailListScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const DaftarPegawaiScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const DaftarPegawaiScreen()),
           );
         },
         backgroundColor: actionEmerald,
