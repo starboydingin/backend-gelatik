@@ -78,12 +78,12 @@ void main() {
       await tester.pumpWidget(_homeHarness());
       await tester.pumpAndSettle();
 
-    await tester.drag(
-      find.byKey(const Key('home-scroll')),
-      const Offset(0, -900),
-    );
-    await tester.pumpAndSettle();
-    final infoAlatCard = find.widgetWithText(InkWell, 'Info Alat TIK');
+      await tester.drag(
+        find.byKey(const Key('home-scroll')),
+        const Offset(0, -900),
+      );
+      await tester.pumpAndSettle();
+      final infoAlatCard = find.widgetWithText(InkWell, 'Info Alat TIK');
       await Scrollable.ensureVisible(
         tester.element(infoAlatCard),
         alignment: 0.5,
@@ -100,6 +100,22 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('Home reaches profile and returns with back navigation', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_homeHarness());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Smoke User'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProfilScreen), findsOneWidget);
+
+    await tester.tap(find.text('Home'));
+    await tester.pumpAndSettle();
+    expect(find.text('Gelatik Dashboard'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'Profile renders safe nullable values and logout clears session',
