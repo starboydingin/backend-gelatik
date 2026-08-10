@@ -39,6 +39,9 @@ return [
         'connect_timeout' => (int) env('CHATBOT_AI_CONNECT_TIMEOUT', 3),
         'request_timeout' => (int) env('CHATBOT_AI_REQUEST_TIMEOUT', 8),
         'gemini_attempts' => (int) env('CHATBOT_GEMINI_ATTEMPTS', 2),
+        // The PHP runtime on Windows may not have a system CA path configured.
+        // Keep TLS verification enabled by using the Composer-provided CA bundle.
+        'ca_bundle' => env('CHATBOT_CA_BUNDLE', base_path('vendor/grpc/grpc/etc/roots.pem')),
         'gemini' => [
             'key' => env('GEMINI_API_KEY'),
             'model' => env('GEMINI_MODEL', 'gemini-flash-latest'),

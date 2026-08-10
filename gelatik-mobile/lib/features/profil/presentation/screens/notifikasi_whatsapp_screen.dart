@@ -7,6 +7,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../providers/wa_notification_provider.dart';
 
 /// NotifikasiWhatsAppScreen — Pengaturan Notifikasi WhatsApp (F-WA)
@@ -100,6 +101,9 @@ class _NotifikasiWhatsAppScreenState
 
     final waState = ref.watch(waNotificationProvider);
     final sub = waState.subscription;
+    final accountCreatedAt = ref.watch(
+      authProvider.select((state) => state.currentUser?.createdAt),
+    );
     final dateFormat = DateFormat('dd MMMM yyyy', 'id_ID');
 
     // Official WhatsApp Brand Color (Khusus ikon representasi platform eksternal WA)
@@ -168,8 +172,7 @@ class _NotifikasiWhatsAppScreenState
                       ],
                     ),
 
-                    // Badge Status "Terhubung sejak {tanggal}" jika sudah opt-in
-                    if (sub.isSubscribed && sub.subscribedAt != null) ...[
+                    if (sub.isSubscribed && accountCreatedAt != null) ...[
                       const Divider(height: 24),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -194,7 +197,7 @@ class _NotifikasiWhatsAppScreenState
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Terhubung sejak ${dateFormat.format(sub.subscribedAt!)}',
+                              'Akun terdaftar sejak ${dateFormat.format(accountCreatedAt)}',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,

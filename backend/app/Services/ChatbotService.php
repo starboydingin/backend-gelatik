@@ -301,8 +301,15 @@ class ChatbotService
         $connectTimeout = max(1, min(10, (int) config('services.chatbot.connect_timeout', 3)));
         $requestTimeout = max($connectTimeout, min(15, (int) config('services.chatbot.request_timeout', 8)));
 
-        return Http::acceptJson()
+        $client = Http::acceptJson()
             ->connectTimeout($connectTimeout)
             ->timeout($requestTimeout);
+
+        $caBundle = config('services.chatbot.ca_bundle');
+        if (is_string($caBundle) && is_file($caBundle)) {
+            $client = $client->withOptions(['verify' => $caBundle]);
+        }
+
+        return $client;
     }
 }

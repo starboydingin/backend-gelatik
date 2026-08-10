@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:gelatik/core/dummy/dummy_data.dart';
+import 'package:gelatik/features/auth/models/user_model.dart';
 import 'package:gelatik/features/auth/providers/auth_provider.dart';
 import 'package:gelatik/features/profil/presentation/screens/notifikasi_whatsapp_screen.dart';
 import 'package:gelatik/features/profil/presentation/screens/profil_screen.dart';
@@ -14,6 +15,25 @@ void main() {
   });
 
   group('ProfilScreen & NotifikasiWhatsAppScreen Widget Tests (M-J & F-WA)', () {
+    test(
+      'UserModel reads the account registration date returned by the API',
+      () {
+        final user = UserModel.fromJson({
+          'id': 99,
+          'name': 'Pengguna Uji',
+          'email': 'uji@example.test',
+          'username': 'penggunauji',
+          'no_hp': '081234567890',
+          'nama_opd': 'OPD Uji',
+          'role': 'user',
+          'status': '1',
+          'created_at': '2026-01-15T09:30:00.000000Z',
+        });
+
+        expect(user.createdAt, DateTime.parse('2026-01-15T09:30:00.000000Z'));
+      },
+    );
+
     Widget buildProfilWidget({AuthState? initialState}) {
       return ProviderScope(
         overrides: [
@@ -150,6 +170,41 @@ void main() {
         expect(updatedSub.isSubscribed, isTrue);
       },
     );
+
+    testWidgets('WhatsApp shows the authenticated account registration date', (
+      tester,
+    ) async {
+      final registeredUser = UserModel(
+        id: 99,
+        name: 'Pengguna Uji',
+        email: 'uji@example.test',
+        username: 'penggunauji',
+        noHp: '081234567890',
+        namaOpd: 'OPD Uji',
+        role: 'user',
+        status: '1',
+        createdAt: DateTime(2026, 1, 15),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authProvider.overrideWith((ref) {
+              final notifier = AuthNotifier();
+              notifier.state = AuthState(
+                isLoggedIn: true,
+                currentUser: registeredUser,
+              );
+              return notifier;
+            }),
+          ],
+          child: const MaterialApp(home: NotifikasiWhatsAppScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Akun terdaftar sejak 15 Januari 2026'), findsOneWidget);
+    });
 
     testWidgets('6. Tapping Keluar opens logout confirmation dialog', (
       tester,

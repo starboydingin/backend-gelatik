@@ -8,6 +8,7 @@ class UserModel {
   final String namaOpd;
   final String role;
   final String status; // '0' = pending/nonaktif, '1' = aktif
+  final DateTime? createdAt;
 
   const UserModel({
     required this.id,
@@ -18,6 +19,7 @@ class UserModel {
     required this.namaOpd,
     required this.role,
     required this.status,
+    this.createdAt,
   });
 
   bool get isActive => status == '1';
@@ -41,6 +43,7 @@ class UserModel {
           ? directRole!
           : (roleFromRelation?.isNotEmpty == true ? roleFromRelation! : 'user'),
       status: _asString(json['status'], fallback: '1'),
+      createdAt: _asDate(json['created_at'] ?? json['createdAt']),
     );
   }
 
@@ -50,6 +53,11 @@ class UserModel {
   static String _asString(dynamic value, {String fallback = ''}) {
     final text = value?.toString().trim() ?? '';
     return text.isEmpty ? fallback : text;
+  }
+
+  static DateTime? _asDate(dynamic value) {
+    if (value == null) return null;
+    return DateTime.tryParse(value.toString());
   }
 
   Map<String, dynamic> toJson() {
@@ -62,6 +70,7 @@ class UserModel {
       'nama_opd': namaOpd,
       'role': role,
       'status': status,
+      'created_at': createdAt?.toIso8601String(),
     };
   }
 }
