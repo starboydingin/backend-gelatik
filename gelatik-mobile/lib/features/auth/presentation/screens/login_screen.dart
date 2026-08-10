@@ -333,6 +333,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   variant: AppButtonVariant.outlined,
                                   textColor: primaryTeal,
                                   allowTextWrap: true,
+                                  showBorder: false,
                                   onPressed: () {
                                     Navigator.of(context).push(
                                       MaterialPageRoute(

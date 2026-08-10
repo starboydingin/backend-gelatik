@@ -412,6 +412,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Pengguna Home'), findsOneWidget);
       expect(find.text('12'), findsOneWidget);
+      await tester.drag(
+        find.byKey(const Key('home-scroll')),
+        const Offset(0, -900),
+      );
+      await tester.pumpAndSettle();
       expect(find.text('PIC Home'), findsOneWidget);
       expect(find.text('Konsultasi Home'), findsOneWidget);
       expect(find.text('Admin'), findsNothing);
@@ -450,6 +455,11 @@ void main() {
           ],
           child: const MaterialApp(home: HomeScreen()),
         ),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const Key('home-scroll')),
+        const Offset(0, -900),
       );
       await tester.pumpAndSettle();
       expect(find.text('Belum ada peminjaman.'), findsOneWidget);
@@ -522,6 +532,11 @@ void main() {
       expect(find.byKey(const Key('home-retry')), findsOneWidget);
       fail = false;
       await tester.tap(find.byKey(const Key('home-retry')));
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const Key('home-scroll')),
+        const Offset(0, -900),
+      );
       await tester.pumpAndSettle();
       expect(find.text('PIC Home'), findsOneWidget);
     });

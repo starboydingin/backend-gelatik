@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -109,20 +110,9 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          children: [
-            const Text(
-              'Asisten Gelatik',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Ditenagai AI',
-              style: TextStyle(fontSize: 11, color: mutedText),
-            ),
-          ],
-        ),
-        centerTitle: true,
+      appBar: GelatikPageHeader(
+        title: 'Asisten',
+        showBack: true,
         actions: [
           IconButton(
             key: const Key('chatbot-delete'),
@@ -132,6 +122,7 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
                 ? null
                 : _confirmDelete,
           ),
+          Icon(Icons.smart_toy_rounded, color: AppColors.accentGold(context)),
           const ThemeToggleButton(),
           const SizedBox(width: 4),
         ],
@@ -183,6 +174,8 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
           key: const Key('chatbot-empty'),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
+            const SizedBox(height: 18),
+            const _DayChip(),
             SizedBox(height: MediaQuery.sizeOf(context).height * .2),
             Icon(
               state.errorMessage == null
@@ -209,16 +202,18 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
         controller: _scrollController,
         padding: const EdgeInsets.all(16),
         physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: state.messages.length + (state.isTyping ? 1 : 0),
+        itemCount: state.messages.length + (state.isTyping ? 2 : 1),
         itemBuilder: (context, index) {
-          if (index == state.messages.length) {
+          if (index == 0) return const _DayChip();
+          final messageIndex = index - 1;
+          if (messageIndex == state.messages.length) {
             return _TypingIndicator(
               primaryTeal: primaryTeal,
               strokeColor: strokeColor,
               mutedText: mutedText,
             );
           }
-          final message = state.messages[index];
+          final message = state.messages[messageIndex];
           return _MessageBubble(
             message: message,
             primaryTeal: primaryTeal,
@@ -249,6 +244,21 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
       ),
       child: Row(
         children: [
+          Container(
+            width: 48,
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              shape: BoxShape.circle,
+              border: Border.all(color: strokeColor, width: 1.5),
+            ),
+            child: Icon(
+              Icons.add_rounded,
+              color: AppColors.accentNavy(context),
+            ),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: TextField(
               key: const Key('chatbot-input'),
@@ -256,7 +266,7 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => canSend ? _send() : null,
               decoration: InputDecoration(
-                hintText: 'Tanya soal layanan TIK...',
+                hintText: 'Ketik pesan...',
                 filled: true,
                 fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
                   alpha: .5,
@@ -289,6 +299,30 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
   }
 }
 
+class _DayChip extends StatelessWidget {
+  const _DayChip();
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        'Hari Ini',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: AppColors.mutedText(context),
+        ),
+      ),
+    ),
+  );
+}
+
 class _MessageBubble extends StatelessWidget {
   final ChatMessageModel message;
   final Color primaryTeal;
@@ -316,7 +350,7 @@ class _MessageBubble extends StatelessWidget {
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.sizeOf(context).width * .82,
+          maxWidth: (MediaQuery.sizeOf(context).width * .82).clamp(0, 560),
         ),
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
@@ -324,7 +358,12 @@ class _MessageBubble extends StatelessWidget {
           color: isUser
               ? (failed ? theme.colorScheme.error : primaryTeal)
               : theme.colorScheme.surfaceContainerHighest.withValues(alpha: .5),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isUser ? 16 : 4),
+            bottomRight: Radius.circular(isUser ? 4 : 16),
+          ),
           border: isUser ? null : Border.all(color: strokeColor),
         ),
         child: Column(

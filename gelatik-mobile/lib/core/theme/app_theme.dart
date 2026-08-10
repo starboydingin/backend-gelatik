@@ -5,8 +5,6 @@ import 'app_typography.dart';
 
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
 
-
-
 /// AppTheme — Konfigurasi ThemeData Light & Dark Mode M3
 class AppTheme {
   AppTheme._();
@@ -33,10 +31,16 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.backgroundLight,
       textTheme: AppTypography.textTheme(AppColors.onBackgroundLight),
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.primaryLight,
-        foregroundColor: AppColors.onPrimaryLight,
+        backgroundColor: AppColors.surfaceLight,
+        foregroundColor: AppColors.primaryLight,
         elevation: 0,
         centerTitle: false,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: TextStyle(
+          color: AppColors.primaryLight,
+          fontSize: 21,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       cardTheme: CardThemeData(
         color: AppColors.surfaceLight,
@@ -51,23 +55,38 @@ class AppTheme {
         fillColor: AppColors.surfaceVariantLight.withValues(alpha: 0.5),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.cardStrokeLight, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.cardStrokeLight,
+            width: 1.5,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.cardStrokeLight, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.cardStrokeLight,
+            width: 1.5,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primaryTealLight, width: 2),
+          borderSide: const BorderSide(
+            color: AppColors.primaryTealLight,
+            width: 2,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.statusErrorLight, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.statusErrorLight,
+            width: 1.5,
+          ),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.statusErrorLight, width: 2),
+          borderSide: const BorderSide(
+            color: AppColors.statusErrorLight,
+            width: 2,
+          ),
         ),
         labelStyle: const TextStyle(color: AppColors.onSurfaceLight),
         floatingLabelStyle: const TextStyle(color: AppColors.primaryTealLight),
@@ -78,7 +97,9 @@ class AppTheme {
           foregroundColor: AppColors.onPrimaryLight,
           shape: const StadiumBorder(),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          textStyle: AppTypography.textTheme(AppColors.onPrimaryLight).labelLarge,
+          textStyle: AppTypography.textTheme(
+            AppColors.onPrimaryLight,
+          ).labelLarge,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -116,9 +137,15 @@ class AppTheme {
       textTheme: AppTypography.textTheme(AppColors.onBackgroundDark),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.surfaceDark,
-        foregroundColor: AppColors.onSurfaceDark,
+        foregroundColor: AppColors.primaryDark,
         elevation: 0,
         centerTitle: false,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: TextStyle(
+          color: AppColors.primaryDark,
+          fontSize: 21,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       cardTheme: CardThemeData(
         color: AppColors.surfaceDark,
@@ -133,23 +160,38 @@ class AppTheme {
         fillColor: AppColors.surfaceVariantDark.withValues(alpha: 0.5),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.cardStrokeDark, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.cardStrokeDark,
+            width: 1.5,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.cardStrokeDark, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.cardStrokeDark,
+            width: 1.5,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primaryTealDark, width: 2),
+          borderSide: const BorderSide(
+            color: AppColors.primaryTealDark,
+            width: 2,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.statusErrorDark, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.statusErrorDark,
+            width: 1.5,
+          ),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.statusErrorDark, width: 2),
+          borderSide: const BorderSide(
+            color: AppColors.statusErrorDark,
+            width: 2,
+          ),
         ),
         labelStyle: const TextStyle(color: AppColors.onSurfaceDark),
         floatingLabelStyle: const TextStyle(color: AppColors.primaryTealDark),
@@ -160,7 +202,9 @@ class AppTheme {
           foregroundColor: AppColors.onPrimaryDark,
           shape: const StadiumBorder(),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          textStyle: AppTypography.textTheme(AppColors.onPrimaryDark).labelLarge,
+          textStyle: AppTypography.textTheme(
+            AppColors.onPrimaryDark,
+          ).labelLarge,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(

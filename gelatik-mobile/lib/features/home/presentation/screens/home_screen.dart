@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
-import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
@@ -57,13 +57,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(homeProvider);
     final data = state.data;
-    final actionEmerald = AppColors.actionEmerald(context);
-
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final horizontalPadding = screenWidth >= 960
+        ? (screenWidth - 920) / 2
+        : 20.0;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gelatik Dashboard'),
-        centerTitle: true,
-        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
+      appBar: const GelatikPageHeader(
+        title: 'Beranda',
+        actions: [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -71,13 +72,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: ListView(
             key: const Key('home-scroll'),
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(20),
+            // ignore: deprecated_member_use
+            cacheExtent: 2400,
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              20,
+              horizontalPadding,
+              112,
+            ),
             children: [
-              _ProfileCard(
-                data: data,
-                onTap: () => _open(const ProfilScreen()),
-              ),
-              const SizedBox(height: 20),
+              _ServiceBanner(data: data),
+              const SizedBox(height: 24),
               if (state.status == HomeLoadStatus.error)
                 _FullErrorCard(
                   message: state.errorMessage ?? 'Data Home gagal dimuat.',
@@ -92,7 +97,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   onBorrowings: () => _open(const PeminjamanListScreen()),
                   onConsultations: () => _open(const KonsultasiListScreen()),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 28),
+                _QuickMenu(onOpen: _open),
+                const SizedBox(height: 28),
                 _RecentSection(
                   state: state,
                   onBorrowing: (item) =>
@@ -103,28 +110,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   onAllConsultations: () => _open(const KonsultasiListScreen()),
                 ),
               ],
-              const SizedBox(height: 28),
-              _QuickMenu(onOpen: _open),
-              const SizedBox(height: 28),
-              AppButton(
-                text: 'Keluar (Logout)',
-                icon: Icons.logout_rounded,
-                variant: AppButtonVariant.outlined,
-                onPressed: _loginAgain,
-              ),
             ],
           ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _open(const ChatbotNativeScreen()),
-        backgroundColor: actionEmerald,
+        backgroundColor: AppColors.accentNavy(context),
         foregroundColor: Colors.white,
         shape: const CircleBorder(),
         child: Badge(
           smallSize: 10,
           backgroundColor: AppColors.accentGold(context),
-          child: const Icon(Icons.smart_toy_rounded, size: 26),
+          child: const Icon(Icons.chat_bubble_outline_rounded, size: 26),
         ),
       ),
       bottomNavigationBar: AppBottomNav(
@@ -144,65 +142,115 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _ProfileCard extends StatelessWidget {
+class _ServiceBanner extends StatelessWidget {
   final HomeDashboardModel data;
-  final VoidCallback onTap;
 
-  const _ProfileCard({required this.data, required this.onTap});
+  const _ServiceBanner({required this.data});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return AppCard(
-      onTap: onTap,
-      child: Row(
+    final primaryTeal = AppColors.primaryTeal(context);
+    return Container(
+      constraints: const BoxConstraints(minHeight: 180),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3C7),
+        border: Border.all(color: AppColors.cardStroke(context), width: 1.5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Stack(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.cardStroke(context),
-                width: 1.5,
-              ),
-            ),
+          Positioned(
+            right: -20,
+            top: -24,
             child: Icon(
-              Icons.person_rounded,
-              size: 36,
-              color: theme.colorScheme.onPrimaryContainer,
+              Icons.tips_and_updates_outlined,
+              size: 144,
+              color: const Color(0xFFB28B18).withValues(alpha: .22),
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  data.userName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  data.namaOpd ?? 'OPD belum tersedia',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                decoration: BoxDecoration(
+                  color: AppColors.accentGold(context),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Layanan Gelatik',
                   style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.mutedText(context),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ],
-            ),
-          ),
-          Icon(
-            Icons.chevron_right_rounded,
-            color: AppColors.mutedText(context),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Semua layanan TIK\ndalam satu aplikasi',
+                style: TextStyle(
+                  color: primaryTeal,
+                  fontSize: 23,
+                  height: 1.25,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Halo,',
+                style: TextStyle(
+                  color: Color(0xFF704C24),
+                  fontSize: 15,
+                  height: 1.4,
+                ),
+              ),
+              Text(
+                data.userName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF704C24),
+                  fontSize: 15,
+                  height: 1.4,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Text(
+                'Kelola kebutuhan TIK Anda dengan lebih mudah.',
+                style: TextStyle(
+                  color: Color(0xFF704C24),
+                  fontSize: 15,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentGold(context),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 20,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentNavy(context),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -495,54 +543,46 @@ class _QuickMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = <_MenuData>[
       _MenuData(
-        'Asisten Gelatik',
-        'Tanya AI TIK',
-        Icons.auto_awesome_rounded,
-        AppColors.accentGold(context),
-        const ChatbotNativeScreen(),
-        'AI',
-      ),
-      _MenuData(
-        'Peminjaman Aset',
-        'Wizard 2-Step',
+        'Pinjam Aset TIK',
+        'Laptop, Proyektor, & Aksesoris',
         Icons.devices_rounded,
-        AppColors.primaryTeal(context),
+        AppColors.accentNavy(context),
         const AjukanPeminjamanScreen(),
       ),
       _MenuData(
-        'Riwayat Pinjam',
-        'Daftar & Status',
-        Icons.assignment_rounded,
-        AppColors.actionEmerald(context),
-        const PeminjamanListScreen(),
-      ),
-      _MenuData(
         'Konsultasi TIK',
-        'Thread Chat',
+        'Tanya layanan TIK',
         Icons.support_agent_rounded,
-        AppColors.accentNavy(context),
+        const Color(0xFF0284C7),
         const KonsultasiListScreen(),
       ),
       _MenuData(
-        'Layanan Internet',
-        'Info & Router OPD',
+        'Laporan Internet',
+        'Internet & Router OPD',
         Icons.wifi_rounded,
-        AppColors.accentGold(context),
+        const Color(0xFFDC2626),
         const LayananInternetScreen(),
       ),
       _MenuData(
-        'Usulan Email',
-        'Email Resmi BKD',
+        'Email Dinas',
+        'Usulan email resmi',
         Icons.mark_email_read_rounded,
-        AppColors.primaryTeal(context),
+        const Color(0xFF7E22CE),
         const UsulanEmailListScreen(),
       ),
       _MenuData(
-        'Info Alat TIK',
-        'Katalog Read-Only',
-        Icons.inventory_2_rounded,
-        AppColors.actionEmerald(context),
+        'Layanan Lain',
+        'Katalog alat & layanan lain',
+        Icons.apps_rounded,
+        AppColors.primaryTeal(context),
         const InfoAlatScreen(),
+      ),
+      _MenuData(
+        'Riwayat Pinjam',
+        'Daftar & status',
+        Icons.assignment_rounded,
+        AppColors.actionEmerald(context),
+        const PeminjamanListScreen(),
       ),
       _MenuData(
         'Kritik & Saran',
@@ -551,12 +591,20 @@ class _QuickMenu extends StatelessWidget {
         AppColors.accentNavy(context),
         const KritikSaranScreen(),
       ),
+      _MenuData(
+        'Asisten Gelatik',
+        'Tanya AI layanan TIK',
+        Icons.auto_awesome_rounded,
+        AppColors.accentGold(context),
+        const ChatbotNativeScreen(),
+        'AI',
+      ),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Layanan TIK Utama',
+          'Layanan Utama',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -564,19 +612,70 @@ class _QuickMenu extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.15,
-          children: items
-              .map(
-                (item) =>
-                    _MenuCard(item: item, onTap: () => onOpen(item.screen)),
-              )
-              .toList(),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final crossAxisCount = constraints.maxWidth >= 760 ? 4 : 2;
+            return GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: crossAxisCount == 4 ? 1.08 : .95,
+              children: items
+                  .map(
+                    (item) =>
+                        _MenuCard(item: item, onTap: () => onOpen(item.screen)),
+                  )
+                  .toList(),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        AppCard(
+          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pusat bantuan & FAQ Gelatik.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFDCFCE7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.help_outline_rounded,
+                  color: Color(0xFF15803D),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Bantuan & FAQ',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Panduan penggunaan layanan',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.mutedText(context),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -619,25 +718,31 @@ class _MenuCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: item.color.withValues(alpha: .15),
+                  color: item.color.withValues(alpha: .14),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(item.icon, color: item.color, size: 28),
+                child: Icon(item.icon, color: item.color, size: 27),
               ),
               const SizedBox(height: 10),
               Text(
                 item.title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
                   fontSize: 13,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryTeal(context),
                 ),
               ),
+              const SizedBox(height: 2),
               Text(
                 item.subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   color: AppColors.mutedText(context),
                 ),
               ),

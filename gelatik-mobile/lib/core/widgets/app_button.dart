@@ -13,6 +13,7 @@ class AppButton extends StatelessWidget {
   final bool isLoading;
   final bool isFullWidth;
   final bool allowTextWrap;
+  final bool showBorder;
 
   const AppButton({
     super.key,
@@ -25,6 +26,7 @@ class AppButton extends StatelessWidget {
     this.isLoading = false,
     this.isFullWidth = true,
     this.allowTextWrap = false,
+    this.showBorder = true,
   });
 
   @override
@@ -88,7 +90,7 @@ class AppButton extends StatelessWidget {
       foregroundColor: effectiveTextColor,
       elevation: variant == AppButtonVariant.filled ? 1 : 0,
       shape: StadiumBorder(
-        side: variant == AppButtonVariant.outlined
+        side: variant == AppButtonVariant.outlined && showBorder
             ? BorderSide(color: effectiveTextColor, width: 1.5)
             : BorderSide.none,
       ),

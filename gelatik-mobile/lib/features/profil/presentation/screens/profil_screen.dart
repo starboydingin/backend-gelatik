@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -189,226 +190,241 @@ class ProfilScreen extends ConsumerWidget {
     final profileEmail = _display(user?.email);
     final waState = ref.watch(waNotificationProvider);
     final waSub = waState.subscription;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final horizontalPadding = screenWidth >= 760
+        ? (screenWidth - 680) / 2
+        : 20.0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Profil Pengguna',
-          style: TextStyle(fontWeight: FontWeight.bold, color: primaryTeal),
-        ),
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
+      appBar: const GelatikPageHeader(
+        title: 'Profil',
+        actions: [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Bento Card Profile Avatar
-              AppCard(
-                child: Row(
-                  children: [
-                    // Avatar Lingkaran Aksen Navy/Gold dengan Inisial Nama
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [accentNavy, accentGold],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: strokeColor, width: 2),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _getInitials(
-                            profileName == '-' ? 'User' : profileName,
-                          ),
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            profileName,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            profileOpd,
-                            style: TextStyle(fontSize: 12, color: mutedText),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            profileEmail,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: primaryTeal,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              Text(
-                'Pengaturan & Informasi',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: primaryTeal,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // List Menu Bento Style
-              _buildMenuItem(
-                context: context,
-                icon: Icons.person_outline_rounded,
-                iconColor: primaryTeal,
-                title: 'Informasi Akun',
-                subtitle: 'Detail profil & data NIP/OPD',
-                onTap: () => _showInformasiAkunModal(context, user),
-              ),
-              const SizedBox(height: 10),
-
-              _buildMenuItem(
-                context: context,
-                icon: Icons.lock_outline_rounded,
-                iconColor: accentNavy,
-                title: 'Ganti Password',
-                subtitle: 'Ubah kata sandi akun',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Fitur ganti password akan segera hadir.'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-
-              // Modul F-WA: Notifikasi WhatsApp
-              _buildMenuItem(
-                context: context,
-                icon: Icons.chat_rounded,
-                iconColor: AppColors.actionEmerald(context),
-                title: 'Notifikasi WhatsApp',
-                subtitle: waSub.isSubscribed
-                    ? 'Terhubung (${waSub.waNumber})'
-                    : 'Non-aktif / Belum terhubung',
-                trailingIcon: Icons.arrow_forward_ios_rounded,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const NotifikasiWhatsAppScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-
-              _buildMenuItem(
-                context: context,
-                icon: Icons.help_outline_rounded,
-                iconColor: accentGold,
-                title: 'Bantuan & FAQ',
-                subtitle: 'Pertanyaan umum & panduan layanan TIK',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Pusat bantuan & FAQ Gelatik.'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-
-              _buildMenuItem(
-                context: context,
-                icon: Icons.info_outline_rounded,
-                iconColor: primaryTeal,
-                title: 'Tentang Aplikasi',
-                subtitle: 'Versi 1.0.0 — Gelatik TIK Lampung',
-                onTap: () {
-                  showAboutDialog(
-                    context: context,
-                    applicationName: 'Gelatik Mobile',
-                    applicationVersion: '1.0.0',
-                    applicationLegalese:
-                        '© 2026 Diskominfotik Provinsi Lampung',
-                  );
-                },
-              ),
-
-              const SizedBox(height: 32),
-
-              // Tombol Logout Outlined Style dengan warna error
-              AppCard(
-                padding: EdgeInsets.zero,
-                child: InkWell(
-                  onTap: () => _showLogoutConfirmation(context, ref),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: errorColor.withValues(alpha: 0.5),
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+          key: const Key('profile-scroll'),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            20,
+            horizontalPadding,
+            112,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Bento Card Profile Avatar
+                  AppCard(
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.logout_rounded, color: errorColor),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Keluar (Logout)',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: errorColor,
+                        // Avatar Lingkaran Aksen Navy/Gold dengan Inisial Nama
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [accentNavy, accentGold],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: strokeColor, width: 2),
+                          ),
+                          child: Center(
+                            child: Text(
+                              _getInitials(
+                                profileName == '-' ? 'User' : profileName,
+                              ),
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                profileName,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                profileOpd,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: mutedText,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                profileEmail,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: primaryTeal,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 24),
-            ],
+                  const SizedBox(height: 24),
+
+                  Text(
+                    'Pengaturan & Informasi',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: primaryTeal,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // List Menu Bento Style
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.person_outline_rounded,
+                    iconColor: primaryTeal,
+                    title: 'Informasi Akun',
+                    subtitle: 'Detail profil & data NIP/OPD',
+                    onTap: () => _showInformasiAkunModal(context, user),
+                  ),
+                  const SizedBox(height: 10),
+
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.lock_outline_rounded,
+                    iconColor: accentNavy,
+                    title: 'Ganti Password',
+                    subtitle: 'Ubah kata sandi akun',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Fitur ganti password akan segera hadir.',
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Modul F-WA: Notifikasi WhatsApp
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.chat_rounded,
+                    iconColor: AppColors.actionEmerald(context),
+                    title: 'Notifikasi WhatsApp',
+                    subtitle: waSub.isSubscribed
+                        ? 'Terhubung (${waSub.waNumber})'
+                        : 'Non-aktif / Belum terhubung',
+                    trailingIcon: Icons.arrow_forward_ios_rounded,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const NotifikasiWhatsAppScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.help_outline_rounded,
+                    iconColor: accentGold,
+                    title: 'Bantuan & FAQ',
+                    subtitle: 'Pertanyaan umum & panduan layanan TIK',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Pusat bantuan & FAQ Gelatik.'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.info_outline_rounded,
+                    iconColor: primaryTeal,
+                    title: 'Tentang Aplikasi',
+                    subtitle: 'Versi 1.0.0 — Gelatik TIK Lampung',
+                    onTap: () {
+                      showAboutDialog(
+                        context: context,
+                        applicationName: 'Gelatik Mobile',
+                        applicationVersion: '1.0.0',
+                        applicationLegalese:
+                            '© 2026 Diskominfotik Provinsi Lampung',
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Tombol Logout Outlined Style dengan warna error
+                  AppCard(
+                    padding: EdgeInsets.zero,
+                    child: InkWell(
+                      onTap: () => _showLogoutConfirmation(context, ref),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: errorColor.withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.logout_rounded, color: errorColor),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Keluar (Logout)',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: errorColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
           ),
         ),
       ),

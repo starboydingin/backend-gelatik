@@ -6,6 +6,7 @@ import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../info_alat/models/master_item_model.dart';
@@ -14,6 +15,7 @@ import '../../../info_alat/providers/info_alat_provider.dart';
 import '../../providers/peminjaman_provider.dart';
 import 'peminjaman_list_screen.dart';
 import '../../../home/presentation/screens/home_screen.dart';
+import '../../../profil/presentation/screens/profil_screen.dart';
 
 /// AjukanPeminjamanScreen — Layar Wizard 2-Step Pengajuan Peminjaman Aset TIK
 class AjukanPeminjamanScreen extends ConsumerStatefulWidget {
@@ -293,546 +295,573 @@ class _AjukanPeminjamanScreenState
     final peminjamanState = ref.watch(peminjamanProvider);
     final infoAlatState = ref.watch(infoAlatProvider);
     final masterItems = infoAlatState.items;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final horizontalPadding = screenWidth >= 900
+        ? (screenWidth - 760) / 2
+        : 20.0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pengajuan Peminjaman Aset'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () {
-            if (_currentStep == 2) {
-              setState(() => _currentStep = 1);
-            } else {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const HomeScreen()),
-              );
-            }
-          },
-        ),
+      appBar: GelatikPageHeader(
+        title: 'Pengajuan Peminjaman',
+        showBack: true,
+        onBack: () {
+          if (_currentStep == 2) {
+            setState(() => _currentStep = 1);
+          } else {
+            Navigator.of(context).maybePop();
+          }
+        },
         actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ---------------------------------------------------------------
-              // HEADER STEPPER PROGRESS BAR (Mockup Compliant)
-              // ---------------------------------------------------------------
-              _buildStepperHeader(context),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            20,
+            horizontalPadding,
+            112,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ---------------------------------------------------------------
+                  // HEADER STEPPER PROGRESS BAR (Mockup Compliant)
+                  // ---------------------------------------------------------------
+                  _buildStepperHeader(context),
 
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              // ---------------------------------------------------------------
-              // STEP 1 CONTENT: PILIH ASET MULTI-SELECT
-              // ---------------------------------------------------------------
-              if (_currentStep == 1) ...[
-                Text(
-                  'Pilih Aset TIK yang Ingin Dipinjam',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: primaryTeal,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Anda dapat memilih lebih dari satu aset dan menentukan jumlahnya.',
-                  style: TextStyle(fontSize: 13, color: mutedText),
-                ),
-                const SizedBox(height: 16),
-
-                if (infoAlatState.status == InfoAlatStatus.loading)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: CircularProgressIndicator(),
+                  // ---------------------------------------------------------------
+                  // STEP 1 CONTENT: PILIH ASET MULTI-SELECT
+                  // ---------------------------------------------------------------
+                  if (_currentStep == 1) ...[
+                    Text(
+                      'Pilih Aset TIK yang Ingin Dipinjam',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: primaryTeal,
+                      ),
                     ),
-                  )
-                else if (infoAlatState.status == InfoAlatStatus.error)
-                  AppCard(
-                    child: Column(
-                      children: [
-                        Text(
-                          infoAlatState.errorMessage ??
-                              'Katalog alat gagal dimuat.',
+                    const SizedBox(height: 6),
+                    Text(
+                      'Anda dapat memilih lebih dari satu aset dan menentukan jumlahnya.',
+                      style: TextStyle(fontSize: 13, color: mutedText),
+                    ),
+                    const SizedBox(height: 16),
+
+                    if (infoAlatState.status == InfoAlatStatus.loading)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else if (infoAlatState.status == InfoAlatStatus.error)
+                      AppCard(
+                        child: Column(
+                          children: [
+                            Text(
+                              infoAlatState.errorMessage ??
+                                  'Katalog alat gagal dimuat.',
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: () =>
+                                  ref.read(infoAlatProvider.notifier).retry(),
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Coba Lagi'),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (masterItems.isEmpty)
+                      const AppCard(
+                        child: Text(
+                          'Belum ada aset tersedia untuk dipinjam.',
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
-                        TextButton.icon(
-                          onPressed: () =>
-                              ref.read(infoAlatProvider.notifier).retry(),
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Coba Lagi'),
-                        ),
-                      ],
-                    ),
-                  )
-                else if (masterItems.isEmpty)
-                  const AppCard(
-                    child: Text(
-                      'Belum ada aset tersedia untuk dipinjam.',
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                else
-                  PilihAsetWidget(
-                    masterItems: masterItems,
-                    selectedQuantities: _selectedQuantities,
-                    onQuantityChanged: (item, newQty) {
-                      setState(() {
-                        if (newQty <= 0) {
-                          _selectedQuantities.remove(item.id);
-                        } else {
-                          _selectedQuantities[item.id] = newQty;
-                        }
-                      });
-                    },
-                  ),
-
-                const SizedBox(height: 24),
-
-                // Button Lanjut ke Step 2 (Aktif jika minimal 1 item dipilih)
-                AppButton(
-                  text: _totalSelectedItemsCount > 0
-                      ? 'Lanjut ke Detail Pinjam ($_totalSelectedItemsCount Aset)'
-                      : 'Pilih Minimal 1 Aset',
-                  icon: Icons.arrow_forward_rounded,
-                  backgroundColor: _totalSelectedItemsCount > 0
-                      ? actionEmerald
-                      : strokeColor,
-                  textColor: _totalSelectedItemsCount > 0
-                      ? Colors.white
-                      : mutedText,
-                  onPressed: _totalSelectedItemsCount > 0
-                      ? () => setState(() => _currentStep = 2)
-                      : null,
-                ),
-              ],
-
-              // ---------------------------------------------------------------
-              // STEP 2 CONTENT: DETAIL PINJAM FORM (Mockup Bento Card Compliant)
-              // ---------------------------------------------------------------
-              if (_currentStep == 2) ...[
-                // Bento Card Form utama
-                AppCard(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header Section
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Detail Peminjaman',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: primaryTeal,
-                            ),
-                          ),
-                          TextButton.icon(
-                            onPressed: () => setState(() => _currentStep = 1),
-                            icon: Icon(
-                              Icons.edit_outlined,
-                              size: 16,
-                              color: primaryTeal,
-                            ),
-                            label: Text(
-                              'Ubah Aset',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: primaryTeal,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // 1. Ringkasan Aset Terpilih (Chip / Read-only)
-                      Text(
-                        'Aset Terpilih:',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: mutedText,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _getSelectedItemsMap(masterItems).entries.map(
-                          (e) {
-                            return Chip(
-                              backgroundColor:
-                                  theme.colorScheme.primaryContainer,
-                              side: BorderSide(color: strokeColor, width: 1),
-                              avatar: CircleAvatar(
-                                backgroundColor: primaryTeal,
-                                child: Text(
-                                  '${e.value}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              label: Text(
-                                e.key.nama,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.onPrimaryContainer,
-                                ),
-                              ),
-                            );
-                          },
-                        ).toList(),
-                      ),
-
-                      const SizedBox(height: 20),
-                      const Divider(height: 1),
-                      const SizedBox(height: 20),
-
-                      // 2. Field PIC Details
-                      Text(
-                        'Informasi Penanggung Jawab (PIC)',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      AppTextField(
-                        labelText: 'Nama PIC',
-                        hintText: 'Nama lengkap PIC',
-                        controller: _namaPicController,
-                        prefixIcon: const Icon(Icons.person_outline),
-                        errorText: _namaPicError,
-                      ),
-                      const SizedBox(height: 12),
-
-                      AppTextField(
-                        labelText: 'Jabatan PIC',
-                        hintText: 'Jabatan resmi',
-                        controller: _jabatanPicController,
-                        prefixIcon: const Icon(Icons.work_outline),
-                        errorText: _jabatanPicError,
-                      ),
-                      const SizedBox(height: 12),
-
-                      AppTextField(
-                        labelText: 'Instansi / OPD PIC',
-                        hintText: 'Nama instansi',
-                        controller: _instansiPicController,
-                        prefixIcon: const Icon(Icons.business_outlined),
-                        errorText: _instansiPicError,
-                      ),
-                      const SizedBox(height: 12),
-
-                      AppTextField(
-                        labelText: 'No. Kontak PIC (WhatsApp)',
-                        hintText: '081234567890',
-                        controller: _kontakPicController,
-                        keyboardType: TextInputType.phone,
-                        prefixIcon: const Icon(Icons.phone_android_outlined),
-                        errorText: _kontakPicError,
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Dropdown Jenis Identitas
-                      DropdownButtonFormField<String>(
-                        initialValue: _jenisIdentitas,
-                        decoration: InputDecoration(
-                          labelText: 'Jenis Identitas',
-                          prefixIcon: const Icon(Icons.badge_outlined),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'KTP', child: Text('KTP')),
-                          DropdownMenuItem(value: 'SIM', child: Text('SIM')),
-                          DropdownMenuItem(
-                            value: 'Passport',
-                            child: Text('Passport'),
-                          ),
-                          DropdownMenuItem(value: 'NIP', child: Text('NIP')),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() => _jenisIdentitas = val);
-                          }
+                      )
+                    else
+                      PilihAsetWidget(
+                        masterItems: masterItems,
+                        selectedQuantities: _selectedQuantities,
+                        onQuantityChanged: (item, newQty) {
+                          setState(() {
+                            if (newQty <= 0) {
+                              _selectedQuantities.remove(item.id);
+                            } else {
+                              _selectedQuantities[item.id] = newQty;
+                            }
+                          });
                         },
                       ),
-                      const SizedBox(height: 12),
 
-                      AppTextField(
-                        labelText: 'Nomor Identitas',
-                        hintText: 'Masukkan nomor KTP/NIP',
-                        controller: _nomorIdentitasController,
-                        prefixIcon: const Icon(Icons.credit_card_outlined),
-                        errorText: _nomorIdentitasError,
-                      ),
-                      const SizedBox(height: 12),
+                    const SizedBox(height: 24),
 
-                      AppTextField(
-                        labelText: 'Alamat Peminjam / Lokasi Penggunaan',
-                        hintText: 'Alamat kantor / tempat penggunaan',
-                        controller: _alamatPeminjamController,
-                        prefixIcon: const Icon(Icons.location_on_outlined),
-                        errorText: _alamatPeminjamError,
-                      ),
+                    // Button Lanjut ke Step 2 (Aktif jika minimal 1 item dipilih)
+                    AppButton(
+                      text: _totalSelectedItemsCount > 0
+                          ? 'Lanjut ke Detail Pinjam ($_totalSelectedItemsCount Aset)'
+                          : 'Pilih Minimal 1 Aset',
+                      icon: Icons.arrow_forward_rounded,
+                      backgroundColor: _totalSelectedItemsCount > 0
+                          ? actionEmerald
+                          : strokeColor,
+                      textColor: _totalSelectedItemsCount > 0
+                          ? Colors.white
+                          : mutedText,
+                      onPressed: _totalSelectedItemsCount > 0
+                          ? () => setState(() => _currentStep = 2)
+                          : null,
+                    ),
+                  ],
 
-                      const SizedBox(height: 20),
-                      const Divider(height: 1),
-                      const SizedBox(height: 20),
-
-                      // 3. Durasi Peminjaman
-                      Text(
-                        'Waktu & Durasi Peminjaman',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      Row(
+                  // ---------------------------------------------------------------
+                  // STEP 2 CONTENT: DETAIL PINJAM FORM (Mockup Bento Card Compliant)
+                  // ---------------------------------------------------------------
+                  if (_currentStep == 2) ...[
+                    // Bento Card Form utama
+                    AppCard(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: _selectDate,
-                              child: AbsorbPointer(
-                                child: AppTextField(
-                                  labelText: 'Tanggal Mulai',
-                                  hintText: 'Pilih Tanggal',
-                                  controller: TextEditingController(
-                                    text:
-                                        '${_tanggalMulai.day}/${_tanggalMulai.month}/${_tanggalMulai.year}',
-                                  ),
-                                  prefixIcon: const Icon(
-                                    Icons.calendar_today_outlined,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              initialValue: _jenisDurasi,
-                              decoration: const InputDecoration(
-                                labelText: 'Jenis Durasi',
-                                prefixIcon: Icon(Icons.timer_outlined),
-                              ),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'harian',
-                                  child: Text('Harian'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'jam',
-                                  child: Text('Jam'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'menit',
-                                  child: Text('Menit'),
-                                ),
-                              ],
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() => _jenisDurasi = val);
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      AppTextField(
-                        labelText: 'Jumlah Durasi',
-                        hintText: 'misal: 3',
-                        controller: _durasiCountController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        prefixIcon: const Icon(Icons.numbers_rounded),
-                        errorText: _durasiError,
-                        onChanged: (_) => setState(() {}),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Read-only dynamic preview "Estimasi selesai: {tanggal terhitung}"
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: strokeColor, width: 1),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.event_available_rounded,
-                              size: 18,
-                              color: primaryTeal,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Estimasi selesai: ${_formatDateTime(_estimatedEndDate, _jenisDurasi)}',
+                          // Header Section
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Detail Peminjaman',
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   color: primaryTeal,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
+                              TextButton.icon(
+                                onPressed: () =>
+                                    setState(() => _currentStep = 1),
+                                icon: Icon(
+                                  Icons.edit_outlined,
+                                  size: 16,
+                                  color: primaryTeal,
+                                ),
+                                label: Text(
+                                  'Ubah Aset',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryTeal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
 
-                      const SizedBox(height: 20),
-                      const Divider(height: 1),
-                      const SizedBox(height: 20),
-
-                      // 4. Textarea Keterangan (opsional)
-                      AppTextField(
-                        labelText: 'Keterangan (opsional)',
-                        hintText:
-                            'Tuliskan tujuan peminjaman dan keperluan acara...',
-                        controller: _keteranganController,
-                        maxLines: 3,
-                        prefixIcon: const Icon(Icons.notes_rounded),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // 5. Upload Dokumen (opsional) — map to field url_dokumen
-                      AppTextField(
-                        labelText: 'URL Dokumen Pendukung (opsional)',
-                        hintText: 'https://contoh.go.id/surat-permohonan.pdf',
-                        controller: _dokumenUrlController,
-                        keyboardType: TextInputType.url,
-                        prefixIcon: const Icon(Icons.link_rounded),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // 6. Checkbox Syarat & Ketentuan
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: Checkbox(
-                              value: _agreeTerms,
-                              activeColor: actionEmerald,
-                              onChanged: (val) {
-                                setState(() {
-                                  _agreeTerms = val ?? false;
-                                  if (_agreeTerms) _termsError = null;
-                                });
-                              },
+                          // 1. Ringkasan Aset Terpilih (Chip / Read-only)
+                          Text(
+                            'Aset Terpilih:',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: mutedText,
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _agreeTerms = !_agreeTerms;
-                                  if (_agreeTerms) _termsError = null;
-                                });
-                              },
-                              child: Text(
-                                'Saya menyetujui syarat & ketentuan peminjaman aset TIK Pemprov Lampung.',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: theme.colorScheme.onSurface,
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _getSelectedItemsMap(masterItems).entries
+                                .map((e) {
+                                  return Chip(
+                                    backgroundColor:
+                                        theme.colorScheme.primaryContainer,
+                                    side: BorderSide(
+                                      color: strokeColor,
+                                      width: 1,
+                                    ),
+                                    avatar: CircleAvatar(
+                                      backgroundColor: primaryTeal,
+                                      child: Text(
+                                        '${e.value}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    label: Text(
+                                      e.key.nama,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: theme
+                                            .colorScheme
+                                            .onPrimaryContainer,
+                                      ),
+                                    ),
+                                  );
+                                })
+                                .toList(),
+                          ),
+
+                          const SizedBox(height: 20),
+                          const Divider(height: 1),
+                          const SizedBox(height: 20),
+
+                          // 2. Field PIC Details
+                          Text(
+                            'Informasi Penanggung Jawab (PIC)',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          AppTextField(
+                            labelText: 'Nama PIC',
+                            hintText: 'Nama lengkap PIC',
+                            controller: _namaPicController,
+                            prefixIcon: const Icon(Icons.person_outline),
+                            errorText: _namaPicError,
+                          ),
+                          const SizedBox(height: 12),
+
+                          AppTextField(
+                            labelText: 'Jabatan PIC',
+                            hintText: 'Jabatan resmi',
+                            controller: _jabatanPicController,
+                            prefixIcon: const Icon(Icons.work_outline),
+                            errorText: _jabatanPicError,
+                          ),
+                          const SizedBox(height: 12),
+
+                          AppTextField(
+                            labelText: 'Instansi / OPD PIC',
+                            hintText: 'Nama instansi',
+                            controller: _instansiPicController,
+                            prefixIcon: const Icon(Icons.business_outlined),
+                            errorText: _instansiPicError,
+                          ),
+                          const SizedBox(height: 12),
+
+                          AppTextField(
+                            labelText: 'No. Kontak PIC (WhatsApp)',
+                            hintText: '081234567890',
+                            controller: _kontakPicController,
+                            keyboardType: TextInputType.phone,
+                            prefixIcon: const Icon(
+                              Icons.phone_android_outlined,
+                            ),
+                            errorText: _kontakPicError,
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Dropdown Jenis Identitas
+                          DropdownButtonFormField<String>(
+                            initialValue: _jenisIdentitas,
+                            decoration: InputDecoration(
+                              labelText: 'Jenis Identitas',
+                              prefixIcon: const Icon(Icons.badge_outlined),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'KTP',
+                                child: Text('KTP'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'SIM',
+                                child: Text('SIM'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Passport',
+                                child: Text('Passport'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'NIP',
+                                child: Text('NIP'),
+                              ),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() => _jenisIdentitas = val);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 12),
+
+                          AppTextField(
+                            labelText: 'Nomor Identitas',
+                            hintText: 'Masukkan nomor KTP/NIP',
+                            controller: _nomorIdentitasController,
+                            prefixIcon: const Icon(Icons.credit_card_outlined),
+                            errorText: _nomorIdentitasError,
+                          ),
+                          const SizedBox(height: 12),
+
+                          AppTextField(
+                            labelText: 'Alamat Peminjam / Lokasi Penggunaan',
+                            hintText: 'Alamat kantor / tempat penggunaan',
+                            controller: _alamatPeminjamController,
+                            prefixIcon: const Icon(Icons.location_on_outlined),
+                            errorText: _alamatPeminjamError,
+                          ),
+
+                          const SizedBox(height: 20),
+                          const Divider(height: 1),
+                          const SizedBox(height: 20),
+
+                          // 3. Durasi Peminjaman
+                          Text(
+                            'Waktu & Durasi Peminjaman',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: _selectDate,
+                                  child: AbsorbPointer(
+                                    child: AppTextField(
+                                      labelText: 'Tanggal Mulai',
+                                      hintText: 'Pilih Tanggal',
+                                      controller: TextEditingController(
+                                        text:
+                                            '${_tanggalMulai.day}/${_tanggalMulai.month}/${_tanggalMulai.year}',
+                                      ),
+                                      prefixIcon: const Icon(
+                                        Icons.calendar_today_outlined,
+                                      ),
+                                    ),
+                                  ),
                                 ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  initialValue: _jenisDurasi,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Jenis Durasi',
+                                    prefixIcon: Icon(Icons.timer_outlined),
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(
+                                      value: 'harian',
+                                      child: Text('Harian'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'jam',
+                                      child: Text('Jam'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'menit',
+                                      child: Text('Menit'),
+                                    ),
+                                  ],
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() => _jenisDurasi = val);
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          AppTextField(
+                            labelText: 'Jumlah Durasi',
+                            hintText: 'misal: 3',
+                            controller: _durasiCountController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            prefixIcon: const Icon(Icons.numbers_rounded),
+                            errorText: _durasiError,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Read-only dynamic preview "Estimasi selesai: {tanggal terhitung}"
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: strokeColor, width: 1),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.event_available_rounded,
+                                  size: 18,
+                                  color: primaryTeal,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Estimasi selesai: ${_formatDateTime(_estimatedEndDate, _jenisDurasi)}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryTeal,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+                          const Divider(height: 1),
+                          const SizedBox(height: 20),
+
+                          // 4. Textarea Keterangan (opsional)
+                          AppTextField(
+                            labelText: 'Keterangan (opsional)',
+                            hintText:
+                                'Tuliskan tujuan peminjaman dan keperluan acara...',
+                            controller: _keteranganController,
+                            maxLines: 3,
+                            prefixIcon: const Icon(Icons.notes_rounded),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // 5. Upload Dokumen (opsional) — map to field url_dokumen
+                          AppTextField(
+                            labelText: 'URL Dokumen Pendukung (opsional)',
+                            hintText:
+                                'https://contoh.go.id/surat-permohonan.pdf',
+                            controller: _dokumenUrlController,
+                            keyboardType: TextInputType.url,
+                            prefixIcon: const Icon(Icons.link_rounded),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // 6. Checkbox Syarat & Ketentuan
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: Checkbox(
+                                  value: _agreeTerms,
+                                  activeColor: actionEmerald,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _agreeTerms = val ?? false;
+                                      if (_agreeTerms) _termsError = null;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _agreeTerms = !_agreeTerms;
+                                      if (_agreeTerms) _termsError = null;
+                                    });
+                                  },
+                                  child: Text(
+                                    'Saya menyetujui syarat & ketentuan peminjaman aset TIK Pemprov Lampung.',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (_termsError != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              _termsError!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
+                          ],
+
+                          const SizedBox(height: 24),
+
+                          // 7. Tombol "Kirim Pengajuan" (Pill Emerald, Icon Send)
+                          AppButton(
+                            text: 'Kirim Pengajuan',
+                            icon: Icons.send_rounded,
+                            backgroundColor: actionEmerald,
+                            textColor: Colors.white,
+                            isLoading: peminjamanState.isSubmitting,
+                            onPressed: peminjamanState.isSubmitting
+                                ? null
+                                : () => _handleSubmit(masterItems),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // 8. Info Card Bawah (Bento, Icon info accentNavy)
+                    AppCard(
+                      backgroundColor: accentNavy.withValues(
+                        alpha: isDark ? 0.2 : 0.08,
+                      ),
+                      border: Border.all(
+                        color: accentNavy.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline_rounded,
+                            color: accentNavy,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Status pengajuan dapat dipantau pada menu Peminjaman. Persetujuan biasanya memakan waktu maksimal 1x24 jam kerja.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                height: 1.4,
+                                color: theme.colorScheme.onSurface,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      if (_termsError != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          _termsError!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: theme.colorScheme.error,
-                          ),
-                        ),
-                      ],
-
-                      const SizedBox(height: 24),
-
-                      // 7. Tombol "Kirim Pengajuan" (Pill Emerald, Icon Send)
-                      AppButton(
-                        text: 'Kirim Pengajuan',
-                        icon: Icons.send_rounded,
-                        backgroundColor: actionEmerald,
-                        textColor: Colors.white,
-                        isLoading: peminjamanState.isSubmitting,
-                        onPressed: peminjamanState.isSubmitting
-                            ? null
-                            : () => _handleSubmit(masterItems),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // 8. Info Card Bawah (Bento, Icon info accentNavy)
-                AppCard(
-                  backgroundColor: accentNavy.withValues(
-                    alpha: isDark ? 0.2 : 0.08,
-                  ),
-                  border: Border.all(
-                    color: accentNavy.withValues(alpha: 0.4),
-                    width: 1.5,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.info_outline_rounded,
-                        color: accentNavy,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Status pengajuan dapat dipantau pada menu Peminjaman. Persetujuan biasanya memakan waktu maksimal 1x24 jam kerja.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            height: 1.4,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -847,7 +876,7 @@ class _AjukanPeminjamanScreenState
             // Sudah di Ajukan
           } else if (index == 2) {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
+              MaterialPageRoute(builder: (_) => const ProfilScreen()),
             );
           }
         },

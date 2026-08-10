@@ -68,7 +68,7 @@ void main() {
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('Gelatik Dashboard'), findsOneWidget);
+    expect(find.text('Beranda'), findsAtLeastNWidgets(1));
     expect(tester.takeException(), isNull);
   });
 
@@ -83,7 +83,7 @@ void main() {
         const Offset(0, -900),
       );
       await tester.pumpAndSettle();
-      final infoAlatCard = find.widgetWithText(InkWell, 'Info Alat TIK');
+      final infoAlatCard = find.widgetWithText(InkWell, 'Layanan Lain');
       await Scrollable.ensureVisible(
         tester.element(infoAlatCard),
         alignment: 0.5,
@@ -91,12 +91,12 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(infoAlatCard);
       await tester.pumpAndSettle();
-      expect(find.text('Katalog Alat TIK'), findsOneWidget);
+      expect(find.text('Pinjam Aset TIK'), findsOneWidget);
       expect(find.text('Alat Smoke'), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.arrow_back_rounded));
       await tester.pumpAndSettle();
-      expect(find.text('Gelatik Dashboard'), findsOneWidget);
+      expect(find.text('Beranda'), findsAtLeastNWidgets(1));
       expect(tester.takeException(), isNull);
     },
   );
@@ -107,13 +107,13 @@ void main() {
     await tester.pumpWidget(_homeHarness());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Smoke User'));
+    await tester.tap(find.text('Profil'));
     await tester.pumpAndSettle();
     expect(find.byType(ProfilScreen), findsOneWidget);
 
-    await tester.tap(find.text('Home'));
+    await tester.tap(find.text('Beranda').last);
     await tester.pumpAndSettle();
-    expect(find.text('Gelatik Dashboard'), findsOneWidget);
+    expect(find.text('Beranda'), findsAtLeastNWidgets(1));
     expect(tester.takeException(), isNull);
   });
 
@@ -150,15 +150,19 @@ void main() {
       );
       expect(find.text('email@lampungprov.go.id'), findsNothing);
 
-      await tester.tap(find.text('Informasi Akun'));
+      await tester.tap(find.widgetWithText(InkWell, 'Informasi Akun'));
       await tester.pumpAndSettle();
       expect(find.text('ADMIN'), findsOneWidget);
       expect(find.text('-'), findsWidgets);
       await tester.tap(find.text('Tutup'));
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('Keluar (Logout)'));
-      await tester.tap(find.text('Keluar (Logout)'));
+      final logoutCard = find.widgetWithText(InkWell, 'Keluar (Logout)');
+      await Scrollable.ensureVisible(
+        tester.element(logoutCard),
+        alignment: 0.5,
+      );
+      await tester.tap(logoutCard);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Ya, Keluar'));
       await tester.pumpAndSettle();

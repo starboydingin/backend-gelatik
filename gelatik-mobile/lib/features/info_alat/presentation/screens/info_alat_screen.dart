@@ -5,11 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_card.dart';
-import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/empty_state.dart';
+import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../../core/widgets/loading_skeleton.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../home/presentation/screens/home_screen.dart';
+import '../../../peminjaman/presentation/screens/ajukan_peminjaman_screen.dart';
+import '../../../profil/presentation/screens/profil_screen.dart';
 import '../../models/master_item_model.dart';
 import '../../repositories/master_item_repository.dart';
 import 'package:gelatik/features/info_alat/providers/info_alat_provider.dart';
@@ -62,44 +64,64 @@ class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
     final state = ref.watch(infoAlatProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Katalog Alat TIK'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
-            );
-          },
-        ),
+      appBar: GelatikPageHeader(
+        title: 'Pinjam Aset TIK',
+        showBack: true,
+        onBack: () => Navigator.of(context).maybePop(),
         actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // Search Bar Bento-style
+            // Search card sesuai pola daftar aset pada referensi.
             Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: AppTextField(
-                controller: _searchController,
-                labelText: 'Pencarian Alat TIK',
-                hintText: 'Cari alat TIK (Laptop, Proyektor...)...',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: AppCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 5,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.search_rounded, color: accentNavy),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: _scheduleSearch,
+                        decoration: const InputDecoration(
+                          hintText: 'Cari aset...',
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                        ),
+                      ),
+                    ),
+                    if (_searchController.text.isNotEmpty)
+                      IconButton(
                         icon: const Icon(Icons.clear_rounded),
                         onPressed: () {
                           _searchController.clear();
                           _scheduleSearch('');
                         },
                       )
-                    : null,
-                onChanged: _scheduleSearch,
+                    else
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: accentGold,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.tune_rounded,
+                          color: Colors.white,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
-
-            const Divider(height: 1),
 
             if (state.isRefreshing) const LinearProgressIndicator(minHeight: 2),
 
@@ -117,13 +139,44 @@ class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: 0,
-        onTap: (index) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-          );
-        },
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: double.infinity,
+            color: theme.scaffoldBackgroundColor,
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+            child: FilledButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const AjukanPeminjamanScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.add_circle_outline_rounded),
+              label: const Text('Ajukan Peminjaman'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.actionEmerald(context),
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(56),
+                shape: const StadiumBorder(),
+              ),
+            ),
+          ),
+          AppBottomNav(
+            currentIndex: 0,
+            onTap: (index) {
+              final destination = switch (index) {
+                0 => const HomeScreen(),
+                1 => const AjukanPeminjamanScreen(),
+                _ => const ProfilScreen(),
+              };
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => destination),
+                (route) => route.isFirst,
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -238,8 +291,8 @@ class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 60,
-              height: 60,
+              width: 68,
+              height: 68,
               decoration: BoxDecoration(
                 color: bg,
                 borderRadius: BorderRadius.circular(12),
@@ -254,20 +307,48 @@ class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
                             Icon(Icons.devices_rounded, color: fg, size: 32),
                       ),
                     )
-                  : Icon(Icons.devices_rounded, color: fg, size: 32),
+                  : Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Opacity(
+                          opacity: .12,
+                          child: Image.asset(
+                            'assets/images/logo-gelatik.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        Icon(_assetIcon(item.nama), color: fg, size: 34),
+                      ],
+                    ),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.nama,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.nama,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: primaryTeal,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildBadge(
+                        item.tersedia ? 'Tersedia' : 'Stok Habis',
+                        item.tersedia
+                            ? AppColors.actionEmerald(context)
+                            : theme.colorScheme.error,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -319,6 +400,21 @@ class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
         ),
       ),
     );
+  }
+
+  IconData _assetIcon(String name) {
+    final value = name.toLowerCase();
+    if (value.contains('laptop')) return Icons.laptop_mac_rounded;
+    if (value.contains('proyektor') || value.contains('projector')) {
+      return Icons.videocam_rounded;
+    }
+    if (value.contains('tablet') || value.contains('ipad')) {
+      return Icons.tablet_mac_rounded;
+    }
+    if (value.contains('headset') || value.contains('headphone')) {
+      return Icons.headphones_rounded;
+    }
+    return Icons.devices_rounded;
   }
 
   String _errorTitle(MasterItemErrorType? type) {

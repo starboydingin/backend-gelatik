@@ -198,7 +198,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Katalog Alat TIK'), findsOneWidget);
+      expect(find.text('Pinjam Aset TIK'), findsOneWidget);
       expect(find.text('Laptop Lenovo ThinkPad L14 Gen 3'), findsOneWidget);
       expect(find.text('Proyektor Epson EB-X05'), findsOneWidget);
 
@@ -231,7 +231,7 @@ void main() {
           ),
         );
 
-        expect(find.text('Katalog Alat TIK'), findsOneWidget);
+        expect(find.text('Pinjam Aset TIK'), findsOneWidget);
         expect(find.text('Alat Custom dari Provider Override'), findsOneWidget);
         expect(find.text('Laptop Lenovo ThinkPad L14 Gen 3'), findsNothing);
       },
@@ -302,14 +302,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Gelatik Dashboard'), findsOneWidget);
-      expect(find.text('Layanan Internet'), findsOneWidget);
-      expect(find.text('Usulan Email'), findsOneWidget);
-      expect(find.text('Info Alat TIK'), findsOneWidget);
+      expect(find.text('Beranda'), findsAtLeastNWidgets(1));
+      expect(find.text('Laporan Internet'), findsOneWidget);
+      expect(find.text('Email Dinas'), findsOneWidget);
+      expect(find.text('Layanan Lain'), findsOneWidget);
       expect(find.text('Kritik & Saran'), findsOneWidget);
 
-      // Tap Layanan Internet
-      final finder = find.widgetWithText(InkWell, 'Layanan Internet');
+      // Tap Laporan Internet
+      final finder = find.widgetWithText(InkWell, 'Laporan Internet');
       await Scrollable.ensureVisible(tester.element(finder), alignment: 0.5);
       await tester.pumpAndSettle();
       await tester.tap(finder);
