@@ -191,6 +191,13 @@ void main() {
       expect(model.totalConsultationCount, 33);
     });
 
+    test('BKD receives Email admin-panel capability without admin role', () {
+      final data = _dashboard(role: 'bkd');
+
+      expect(data.isAdmin, isFalse);
+      expect(data.canAccessAdminPanel, isTrue);
+    });
+
     test('keeps failed nullable sections distinct from zero', () {
       final model = HomeDashboardModel.fromSources(user: _user);
       expect(model.availableItemCount, isNull);

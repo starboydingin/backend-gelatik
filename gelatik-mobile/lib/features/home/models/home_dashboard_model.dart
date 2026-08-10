@@ -30,6 +30,8 @@ class HomeDashboardModel {
     return role == 'admin' || role == 'superadmin';
   }
 
+  bool get canAccessAdminPanel => isAdmin || userRole.toLowerCase() == 'bkd';
+
   bool get hasAnySectionData =>
       availableItemCount != null ||
       totalBorrowingCount != null ||

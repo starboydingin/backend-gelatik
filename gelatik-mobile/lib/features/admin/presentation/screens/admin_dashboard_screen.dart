@@ -28,7 +28,8 @@ class AdminDashboardScreen extends ConsumerWidget {
 
     final user = ref.watch(authProvider).currentUser;
     final role = user?.role.toLowerCase();
-    final canAccessAdmin = role == 'admin' || role == 'superadmin';
+    final canManageServices = role == 'admin' || role == 'superadmin';
+    final canAccessAdmin = canManageServices || role == 'bkd';
 
     if (!canAccessAdmin) {
       return Scaffold(
@@ -159,41 +160,44 @@ class AdminDashboardScreen extends ConsumerWidget {
               const SizedBox(height: 12),
 
               // 3 Cards Bento Navigasi Kelola Area
-              _buildAdminBentoCard(
-                context: context,
-                title: 'Kelola Peminjaman Aset',
-                subtitle: 'Pengajuan alat, verifikasi & bukti pengembalian',
-                badgeText: '$pendingPinjamCount menunggu persetujuan',
-                badgeColor: pendingPinjamCount > 0 ? primaryTeal : mutedText,
-                icon: Icons.devices_other_rounded,
-                iconColor: primaryTeal,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const AdminPeminjamanListScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-
-              _buildAdminBentoCard(
-                context: context,
-                title: 'Kelola Konsultasi TIK',
-                subtitle: 'Thread obrolan & balasan tiket konsultasi OPD',
-                badgeText: '$pendingKonsultasiCount tiket menunggu balasan',
-                badgeColor: pendingKonsultasiCount > 0 ? accentNavy : mutedText,
-                icon: Icons.support_agent_rounded,
-                iconColor: accentNavy,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const AdminKonsultasiListScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
+              if (canManageServices) ...[
+                _buildAdminBentoCard(
+                  context: context,
+                  title: 'Kelola Peminjaman Aset',
+                  subtitle: 'Pengajuan alat, verifikasi & bukti pengembalian',
+                  badgeText: '$pendingPinjamCount menunggu persetujuan',
+                  badgeColor: pendingPinjamCount > 0 ? primaryTeal : mutedText,
+                  icon: Icons.devices_other_rounded,
+                  iconColor: primaryTeal,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const AdminPeminjamanListScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _buildAdminBentoCard(
+                  context: context,
+                  title: 'Kelola Konsultasi TIK',
+                  subtitle: 'Thread obrolan & balasan tiket konsultasi OPD',
+                  badgeText: '$pendingKonsultasiCount tiket menunggu balasan',
+                  badgeColor: pendingKonsultasiCount > 0
+                      ? accentNavy
+                      : mutedText,
+                  icon: Icons.support_agent_rounded,
+                  iconColor: accentNavy,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const AdminKonsultasiListScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+              ],
 
               _buildAdminBentoCard(
                 context: context,

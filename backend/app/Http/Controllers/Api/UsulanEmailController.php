@@ -69,17 +69,15 @@ class UsulanEmailController extends Controller
         $usulan = UsulanEmail::findOrFail($id);
         Gate::authorize('verify', $usulan);
 
-        $disetujui = $request->has('disetujui')
-            ? $request->boolean('disetujui')
-            : ($request->status === 'disetujui');
+        $validated = $request->validate([
+            'catatan' => 'nullable|string|max:1000',
+        ]);
 
         try {
-            $updatedUsulan = $this->usulanEmailService->verifikasiUsulan(
+            $updatedUsulan = $this->usulanEmailService->verifikasiDokumen(
                 $usulan,
                 $request->user(),
-                $disetujui,
-                $request->catatan ?? $request->keterangan,
-                $request->email_resmi
+                $validated['catatan'] ?? null
             );
         } catch (\InvalidArgumentException $e) {
             return response()->json([
@@ -90,7 +88,7 @@ class UsulanEmailController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Usulan email berhasil diverifikasi.',
+            'message' => 'Dokumen usulan email berhasil diverifikasi.',
             'data' => $updatedUsulan,
         ]);
     }

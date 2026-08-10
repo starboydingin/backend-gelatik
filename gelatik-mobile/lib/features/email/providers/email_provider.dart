@@ -99,6 +99,8 @@ class EmailNotifier extends StateNotifier<EmailState> {
     required String emailResmi,
     String? adminName,
   }) => _mutate(() => repository.approve(id, emailResmi));
+  Future<bool> verifikasiUsulanEmail({required int id, String? catatan}) =>
+      _mutate(() => repository.verify(id, catatan: catatan));
   Future<bool> tolakUsulanEmail({
     required int id,
     required String catatan,

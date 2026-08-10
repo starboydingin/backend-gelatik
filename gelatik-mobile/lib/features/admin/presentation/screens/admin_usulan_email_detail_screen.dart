@@ -14,10 +14,7 @@ import '../../../email/providers/email_provider.dart';
 class AdminUsulanEmailDetailScreen extends ConsumerStatefulWidget {
   final int usulanId;
 
-  const AdminUsulanEmailDetailScreen({
-    super.key,
-    required this.usulanId,
-  });
+  const AdminUsulanEmailDetailScreen({super.key, required this.usulanId});
 
   @override
   ConsumerState<AdminUsulanEmailDetailScreen> createState() =>
@@ -31,6 +28,51 @@ class _AdminUsulanEmailDetailScreenState
 
   String? _emailResmiError;
   String? _catatanError;
+
+  void _showVerifikasiDialog(BuildContext context) {
+    _catatanController.clear();
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Verifikasi Dokumen'),
+        content: AppTextField(
+          labelText: 'Catatan Verifikasi (Opsional)',
+          hintText: 'Contoh: Dokumen pendukung telah sesuai.',
+          controller: _catatanController,
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            key: const Key('confirm-email-verification'),
+            onPressed: () async {
+              final notes = _catatanController.text.trim();
+              Navigator.of(dialogCtx).pop();
+              final messenger = ScaffoldMessenger.of(context);
+              final success = await ref
+                  .read(emailProvider.notifier)
+                  .verifikasiUsulanEmail(
+                    id: widget.usulanId,
+                    catatan: notes.isEmpty ? null : notes,
+                  );
+              if (success) {
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Dokumen usulan berhasil diverifikasi.'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: const Text('Verifikasi'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -98,7 +140,8 @@ class _AdminUsulanEmailDetailScreenState
 
                     if (!email.contains('@')) {
                       setDialogState(() {
-                        _emailResmiError = 'Format email tidak valid (harus mengandung @).';
+                        _emailResmiError =
+                            'Format email tidak valid (harus mengandung @).';
                       });
                       return;
                     }
@@ -118,7 +161,9 @@ class _AdminUsulanEmailDetailScreenState
                     if (success) {
                       messenger.showSnackBar(
                         SnackBar(
-                          content: Text('Usulan disetujui! Email resmi: $email'),
+                          content: Text(
+                            'Usulan disetujui! Email resmi: $email',
+                          ),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
@@ -141,7 +186,9 @@ class _AdminUsulanEmailDetailScreenState
     });
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final errorColor = isDark ? AppColors.statusErrorDark : AppColors.statusErrorLight;
+    final errorColor = isDark
+        ? AppColors.statusErrorDark
+        : AppColors.statusErrorLight;
 
     showDialog(
       context: context,
@@ -161,7 +208,8 @@ class _AdminUsulanEmailDetailScreenState
                   const SizedBox(height: 12),
                   AppTextField(
                     labelText: 'Catatan Penolakan Admin',
-                    hintText: 'Misal: Data NIP pegawai tidak cocok dengan database BKD.',
+                    hintText:
+                        'Misal: Data NIP pegawai tidak cocok dengan database BKD.',
                     controller: _catatanController,
                     maxLines: 3,
                     errorText: _catatanError,
@@ -223,10 +271,16 @@ class _AdminUsulanEmailDetailScreenState
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primaryTeal = AppColors.primaryTeal(context);
-    final errorColor = isDark ? AppColors.statusErrorDark : AppColors.statusErrorLight;
+    final errorColor = isDark
+        ? AppColors.statusErrorDark
+        : AppColors.statusErrorLight;
     final mutedText = AppColors.mutedText(context);
 
     final state = ref.watch(emailProvider);
+    final role = ref.watch(authProvider).currentUser?.role.toLowerCase();
+    final canVerify = role == 'admin' || role == 'superadmin' || role == 'bkd';
+    final canApprove = role == 'admin' || role == 'superadmin';
+    final canReject = canVerify;
     final usulan = state.listUsulanEmail.firstWhere(
       (e) => e.id == widget.usulanId,
       orElse: () => state.listUsulanEmail.first,
@@ -242,16 +296,10 @@ class _AdminUsulanEmailDetailScreenState
         ),
         title: Text(
           'Detail Usulan Email #${usulan.id}',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: primaryTeal,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: primaryTeal),
         ),
         centerTitle: true,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -280,15 +328,27 @@ class _AdminUsulanEmailDetailScreenState
                       ],
                     ),
                     const Divider(height: 20),
-                    _buildDetailRow(context, 'Nama Pegawai BKD', usulan.namaPegawai),
+                    _buildDetailRow(
+                      context,
+                      'Nama Pegawai BKD',
+                      usulan.namaPegawai,
+                    ),
                     const SizedBox(height: 10),
                     _buildDetailRow(context, 'NIP Pegawai', usulan.nipPegawai),
                     const SizedBox(height: 10),
-                    _buildDetailRow(context, 'Email Pribadi / Kontak', usulan.emailPribadi),
-                    if (usulan.emailResmi != null && usulan.emailResmi!.isNotEmpty) ...[
+                    _buildDetailRow(
+                      context,
+                      'Email Pribadi / Kontak',
+                      usulan.emailPribadi,
+                    ),
+                    if (usulan.emailResmi != null &&
+                        usulan.emailResmi!.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       _buildDetailRow(
-                          context, 'Email Resmi Terbuat', usulan.emailResmi!),
+                        context,
+                        'Email Resmi Terbuat',
+                        usulan.emailResmi!,
+                      ),
                     ],
                     if (usulan.tanggalVerifikasi != null) ...[
                       const SizedBox(height: 10),
@@ -309,7 +369,9 @@ class _AdminUsulanEmailDetailScreenState
               ),
 
               // Jika status ditolak & ada catatan
-              if (usulan.status == 'ditolak' && usulan.catatan != null && usulan.catatan!.isNotEmpty) ...[
+              if (usulan.status == 'ditolak' &&
+                  usulan.catatan != null &&
+                  usulan.catatan!.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 AppCard(
                   child: Column(
@@ -317,7 +379,11 @@ class _AdminUsulanEmailDetailScreenState
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.info_outline_rounded, color: errorColor, size: 20),
+                          Icon(
+                            Icons.info_outline_rounded,
+                            color: errorColor,
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'CATATAN PENOLAKAN ADMIN',
@@ -349,26 +415,49 @@ class _AdminUsulanEmailDetailScreenState
               // ===============================================================
               // ACTION BUTTONS KHUSUS ADMIN (M-L BAGIAN 4)
               // ===============================================================
-              if (usulan.status == 'diajukan') ...[
+              if (usulan.status == 'diajukan' &&
+                  canVerify &&
+                  usulan.diverifikasiOleh == null) ...[
+                AppButton(
+                  key: const Key('verify-email-proposal'),
+                  text: 'Verifikasi Dokumen',
+                  icon: Icons.fact_check_outlined,
+                  variant: AppButtonVariant.outlined,
+                  onPressed: state.isLoading
+                      ? null
+                      : () => _showVerifikasiDialog(context),
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (usulan.status == 'diajukan' && (canReject || canApprove)) ...[
                 Row(
                   children: [
-                    Expanded(
-                      child: AppButton(
-                        text: 'Tolak',
-                        icon: Icons.cancel_outlined,
-                        variant: AppButtonVariant.outlined,
-                        onPressed: () => _showTolakDialog(context),
+                    if (canReject)
+                      Expanded(
+                        child: AppButton(
+                          text: 'Tolak',
+                          icon: Icons.cancel_outlined,
+                          variant: AppButtonVariant.outlined,
+                          onPressed: state.isLoading
+                              ? null
+                              : () => _showTolakDialog(context),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AppButton(
-                        text: 'Setujui & Buat',
-                        icon: Icons.check_circle_outline_rounded,
-                        variant: AppButtonVariant.filled,
-                        onPressed: () => _showSetujuDialog(context, usulan.nipPegawai),
+                    if (canReject && canApprove) const SizedBox(width: 12),
+                    if (canApprove)
+                      Expanded(
+                        child: AppButton(
+                          text: 'Setujui & Buat',
+                          icon: Icons.check_circle_outline_rounded,
+                          variant: AppButtonVariant.filled,
+                          onPressed: state.isLoading
+                              ? null
+                              : () => _showSetujuDialog(
+                                  context,
+                                  usulan.nipPegawai,
+                                ),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -389,10 +478,7 @@ class _AdminUsulanEmailDetailScreenState
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 11,
-            color: AppColors.mutedText(context),
-          ),
+          style: TextStyle(fontSize: 11, color: AppColors.mutedText(context)),
         ),
         const SizedBox(height: 2),
         Text(

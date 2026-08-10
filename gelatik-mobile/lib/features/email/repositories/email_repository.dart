@@ -82,6 +82,16 @@ class EmailRepository {
     ),
   );
 
+  Future<UsulanEmailModel> verify(int id, {String? catatan}) => _object(
+    () => apiClient.dio.post(
+      '/pengajuan-email/$id/verifikasi',
+      data: {
+        if (catatan != null && catatan.trim().isNotEmpty)
+          'catatan': catatan.trim(),
+      },
+    ),
+  );
+
   Future<UsulanEmailModel> reject(int id, String catatan) => _object(
     () => apiClient.dio.post(
       '/pengajuan-email/$id/tolak-email',

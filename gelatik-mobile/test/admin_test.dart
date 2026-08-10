@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -6,6 +9,7 @@ import 'package:gelatik/core/dummy/dummy_data.dart';
 import 'package:gelatik/core/network/api_client.dart';
 import 'package:gelatik/core/storage/secure_storage_service.dart';
 import 'package:gelatik/features/admin/presentation/screens/admin_peminjaman_detail_screen.dart';
+import 'package:gelatik/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:gelatik/features/admin/presentation/screens/admin_usulan_email_detail_screen.dart';
 import 'package:gelatik/features/auth/models/user_model.dart';
 import 'package:gelatik/features/auth/providers/auth_provider.dart';
@@ -43,19 +47,67 @@ class _AdminFakePeminjamanRepository extends PeminjamanRepository {
 }
 
 class _AdminFakeEmailRepository extends EmailRepository {
-  _AdminFakeEmailRepository()
+  final Completer<UsulanEmailModel>? verifyCompleter;
+  final Completer<UsulanEmailModel>? approveCompleter;
+  int verifyCalls = 0;
+  int approveCalls = 0;
+  int rejectCalls = 0;
+
+  _AdminFakeEmailRepository({this.verifyCompleter, this.approveCompleter})
     : super(apiClient: ApiClient(secureStorageService: SecureStorageService()));
 
   @override
-  Future<UsulanEmailModel> approve(int id, String emailResmi) async =>
-      UsulanEmailModel(
-        id: id,
-        userId: 1,
-        idPegBkd: 1,
-        emailPribadi: 'pegawai@example.test',
-        emailResmi: emailResmi,
-        status: 'disetujui',
-      );
+  Future<UsulanEmailModel> verify(int id, {String? catatan}) {
+    verifyCalls++;
+    return verifyCompleter?.future ??
+        Future.value(
+          UsulanEmailModel(
+            id: id,
+            userId: 1,
+            idPegBkd: 1,
+            emailPribadi: 'pegawai@example.test',
+            status: 'diajukan',
+            diverifikasiOleh: 'Verifikator BKD',
+            tanggalVerifikasi: DateTime(2026, 8, 10),
+            catatan: catatan,
+          ),
+        );
+  }
+
+  @override
+  Future<UsulanEmailModel> approve(int id, String emailResmi) {
+    approveCalls++;
+    return approveCompleter?.future ??
+        Future.value(
+          UsulanEmailModel(
+            id: id,
+            userId: 1,
+            idPegBkd: 1,
+            emailPribadi: 'pegawai@example.test',
+            emailResmi: emailResmi,
+            status: 'disetujui',
+          ),
+        );
+  }
+
+  @override
+  Future<UsulanEmailModel> reject(int id, String catatan) async {
+    rejectCalls++;
+    return UsulanEmailModel(
+      id: id,
+      userId: 1,
+      idPegBkd: 1,
+      emailPribadi: 'pegawai@example.test',
+      status: 'ditolak',
+      catatan: catatan,
+    );
+  }
+}
+
+AuthNotifier _authFor(UserModel user) {
+  final notifier = AuthNotifier();
+  notifier.state = AuthState(isLoggedIn: true, currentUser: user);
+  return notifier;
 }
 
 HomeNotifier _homePreview(UserModel user) => HomeNotifier.preview(
@@ -75,6 +127,52 @@ void main() {
   });
 
   group('Panel Admin (M-L) Unit & Widget Tests', () {
+    test('EmailRepository verify uses current backend contract', () async {
+      final dio = Dio();
+      late RequestOptions captured;
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            captured = options;
+            handler.resolve(
+              Response<dynamic>(
+                requestOptions: options,
+                statusCode: 200,
+                data: {
+                  'success': true,
+                  'data': {
+                    'id': 600,
+                    'created_by': 1,
+                    'id_peg_bkd': 1,
+                    'email_pribadi': 'pegawai@example.test',
+                    'status': 'diajukan',
+                    'diverifikasi_oleh': 'BKD Test',
+                    'tanggal_verifikasi': '2026-08-10T10:00:00Z',
+                    'catatan': 'Dokumen valid',
+                  },
+                },
+              ),
+            );
+          },
+        ),
+      );
+      final repository = EmailRepository(
+        apiClient: ApiClient(
+          secureStorageService: SecureStorageService(),
+          baseUrl: 'https://example.invalid/api',
+          dioOverride: dio,
+        ),
+      );
+
+      final result = await repository.verify(600, catatan: 'Dokumen valid');
+
+      expect(captured.method, 'POST');
+      expect(captured.path, '/pengajuan-email/600/verifikasi');
+      expect(captured.data, {'catatan': 'Dokumen valid'});
+      expect(result.status, 'diajukan');
+      expect(result.diverifikasiOleh, 'BKD Test');
+    });
+
     testWidgets('1. Login as Admin displays 4th tab "Admin" in AppBottomNav', (
       tester,
     ) async {
@@ -142,6 +240,38 @@ void main() {
       expect(find.byIcon(Icons.admin_panel_settings_rounded), findsNothing);
     });
 
+    testWidgets('BKD dashboard exposes Email workflow only', (tester) async {
+      const bkd = UserModel(
+        id: 44,
+        name: 'BKD Test',
+        email: 'bkd@example.test',
+        username: 'bkd44',
+        noHp: '081244',
+        namaOpd: 'BKD',
+        role: 'bkd',
+        status: '1',
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authProvider.overrideWith((ref) => _authFor(bkd)),
+            peminjamanProvider.overrideWith(
+              (ref) => PeminjamanNotifier(
+                repository: _AdminFakePeminjamanRepository(),
+              ),
+            ),
+            emailProvider.overrideWith((ref) => EmailNotifier()),
+          ],
+          child: const MaterialApp(home: AdminDashboardScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kelola Usulan Email'), findsOneWidget);
+      expect(find.text('Kelola Peminjaman Aset'), findsNothing);
+      expect(find.text('Kelola Konsultasi TIK'), findsNothing);
+    });
+
     test(
       '3. Admin setujuPeminjaman updates status from "Menunggu" to "Proses" in provider',
       () async {
@@ -195,6 +325,20 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
+              authProvider.overrideWith(
+                (ref) => _authFor(
+                  const UserModel(
+                    id: 999,
+                    name: 'Admin Test',
+                    email: 'admin@example.test',
+                    username: 'admin',
+                    noHp: '0812',
+                    namaOpd: 'Diskominfotik',
+                    role: 'admin',
+                    status: '1',
+                  ),
+                ),
+              ),
               emailProvider.overrideWith((ref) {
                 final notifier = EmailNotifier();
                 notifier.state = EmailState(
@@ -376,6 +520,20 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
+              authProvider.overrideWith(
+                (ref) => _authFor(
+                  const UserModel(
+                    id: 999,
+                    name: 'Admin Test',
+                    email: 'admin@example.test',
+                    username: 'admin',
+                    noHp: '0812',
+                    namaOpd: 'Diskominfotik',
+                    role: 'admin',
+                    status: '1',
+                  ),
+                ),
+              ),
               emailProvider.overrideWith((ref) {
                 final notifier = EmailNotifier();
                 notifier.state = const EmailState(
@@ -424,5 +582,187 @@ void main() {
         expect(find.text('Setujui & Buat Email Resmi'), findsOneWidget);
       },
     );
+
+    test(
+      '8. BKD verify refreshes item and prevents duplicate mutation',
+      () async {
+        final pending = Completer<UsulanEmailModel>();
+        final repository = _AdminFakeEmailRepository(verifyCompleter: pending);
+        final notifier = EmailNotifier(repository: repository);
+        notifier.state = const EmailState(
+          listUsulanEmail: [
+            UsulanEmailModel(
+              id: 601,
+              userId: 1,
+              idPegBkd: 1,
+              emailPribadi: 'pegawai@example.test',
+              status: 'diajukan',
+            ),
+          ],
+        );
+
+        final first = notifier.verifikasiUsulanEmail(
+          id: 601,
+          catatan: 'Dokumen valid',
+        );
+        final duplicate = await notifier.verifikasiUsulanEmail(id: 601);
+        expect(duplicate, isFalse);
+        expect(repository.verifyCalls, 1);
+
+        pending.complete(
+          UsulanEmailModel(
+            id: 601,
+            userId: 1,
+            idPegBkd: 1,
+            emailPribadi: 'pegawai@example.test',
+            status: 'diajukan',
+            diverifikasiOleh: 'Verifikator BKD',
+            tanggalVerifikasi: DateTime(2026, 8, 10),
+          ),
+        );
+        expect(await first, isTrue);
+        expect(
+          notifier.state.listUsulanEmail.single.diverifikasiOleh,
+          'Verifikator BKD',
+        );
+      },
+    );
+
+    test(
+      'approve also rejects duplicate mutation while request is active',
+      () async {
+        final pending = Completer<UsulanEmailModel>();
+        final repository = _AdminFakeEmailRepository(approveCompleter: pending);
+        final notifier = EmailNotifier(repository: repository);
+        notifier.state = const EmailState(
+          listUsulanEmail: [
+            UsulanEmailModel(
+              id: 604,
+              userId: 1,
+              idPegBkd: 1,
+              emailPribadi: 'pegawai@example.test',
+              status: 'diajukan',
+            ),
+          ],
+        );
+
+        final first = notifier.setujuUsulanEmail(
+          id: 604,
+          emailResmi: 'pegawai@lampungprov.go.id',
+        );
+        expect(
+          await notifier.tolakUsulanEmail(id: 604, catatan: 'Duplikat'),
+          isFalse,
+        );
+        expect(repository.approveCalls, 1);
+        expect(repository.rejectCalls, 0);
+
+        pending.complete(
+          const UsulanEmailModel(
+            id: 604,
+            userId: 1,
+            idPegBkd: 1,
+            emailPribadi: 'pegawai@example.test',
+            emailResmi: 'pegawai@lampungprov.go.id',
+            status: 'disetujui',
+          ),
+        );
+        expect(await first, isTrue);
+      },
+    );
+
+    testWidgets('9. BKD sees verify/reject but not create-email action', (
+      tester,
+    ) async {
+      final repository = _AdminFakeEmailRepository();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authProvider.overrideWith(
+              (ref) => _authFor(
+                const UserModel(
+                  id: 44,
+                  name: 'BKD Test',
+                  email: 'bkd@example.test',
+                  username: 'bkd44',
+                  noHp: '081244',
+                  namaOpd: 'BKD',
+                  role: 'bkd',
+                  status: '1',
+                ),
+              ),
+            ),
+            emailProvider.overrideWith((ref) {
+              final notifier = EmailNotifier(repository: repository);
+              notifier.state = const EmailState(
+                listUsulanEmail: [
+                  UsulanEmailModel(
+                    id: 602,
+                    userId: 1,
+                    idPegBkd: 1,
+                    emailPribadi: 'pegawai@example.test',
+                    status: 'diajukan',
+                  ),
+                ],
+              );
+              return notifier;
+            }),
+          ],
+          child: const MaterialApp(
+            home: AdminUsulanEmailDetailScreen(usulanId: 602),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, -700),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('verify-email-proposal')), findsOneWidget);
+      expect(find.text('Tolak'), findsOneWidget);
+      expect(find.text('Setujui & Buat'), findsNothing);
+    });
+
+    testWidgets('10. normal user direct Email detail has no admin controls', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authProvider.overrideWith((ref) => _authFor(DummyData.activeUser)),
+            emailProvider.overrideWith((ref) {
+              final notifier = EmailNotifier();
+              notifier.state = const EmailState(
+                listUsulanEmail: [
+                  UsulanEmailModel(
+                    id: 603,
+                    userId: 1,
+                    idPegBkd: 1,
+                    emailPribadi: 'pegawai@example.test',
+                    status: 'diajukan',
+                  ),
+                ],
+              );
+              return notifier;
+            }),
+          ],
+          child: const MaterialApp(
+            home: AdminUsulanEmailDetailScreen(usulanId: 603),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, -700),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('verify-email-proposal')), findsNothing);
+      expect(find.text('Tolak'), findsNothing);
+      expect(find.text('Setujui & Buat'), findsNothing);
+    });
   });
 }

@@ -129,13 +129,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       bottomNavigationBar: AppBottomNav(
         currentIndex: 0,
-        isAdmin: data.isAdmin,
+        isAdmin: data.canAccessAdminPanel,
         onTap: (index) {
           if (index == 1) {
             _open(const AjukanPeminjamanScreen());
           } else if (index == 2) {
             _open(const ProfilScreen());
-          } else if (index == 3 && data.isAdmin) {
+          } else if (index == 3 && data.canAccessAdminPanel) {
             _open(const AdminDashboardScreen());
           }
         },

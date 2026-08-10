@@ -1504,7 +1504,7 @@
                                 "verifikasi"
                             ]
                         },
-                        "description": "Fungsi: Memverifikasi keabsahan berkas usulan email resmi.\nPermission/Role: Tim Verifikator BKD / Admin."
+                        "description": "Fungsi: Mencatat verifikasi dokumen tanpa mengambil keputusan final; status tetap diajukan agar Admin Operator dapat membuat email resmi.\nPermission/Role: Tim Verifikator BKD / Admin."
                     },
                     "response": []
                 },
@@ -1586,7 +1586,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"alasan_penolakan\": \"NIP tidak sesuai dengan pangkalan data BKD\"\n}",
+                            "raw": "{\n    \"catatan\": \"NIP tidak sesuai dengan pangkalan data BKD\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
