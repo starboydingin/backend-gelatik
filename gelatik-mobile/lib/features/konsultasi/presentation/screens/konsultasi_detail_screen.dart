@@ -129,7 +129,9 @@ class _KonsultasiDetailScreenState
         : widget.konsultasi;
     final hasCurrentDetail =
         state.selectedKonsultasi?.id == widget.konsultasi.id;
-    final isAdmin = widget.isAdminView || _isAdmin(user?.role);
+    // The route context may adjust presentation, but only authenticated role
+    // state may grant privileged mutation controls.
+    final isAdmin = _isAdmin(user?.role);
     final isOwner = user != null && user.id == current.userId;
 
     return Scaffold(

@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gelatik/core/network/api_client.dart';
 import 'package:gelatik/core/storage/secure_storage_service.dart';
+import 'package:gelatik/features/auth/models/user_model.dart';
+import 'package:gelatik/features/auth/providers/auth_provider.dart';
 import 'package:gelatik/features/konsultasi/models/konsultasi_model.dart';
 import 'package:gelatik/features/konsultasi/models/konsultasi_request.dart';
 import 'package:gelatik/features/konsultasi/models/konsultasi_response_model.dart';
@@ -833,6 +835,23 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            authProvider.overrideWith((ref) {
+              final notifier = AuthNotifier();
+              notifier.state = const AuthState(
+                isLoggedIn: true,
+                currentUser: UserModel(
+                  id: 99,
+                  name: 'Admin Test',
+                  email: 'admin@example.test',
+                  username: 'admin99',
+                  noHp: '081200000099',
+                  namaOpd: 'Diskominfotik',
+                  role: 'admin',
+                  status: '1',
+                ),
+              );
+              return notifier;
+            }),
             konsultasiRepositoryProvider.overrideWithValue(
               _FakeRepository(detailResult: _model),
             ),

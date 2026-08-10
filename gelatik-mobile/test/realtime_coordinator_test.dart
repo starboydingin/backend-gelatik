@@ -1,0 +1,165 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:gelatik/core/network/api_client.dart';
+import 'package:gelatik/core/realtime/realtime_coordinator.dart';
+import 'package:gelatik/core/realtime/realtime_socket_service.dart';
+import 'package:gelatik/core/storage/secure_storage_service.dart';
+import 'package:gelatik/features/home/models/home_dashboard_model.dart';
+import 'package:gelatik/features/home/providers/home_provider.dart';
+import 'package:gelatik/features/konsultasi/providers/konsultasi_provider.dart';
+import 'package:gelatik/features/konsultasi/repositories/konsultasi_repository.dart';
+import 'package:gelatik/features/peminjaman/providers/peminjaman_provider.dart';
+import 'package:gelatik/features/peminjaman/repositories/peminjaman_repository.dart';
+
+class _Storage extends SecureStorageService {
+  @override
+  Future<String?> getToken() async => 'test-token';
+}
+
+class _Transport implements RealtimeTransport {
+  final handlers = <String, void Function(dynamic)>{};
+
+  @override
+  void connect() => handlers['connect']?.call(null);
+
+  @override
+  void disconnect() {}
+
+  @override
+  void on(String event, void Function(dynamic) handler) {
+    handlers[event] = handler;
+  }
+
+  @override
+  void off(String event) => handlers.remove(event);
+
+  void emit(String event, Map<String, dynamic> payload) {
+    handlers[event]?.call(payload);
+  }
+}
+
+ApiClient _client() => ApiClient(secureStorageService: _Storage());
+
+class _TrackingPeminjaman extends PeminjamanNotifier {
+  int refreshCalls = 0;
+  int? lastEntityId;
+
+  _TrackingPeminjaman()
+    : super(repository: PeminjamanRepository(apiClient: _client()));
+
+  @override
+  Future<void> refreshFromRealtime(int entityId) async {
+    refreshCalls++;
+    lastEntityId = entityId;
+  }
+}
+
+class _TrackingKonsultasi extends KonsultasiNotifier {
+  int refreshCalls = 0;
+  int? lastEntityId;
+
+  _TrackingKonsultasi()
+    : super(repository: KonsultasiRepository(apiClient: _client()));
+
+  @override
+  Future<void> refreshFromRealtime(int entityId) async {
+    refreshCalls++;
+    lastEntityId = entityId;
+  }
+}
+
+class _TrackingHome extends HomeNotifier {
+  int refreshCalls = 0;
+
+  _TrackingHome()
+    : super.preview(
+        const HomeDashboardModel(
+          userName: 'Admin Test',
+          userRole: 'admin',
+          availableItemCount: 0,
+          totalBorrowingCount: 0,
+          totalConsultationCount: 0,
+        ),
+      );
+
+  @override
+  Future<void> refreshFromRealtime() async {
+    refreshCalls++;
+  }
+}
+
+Map<String, dynamic> _payload({
+  required String eventId,
+  required String type,
+  required int entityId,
+}) => {
+  'event_id': eventId,
+  'type': type,
+  'entity_id': entityId,
+  'status': type.endsWith('status_changed') ? 'Diproses' : 'Menunggu',
+  'old_status': 'Menunggu',
+  'created_at': '2026-08-10T00:00:00.000Z',
+  'message': 'Data berubah',
+};
+
+void main() {
+  test(
+    'admin events refresh matching providers once and coalesce bursts',
+    () async {
+      final transport = _Transport();
+      final service = RealtimeSocketService(
+        storage: _Storage(),
+        baseUrl: 'http://localhost:4000',
+        transportFactory: (_, _) => transport,
+      );
+      final peminjaman = _TrackingPeminjaman();
+      final konsultasi = _TrackingKonsultasi();
+      final home = _TrackingHome();
+      final coordinator = RealtimeCoordinator(
+        service: service,
+        peminjaman: peminjaman,
+        konsultasi: konsultasi,
+        home: home,
+      );
+
+      await service.connect();
+      final pinjam = _payload(
+        eventId: 'pinjam-event-0001',
+        type: 'pinjam.created',
+        entityId: 41,
+      );
+      transport.emit('pinjam.created', pinjam);
+      transport.emit('pinjam.created', pinjam);
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+
+      expect(peminjaman.refreshCalls, 1);
+      expect(peminjaman.lastEntityId, 41);
+      expect(konsultasi.refreshCalls, 0);
+      expect(home.refreshCalls, 1);
+
+      transport.emit(
+        'konsultasi.created',
+        _payload(
+          eventId: 'consult-event-0001',
+          type: 'konsultasi.created',
+          entityId: 51,
+        ),
+      );
+      transport.emit(
+        'konsultasi.status_changed',
+        _payload(
+          eventId: 'consult-event-0002',
+          type: 'konsultasi.status_changed',
+          entityId: 52,
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+
+      expect(konsultasi.refreshCalls, 1);
+      expect(konsultasi.lastEntityId, 52);
+      expect(home.refreshCalls, 2);
+
+      coordinator.dispose();
+      await service.dispose();
+    },
+  );
+}

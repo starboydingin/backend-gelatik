@@ -27,31 +27,49 @@ class AdminDashboardScreen extends ConsumerWidget {
     final mutedText = AppColors.mutedText(context);
 
     final user = ref.watch(authProvider).currentUser;
+    final role = user?.role.toLowerCase();
+    final canAccessAdmin = role == 'admin' || role == 'superadmin';
+
+    if (!canAccessAdmin) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Akses Ditolak')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Halaman ini hanya tersedia untuk admin.',
+              key: Key('admin-access-denied'),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
 
     // Stream / watch 3 provider data untuk metric ringkas
     final peminjamanList = ref.watch(peminjamanProvider).listPinjam;
     final konsultasiList = ref.watch(konsultasiProvider).listKonsultasi;
     final emailList = ref.watch(emailProvider).listUsulanEmail;
 
-    final pendingPinjamCount = peminjamanList.where((p) => p.status == 'Menunggu').length;
-    final pendingKonsultasiCount = konsultasiList.where((k) => k.status == 'Menunggu').length;
-    final pendingEmailCount = emailList.where((e) => e.status == 'diajukan').length;
+    final pendingPinjamCount = peminjamanList
+        .where((p) => p.status == 'Menunggu')
+        .length;
+    final pendingKonsultasiCount = konsultasiList
+        .where((k) => k.status == 'Menunggu')
+        .length;
+    final pendingEmailCount = emailList
+        .where((e) => e.status == 'diajukan')
+        .length;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           'Panel Admin Gelatik',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: primaryTeal,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: primaryTeal),
         ),
         centerTitle: true,
         automaticallyImplyLeading: false,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -93,11 +111,17 @@ class AdminDashboardScreen extends ConsumerWidget {
                               ),
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: accentGold.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: accentGold, width: 1),
+                                  border: Border.all(
+                                    color: accentGold,
+                                    width: 1,
+                                  ),
                                 ),
                                 child: Text(
                                   user?.role.toUpperCase() ?? 'ADMIN',
@@ -113,10 +137,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                           const SizedBox(height: 2),
                           Text(
                             'Pusat Kendali Service Desk Diskominfotik',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: mutedText,
-                            ),
+                            style: TextStyle(fontSize: 12, color: mutedText),
                           ),
                         ],
                       ),
@@ -255,11 +276,17 @@ class AdminDashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: badgeColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: badgeColor.withValues(alpha: 0.5), width: 1),
+                    border: Border.all(
+                      color: badgeColor.withValues(alpha: 0.5),
+                      width: 1,
+                    ),
                   ),
                   child: Text(
                     badgeText,
