@@ -158,6 +158,8 @@ class _DaftarPegawaiScreenState extends ConsumerState<DaftarPegawaiScreen> {
                                         children: [
                                           Text(
                                             nama,
+                                            maxLines: 2,
+                                            softWrap: true,
                                             style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.bold,
@@ -168,6 +170,8 @@ class _DaftarPegawaiScreenState extends ConsumerState<DaftarPegawaiScreen> {
                                           const SizedBox(height: 2),
                                           Text(
                                             'NIP: ${p['nip_baru'] ?? '-'}',
+                                            maxLines: 2,
+                                            softWrap: true,
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: primaryTeal,
@@ -205,7 +209,8 @@ class _DaftarPegawaiScreenState extends ConsumerState<DaftarPegawaiScreen> {
                                           fontSize: 12,
                                           color: mutedText,
                                         ),
-                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 3,
+                                        softWrap: true,
                                       ),
                                     ),
                                   ],
@@ -221,12 +226,16 @@ class _DaftarPegawaiScreenState extends ConsumerState<DaftarPegawaiScreen> {
                                       color: primaryTeal,
                                     ),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      'Rekomendasi: ${p['email_usulan'] ?? '-'}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: primaryTeal,
+                                    Expanded(
+                                      child: Text(
+                                        'Rekomendasi: ${p['email_usulan'] ?? '-'}',
+                                        maxLines: 2,
+                                        softWrap: true,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: primaryTeal,
+                                        ),
                                       ),
                                     ),
                                   ],

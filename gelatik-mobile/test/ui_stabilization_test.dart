@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gelatik/core/widgets/app_button.dart';
+import 'package:gelatik/features/email/presentation/screens/daftar_pegawai_screen.dart';
+import 'package:gelatik/features/email/providers/email_provider.dart';
 import 'package:gelatik/features/home/models/home_dashboard_model.dart';
 import 'package:gelatik/features/home/presentation/screens/home_screen.dart';
 import 'package:gelatik/features/home/providers/home_provider.dart';
@@ -26,6 +29,31 @@ Widget _homeHarness() => ProviderScope(
     ),
   ],
   child: const MaterialApp(home: HomeScreen()),
+);
+
+Widget _employeeHarness() => ProviderScope(
+  overrides: [
+    emailProvider.overrideWith((ref) {
+      final notifier = EmailNotifier();
+      notifier.state = const EmailState(
+        pegawaiLoaded: true,
+        listPegawai: [
+          {
+            'nama':
+                'Dr. Pranata Komputer Ahli Muda Dengan Nama Sangat Panjang, M.Kom.',
+            'nip_baru': '198812312010011234567890',
+            'jabatan': 'Pranata Komputer Ahli Muda',
+            'unit_kerja':
+                'Dinas Komunikasi, Informatika dan Statistik Provinsi Lampung',
+            'email_usulan':
+                'pranata.komputer.ahli.muda.sangat.panjang@lampungprov.go.id',
+          },
+        ],
+      );
+      return notifier;
+    }),
+  ],
+  child: const MaterialApp(home: DaftarPegawaiScreen()),
 );
 
 void main() {
@@ -125,4 +153,71 @@ void main() {
       expect(tester.takeException(), isNull);
     }
   });
+
+  testWidgets(
+    'Employee recommendation cards keep long metadata within narrow widths',
+    (tester) async {
+      const viewports = [
+        Size(320, 800),
+        Size(360, 800),
+        Size(390, 800),
+        Size(430, 900),
+        Size(700, 900),
+        Size(1100, 800),
+      ];
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      for (final viewport in viewports) {
+        await tester.binding.setSurfaceSize(viewport);
+        await tester.pumpWidget(_employeeHarness());
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Pranata Komputer Ahli Muda'), findsWidgets);
+        expect(find.textContaining('Dinas Komunikasi'), findsOneWidget);
+        expect(find.textContaining('pranata.komputer'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
+
+  testWidgets(
+    'Shared CTA wraps its long label at narrow widths and larger text',
+    (tester) async {
+      const viewports = [
+        Size(320, 500),
+        Size(360, 500),
+        Size(390, 500),
+        Size(430, 500),
+        Size(700, 500),
+        Size(1100, 500),
+      ];
+      tester.binding.platformDispatcher.textScaleFactorTestValue = 1.25;
+      addTearDown(() {
+        tester.binding.platformDispatcher.clearTextScaleFactorTestValue();
+        tester.binding.setSurfaceSize(null);
+      });
+
+      for (final viewport in viewports) {
+        await tester.binding.setSurfaceSize(viewport);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.all(16),
+                child: AppButton(
+                  text: 'Lanjut ke Form Pengaduan Internet',
+                  icon: Icons.arrow_forward_rounded,
+                  onPressed: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Lanjut ke Form Pengaduan Internet'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
 }

@@ -25,7 +25,7 @@ class AppButton extends StatelessWidget {
     this.icon,
     this.isLoading = false,
     this.isFullWidth = true,
-    this.allowTextWrap = false,
+    this.allowTextWrap = true,
     this.showBorder = true,
   });
 
@@ -43,6 +43,19 @@ class AppButton extends StatelessWidget {
             ? theme.colorScheme.onPrimary
             : theme.colorScheme.primary);
 
+    final textWidget = Text(
+      text,
+      textAlign: TextAlign.center,
+      softWrap: allowTextWrap,
+      maxLines: allowTextWrap ? 2 : 1,
+      overflow: allowTextWrap ? null : TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: effectiveTextColor,
+      ),
+    );
+
     final Widget childContent = isLoading
         ? SizedBox(
             width: 20,
@@ -53,35 +66,14 @@ class AppButton extends StatelessWidget {
             ),
           )
         : Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
                 Icon(icon, size: 20, color: effectiveTextColor),
                 const SizedBox(width: 8),
               ],
-              if (allowTextWrap)
-                Flexible(
-                  child: Text(
-                    text,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: effectiveTextColor,
-                    ),
-                  ),
-                )
-              else
-                Text(
-                  text,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: effectiveTextColor,
-                  ),
-                ),
+              Flexible(child: textWidget),
             ],
           );
 
@@ -98,10 +90,14 @@ class AppButton extends StatelessWidget {
       minimumSize: isFullWidth ? const Size.fromHeight(48) : null,
     );
 
-    return ElevatedButton(
+    final button = ElevatedButton(
       onPressed: isLoading ? null : onPressed,
       style: buttonStyle,
       child: childContent,
     );
+
+    return isFullWidth
+        ? SizedBox(width: double.infinity, child: button)
+        : button;
   }
 }
