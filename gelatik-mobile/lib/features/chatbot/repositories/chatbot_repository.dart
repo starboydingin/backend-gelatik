@@ -61,6 +61,8 @@ class ChatbotRepositoryException extends ApiException {
         'Anda tidak memiliki izin untuk membuka percakapan ini.',
       ChatbotErrorType.notFound =>
         'Percakapan tidak ditemukan atau sudah dihapus.',
+      ChatbotErrorType.timeout =>
+        'Asisten Gelatik belum merespons. Silakan coba lagi.',
       ChatbotErrorType.rateLimit =>
         'Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.',
       ChatbotErrorType.upstream =>
@@ -101,6 +103,12 @@ class ChatbotRepository {
       final response = await apiClient.dio.post(
         '/chatbot/message',
         data: request.toJson(),
+        options: Options(
+          // Laravel may try Gemini and then Groq. This remains bounded above
+          // the server provider budget without changing other API requests.
+          receiveTimeout: const Duration(seconds: 35),
+          sendTimeout: const Duration(seconds: 15),
+        ),
       );
       final data = _dataEnvelope(response.data);
       if (data is! Map) {

@@ -7,10 +7,12 @@ use App\Models\Pinjam;
 use App\Models\PinjamItem;
 use App\Models\User;
 use App\Models\UsulanEmail;
+use App\Services\ChatbotService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Passport\Passport;
+use Mockery\MockInterface;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -51,6 +53,54 @@ class AuthorizationTest extends TestCase
     public function test_unauthenticated_request_is_rejected(): void
     {
         $this->getJson('/api/pinjam')->assertUnauthorized();
+    }
+
+    public function test_chatbot_requires_authentication_and_valid_payload(): void
+    {
+        $this->postJson('/api/chatbot/message', ['message' => 'Halo'])->assertUnauthorized();
+
+        $this->actingAsApi($this->userA);
+        $this->postJson('/api/chatbot/message', [])->assertUnprocessable();
+    }
+
+    public function test_chatbot_returns_safe_success_contract_without_secret_leakage(): void
+    {
+        $this->mock(ChatbotService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('sendMessage')->once()->andReturn([
+                'success' => true,
+                'session_id' => 'session-test',
+                'reply' => 'Silakan buka menu Peminjaman.',
+                'provider' => 'gemini',
+            ]);
+        });
+
+        $this->actingAsApi($this->userA);
+        $response = $this->postJson('/api/chatbot/message', ['message' => 'Cara pinjam alat?'])
+            ->assertOk()
+            ->assertJsonPath('data.session_id', 'session-test')
+            ->assertJsonPath('data.reply', 'Silakan buka menu Peminjaman.');
+
+        $this->assertStringNotContainsString('api_key', strtolower($response->getContent()));
+        $this->assertStringNotContainsString('secret', strtolower($response->getContent()));
+    }
+
+    public function test_chatbot_maps_external_timeout_to_safe_gateway_timeout(): void
+    {
+        $this->mock(ChatbotService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('sendMessage')->once()->andReturn([
+                'success' => false,
+                'error' => 'Maaf, layanan chatbot sedang tidak tersedia saat ini.',
+                'error_code' => 'upstream_timeout',
+            ]);
+        });
+
+        $this->actingAsApi($this->userA);
+        $this->postJson('/api/chatbot/message', ['message' => 'Halo'])
+            ->assertStatus(504)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Maaf, layanan chatbot sedang tidak tersedia saat ini.',
+            ]);
     }
 
     public function test_user_can_view_own_pinjam_but_not_another_users_pinjam(): void
@@ -239,13 +289,22 @@ class AuthorizationTest extends TestCase
         $this->actingAsApi($this->bkd);
 
         $this->postJson('/api/pengajuan-email/301/verifikasi', [
-            'disetujui' => true,
             'catatan' => 'Valid',
-        ])->assertOk()->assertJsonPath('data.status', 'disetujui');
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'diajukan')
+            ->assertJsonPath('data.diverifikasi_oleh', $this->bkd->name)
+            ->assertJsonPath('data.catatan', 'Valid');
 
-        $this->postJson('/api/pengajuan-email/302/buat-email-resmi', [
+        $this->postJson('/api/pengajuan-email/301/buat-email-resmi', [
             'email_resmi' => 'pegawai@lampungprov.go.id',
         ])->assertForbidden();
+
+        $this->actingAsApi($this->admin);
+        $this->postJson('/api/pengajuan-email/301/buat-email-resmi', [
+            'email_resmi' => 'pegawai@lampungprov.go.id',
+        ])->assertOk()->assertJsonPath('data.status', 'disetujui');
+
+        $this->actingAsApi($this->bkd);
 
         $this->postJson('/api/pengajuan-email/302/tolak-email', ['catatan' => 'Tidak valid'])
             ->assertOk()

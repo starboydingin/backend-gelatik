@@ -83,6 +83,7 @@ void main() {
       expect(result.sessionId, 'session-1');
       expect(adapter.lastRequest!.data, {'message': 'Pinjam alat'});
       expect(adapter.lastRequest!.data, isNot(contains('user_id')));
+      expect(adapter.lastRequest!.receiveTimeout, const Duration(seconds: 35));
     });
 
     test('8. history success dan query session', () async {
@@ -163,6 +164,23 @@ void main() {
           ),
         );
       }
+    });
+
+    test('16. send timeout exposes a safe retryable message', () async {
+      await expectLater(
+        _repository(
+          _Adapter(errorType: DioExceptionType.receiveTimeout),
+        ).sendMessage(ChatbotMessageRequest(message: 'Halo')),
+        throwsA(
+          isA<ChatbotRepositoryException>()
+              .having((error) => error.type, 'type', ChatbotErrorType.timeout)
+              .having(
+                (error) => error.message,
+                'message',
+                'Asisten Gelatik belum merespons. Silakan coba lagi.',
+              ),
+        ),
+      );
     });
 
     test('17. malformed response ditolak', () async {

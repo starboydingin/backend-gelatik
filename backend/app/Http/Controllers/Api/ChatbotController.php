@@ -23,7 +23,7 @@ class ChatbotController extends Controller
     {
         $request->validate([
             'message' => 'required|string',
-            'session_id' => 'nullable|string'
+            'session_id' => 'nullable|string',
         ]);
 
         $response = $this->chatbotService->sendMessage(
@@ -32,13 +32,20 @@ class ChatbotController extends Controller
             $request->session_id
         );
 
-        if (!$response['success']) {
-            return response()->json(['success' => false, 'message' => $response['error']], 500);
+        if (! $response['success']) {
+            $status = ($response['error_code'] ?? null) === 'upstream_timeout'
+                ? 504
+                : 503;
+
+            return response()->json([
+                'success' => false,
+                'message' => $response['error'],
+            ], $status);
         }
 
         return response()->json([
             'success' => true,
-            'data' => $response
+            'data' => $response,
         ]);
     }
 
@@ -54,7 +61,7 @@ class ChatbotController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $history
+            'data' => $history,
         ]);
     }
 

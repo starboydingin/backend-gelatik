@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'chatbot' => [
+        'connect_timeout' => (int) env('CHATBOT_AI_CONNECT_TIMEOUT', 3),
+        'request_timeout' => (int) env('CHATBOT_AI_REQUEST_TIMEOUT', 8),
+        'gemini_attempts' => (int) env('CHATBOT_GEMINI_ATTEMPTS', 2),
+        'gemini' => [
+            'key' => env('GEMINI_API_KEY'),
+            'model' => env('GEMINI_MODEL', 'gemini-flash-latest'),
+        ],
+        'groq' => [
+            'key' => env('GROQ_API_KEY'),
+            'model' => env('GROQ_MODEL', 'llama-3.3-70b-versatile'),
+        ],
+    ],
+
 ];

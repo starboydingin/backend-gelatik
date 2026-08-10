@@ -46,10 +46,12 @@ class ApiClient {
     if (kDebugMode) {
       dio.interceptors.add(
         LogInterceptor(
-          requestHeader: true,
-          requestBody: true,
+          // Tokens, passwords, and business payloads must not be printed even
+          // in debug builds. URI/status/error remain available for diagnosis.
+          requestHeader: false,
+          requestBody: false,
           responseHeader: false,
-          responseBody: true,
+          responseBody: false,
           error: true,
         ),
       );
