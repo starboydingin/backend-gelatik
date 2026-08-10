@@ -47,6 +47,7 @@ class ChatbotRepositoryException extends ApiException {
         404 => ChatbotErrorType.notFound,
         422 => ChatbotErrorType.validation,
         429 => ChatbotErrorType.rateLimit,
+        504 => ChatbotErrorType.timeout,
         _ =>
           status != null && status >= 500
               ? ChatbotErrorType.upstream

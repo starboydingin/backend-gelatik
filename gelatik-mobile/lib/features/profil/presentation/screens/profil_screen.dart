@@ -8,6 +8,7 @@ import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../internet/presentation/screens/self_assessment_screen.dart';
 import '../../providers/wa_notification_provider.dart';
 import 'notifikasi_whatsapp_screen.dart';
 
@@ -355,10 +356,9 @@ class ProfilScreen extends ConsumerWidget {
                     title: 'Bantuan & FAQ',
                     subtitle: 'Pertanyaan umum & panduan layanan TIK',
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Pusat bantuan & FAQ Gelatik.'),
-                          behavior: SnackBarBehavior.floating,
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const SelfAssessmentScreen(),
                         ),
                       );
                     },

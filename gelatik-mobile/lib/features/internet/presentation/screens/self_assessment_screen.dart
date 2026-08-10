@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../konsultasi/presentation/screens/buat_konsultasi_screen.dart';
 import '../../providers/internet_provider.dart';
@@ -38,9 +39,9 @@ class _SelfAssessmentScreenState extends ConsumerState<SelfAssessmentScreen> {
     final faqs = state.listFaq;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Self Assessment Internet'),
-        centerTitle: true,
+      appBar: GelatikPageHeader(
+        title: 'Bantuan & FAQ',
+        showBack: true,
         actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
@@ -102,50 +103,85 @@ class _SelfAssessmentScreenState extends ConsumerState<SelfAssessmentScreen> {
               ),
               const SizedBox(height: 12),
 
-              // FAQ Items Cards
-              ...faqs.map((faq) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: AppCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.help_outline_rounded,
-                              size: 18,
-                              color: primaryTeal,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                faq['pertanyaan'] ?? '',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onSurface,
+              if (state.isLoading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (state.errorMessage != null)
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        state.errorMessage!,
+                        style: TextStyle(fontSize: 13, color: mutedText),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton.icon(
+                        onPressed: () =>
+                            ref.read(internetProvider.notifier).loadFaq(),
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Muat ulang FAQ'),
+                      ),
+                    ],
+                  ),
+                )
+              else if (state.faqLoaded && faqs.isEmpty)
+                AppCard(
+                  child: Text(
+                    'FAQ Internet belum tersedia saat ini.',
+                    style: TextStyle(fontSize: 13, color: mutedText),
+                  ),
+                )
+              else
+                ...faqs.map((faq) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.help_outline_rounded,
+                                size: 18,
+                                color: primaryTeal,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  faq['pertanyaan'] ?? '',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        const Divider(height: 1),
-                        const SizedBox(height: 8),
-                        SelectableText(
-                          faqHtmlToPlainText(faq['jawaban']?.toString() ?? ''),
-                          style: TextStyle(
-                            fontSize: 12,
-                            height: 1.4,
-                            color: mutedText,
+                            ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          const Divider(height: 1),
+                          const SizedBox(height: 8),
+                          SelectableText(
+                            faqHtmlToPlainText(
+                              faq['jawaban']?.toString() ?? '',
+                            ),
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.4,
+                              color: mutedText,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                }),
 
               const SizedBox(height: 16),
 

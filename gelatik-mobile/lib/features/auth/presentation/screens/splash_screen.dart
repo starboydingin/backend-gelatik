@@ -108,7 +108,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                               fontSize: 14,
                             ).copyWith(color: primaryTeal, letterSpacing: 1.8),
                           ),
-                          const SizedBox(height: 54),
+                          SizedBox(
+                            height: (constraints.maxHeight * 0.09).clamp(
+                              28.0,
+                              54.0,
+                            ),
+                          ),
                           SizedBox(
                             width: 140,
                             child: ClipRRect(

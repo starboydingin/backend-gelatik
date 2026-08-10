@@ -24,6 +24,9 @@ class GelatikPageHeader extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final strokeColor = AppColors.cardStroke(context);
     final primaryTeal = AppColors.primaryTeal(context);
+    final isNarrow = MediaQuery.sizeOf(context).width < 360;
+    final logoWidth = isNarrow ? 52.0 : 68.0;
+    final titleSize = isNarrow ? 21.0 : 25.0;
 
     return AppBar(
       automaticallyImplyLeading: false,
@@ -42,15 +45,16 @@ class GelatikPageHeader extends StatelessWidget implements PreferredSizeWidget {
             ),
             const SizedBox(width: 4),
           ] else ...[
-            Image.asset(
-              'assets/images/logo-gelatik.png',
-              width: 32,
-              height: 32,
-              fit: BoxFit.contain,
-              errorBuilder: (_, _, _) =>
-                  Icon(Icons.flutter_dash_rounded, color: primaryTeal),
+            SizedBox(
+              width: logoWidth,
+              height: 38,
+              child: Image.asset(
+                'assets/images/logo-nobackground&teksgelatik.png',
+                fit: BoxFit.contain,
+                alignment: Alignment.centerLeft,
+              ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: isNarrow ? 8 : 12),
           ],
           Expanded(
             child: Text(
@@ -59,7 +63,7 @@ class GelatikPageHeader extends StatelessWidget implements PreferredSizeWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: primaryTeal,
-                fontSize: 25,
+                fontSize: titleSize,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.5,
               ),

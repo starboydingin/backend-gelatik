@@ -14,6 +14,7 @@ import '../../../chatbot/presentation/screens/chatbot_native_screen.dart';
 import '../../../email/presentation/screens/usulan_email_list_screen.dart';
 import '../../../info_alat/presentation/screens/info_alat_screen.dart';
 import '../../../internet/presentation/screens/layanan_internet_screen.dart';
+import '../../../internet/presentation/screens/self_assessment_screen.dart';
 import '../../../konsultasi/presentation/screens/konsultasi_detail_screen.dart';
 import '../../../konsultasi/presentation/screens/konsultasi_list_screen.dart';
 import '../../../konsultasi/models/konsultasi_model.dart';
@@ -621,7 +622,7 @@ class _QuickMenu extends StatelessWidget {
               crossAxisCount: crossAxisCount,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: crossAxisCount == 4 ? 1.08 : .95,
+              childAspectRatio: crossAxisCount == 4 ? 1.08 : .84,
               children: items
                   .map(
                     (item) =>
@@ -633,12 +634,7 @@ class _QuickMenu extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         AppCard(
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Pusat bantuan & FAQ Gelatik.'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          ),
+          onTap: () => onOpen(const SelfAssessmentScreen()),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
           child: Row(
             children: [
@@ -723,11 +719,11 @@ class _MenuCard extends StatelessWidget {
                 ),
                 child: Icon(item.icon, color: item.color, size: 27),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(
                 item.title,
                 textAlign: TextAlign.center,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 13,

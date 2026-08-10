@@ -119,7 +119,9 @@ void main() {
       (404, ChatbotErrorType.notFound),
       (422, ChatbotErrorType.validation),
       (429, ChatbotErrorType.rateLimit),
+      (503, ChatbotErrorType.upstream),
       (500, ChatbotErrorType.upstream),
+      (504, ChatbotErrorType.timeout),
     ]) {
       test('HTTP ${entry.$1} dipetakan ke ${entry.$2.name}', () async {
         final repository = _repository(

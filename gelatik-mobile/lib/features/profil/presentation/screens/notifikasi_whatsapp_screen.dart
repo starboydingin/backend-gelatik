@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../providers/wa_notification_provider.dart';
 
@@ -77,10 +78,7 @@ class _NotifikasiWhatsAppScreenState
 
     final success = await ref
         .read(waNotificationProvider.notifier)
-        .saveSubscription(
-          waNumber: number,
-          isSubscribed: _isSubscribed,
-        );
+        .saveSubscription(waNumber: number, isSubscribed: _isSubscribed);
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -96,7 +94,6 @@ class _NotifikasiWhatsAppScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primaryTeal = AppColors.primaryTeal(context);
     final actionEmerald = AppColors.actionEmerald(context);
     final strokeColor = AppColors.cardStroke(context);
     final mutedText = AppColors.mutedText(context);
@@ -109,23 +106,10 @@ class _NotifikasiWhatsAppScreenState
     const waBrandColor = Color(0xFF25D366);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Notifikasi WhatsApp',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: primaryTeal,
-          ),
-        ),
-        centerTitle: true,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+      appBar: const GelatikPageHeader(
+        title: 'Notifikasi WhatsApp',
+        showBack: true,
+        actions: [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -188,7 +172,10 @@ class _NotifikasiWhatsAppScreenState
                     if (sub.isSubscribed && sub.subscribedAt != null) ...[
                       const Divider(height: 24),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: actionEmerald.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
@@ -200,7 +187,11 @@ class _NotifikasiWhatsAppScreenState
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.check_circle_rounded, color: actionEmerald, size: 18),
+                            Icon(
+                              Icons.check_circle_rounded,
+                              color: actionEmerald,
+                              size: 18,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'Terhubung sejak ${dateFormat.format(sub.subscribedAt!)}',
@@ -261,7 +252,10 @@ class _NotifikasiWhatsAppScreenState
 
                     // Toggle Switch Besar "Aktifkan Notifikasi WhatsApp"
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
@@ -290,7 +284,10 @@ class _NotifikasiWhatsAppScreenState
                                   _isSubscribed
                                       ? 'Notifikasi aktif untuk nomor ini'
                                       : 'Notifikasi saat ini dinonaktifkan',
-                                  style: TextStyle(fontSize: 12, color: mutedText),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: mutedText,
+                                  ),
                                 ),
                               ],
                             ),
