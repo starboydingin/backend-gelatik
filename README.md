@@ -132,3 +132,30 @@ KP-BACKEND/
 
 * **Standalone Local Mode:** Seluruh endpoint utama (Peminjaman Aset, Konsultasi TIK, Auth, Pengumuman, Laporan) dapat berjalan 100% tanpa jaringan internal/VPN Diskominfotik.
 * **Defensive Fallback:** Kegagalan service opsional (Node.js WA service mati, SIMKI API offline, Gemini AI limit) diproteksi menggunakan `try-catch` dan `timeout(5)` sehingga **TIDAK AKAN memutus respon HTTP (tidak ada Error 500)** pada request utama klien.
+
+---
+
+## 7. BASIS PENGETAHUAN FAQ CHATBOT
+
+Chatbot mengambil maksimal tiga FAQ aktif yang paling relevan berdasarkan judul, topik, dan isi FAQ. FAQ tersebut menjadi konteks resmi bagi Gemini/Groq saat menjawab, bersama riwayat percakapan dan konteks data pengguna yang sesuai. Perubahan pada FAQ aktif di database akan digunakan pada pertanyaan berikutnya tanpa pelatihan ulang model AI.
+
+Snapshot FAQ aktif pada database development:
+
+| Pertanyaan | Ringkasan jawaban resmi |
+| --- | --- |
+| Cara mendapatkan akun email resmi Pemprov Lampung | Ajukan surat permohonan melalui BKD dengan fotokopi e-KTP dan SK jabatan terakhir. |
+| Cara pinjam aset/perangkat untuk video conference | Login, buka Pinjam Aset, isi formulir dan tanggal, pilih perangkat; gunakan Logitech Group dan Operator Vicon bila diperlukan. |
+| Cara request Room ID Zoom | Melalui Pinjam Aset: isi formulir/tanggal, pilih item Akun Zoom Meeting, lalu simpan. |
+| Cara pinjam aset/perangkat live streaming | Isi formulir, tulis kebutuhan live streaming, pilih perangkat; gunakan Logitech Group dan Operator Live Streaming bila diperlukan. |
+| Cara melihat hasil live streaming | Lihat melalui kanal YouTube resmi Pemprov Lampung. |
+| Cara mengajukan sertifikat elektronik/TTE | Login, buka Konsultasi TIK, lengkapi data pejabat, unggah surat instansi, lalu kirim. |
+| Cara memakai TTE pada E-Sughat | Buka e-sughat.lampungprov.go.id, login, pilih dokumen, pilih Tandatangani, lalu masukkan passphrase. |
+| Kustomisasi website perangkat daerah | Kirim surat permintaan custom website beserta rancangan dan proses bisnis ke Bagian SPBE Diskominfotik. |
+| Pengajuan reset kata sandi email resmi | Pastikan email ASN dan pribadi terdaftar di SIMPEDU, isi formulir reset, lalu ikuti instruksi yang masuk ke email pribadi. |
+| Regulasi penggunaan email resmi Pemprov Lampung | Email resmi digunakan untuk komunikasi dan administrasi kedinasan berbasis TIK. |
+| Apa itu hosting web/aplikasi? | Layanan penyimpanan website atau aplikasi agar dapat diakses secara online. |
+| Cara mengajukan alokasi hosting Pemprov Lampung | Pastikan dokumen SPBE dan uji keamanan/fungsi tersedia, lalu ajukan lewat Konsultasi TIK pada topik Hosting dan unggah surat permohonan. |
+| Cara mengajukan subdomain resmi Pemprov Lampung | Isi formulir pengajuan, lalu ajukan melalui Konsultasi TIK pada topik Subdomain Resmi. |
+| WiFi di ruangan mati | Cek perangkat, router/access point, kabel, dan gangguan jaringan; bila belum selesai hubungi helpdesk di `+62 813-7330-4040`. |
+| WiFi terhubung tetapi tidak ada internet | Uji perangkat lain, restart/lupakan WiFi, cek indikator, DNS, dan DHCP; hubungi helpdesk bila masalah berlanjut. |
+| Pertanyaan Test 1 | Jawaban Test 1. Ini adalah data testing yang masih aktif dan sebaiknya dinonaktifkan atau dihapus melalui admin sebelum production. |
