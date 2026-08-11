@@ -79,65 +79,81 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   190.0,
                   math.min(constraints.maxWidth * 0.62, 240.0),
                 );
+                final contentWidth = math.min(constraints.maxWidth, 420.0);
 
-                return SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 28,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            'assets/images/logo-tanpabackground.png',
-                            key: const Key('splash_gelatik_logo'),
-                            width: logoWidth,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'GERBANG LAYANAN TIK',
-                            textAlign: TextAlign.center,
-                            style: AuthTypography.brandTitle(
-                              context,
-                              fontSize: 14,
-                            ).copyWith(color: primaryTeal, letterSpacing: 1.8),
-                          ),
-                          SizedBox(
-                            height: (constraints.maxHeight * 0.09).clamp(
-                              28.0,
-                              54.0,
+                return Center(
+                  child: SingleChildScrollView(
+                    child: SizedBox(
+                      width: contentWidth,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 28,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Image.asset(
+                                  'assets/images/logo-tanpabackground.png',
+                                  key: const Key('splash_gelatik_logo'),
+                                  width: logoWidth,
+                                  fit: BoxFit.contain,
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'GERBANG LAYANAN TIK',
+                                  textAlign: TextAlign.center,
+                                  style:
+                                      AuthTypography.brandTitle(
+                                        context,
+                                        fontSize: 14,
+                                      ).copyWith(
+                                        color: primaryTeal,
+                                        letterSpacing: 1.8,
+                                      ),
+                                ),
+                                SizedBox(
+                                  height: (constraints.maxHeight * 0.09).clamp(
+                                    28.0,
+                                    54.0,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 140,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: LinearProgressIndicator(
+                                      minHeight: 4,
+                                      backgroundColor: primaryTeal.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        actionEmerald,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'MEMUAT SISTEM...',
+                                  style:
+                                      AuthTypography.brandTitle(
+                                        context,
+                                        fontSize: 11,
+                                      ).copyWith(
+                                        color: mutedText,
+                                        letterSpacing: 2,
+                                      ),
+                                ),
+                              ],
                             ),
                           ),
-                          SizedBox(
-                            width: 140,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: LinearProgressIndicator(
-                                minHeight: 4,
-                                backgroundColor: primaryTeal.withValues(
-                                  alpha: 0.15,
-                                ),
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  actionEmerald,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'MEMUAT SISTEM...',
-                            style: AuthTypography.brandTitle(
-                              context,
-                              fontSize: 11,
-                            ).copyWith(color: mutedText, letterSpacing: 2),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),

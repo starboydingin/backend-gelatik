@@ -546,6 +546,9 @@ void main() {
     testWidgets('SplashScreen navigates to LoginScreen when not logged in', (
       tester,
     ) async {
+      await tester.binding.setSurfaceSize(const Size(1440, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -566,6 +569,10 @@ void main() {
       expect(
         (splashLogo.image as AssetImage).assetName,
         'assets/images/logo-tanpabackground.png',
+      );
+      expect(
+        tester.getCenter(find.byKey(const Key('splash_gelatik_logo'))).dx,
+        closeTo(720, 1),
       );
 
       await tester.pump(const Duration(seconds: 2));
