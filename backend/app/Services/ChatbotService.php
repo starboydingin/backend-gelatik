@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ChatbotConversation;
 use App\Models\ChatbotMessage;
+use App\Models\Faq;
 use App\Models\Konsultasi;
 use App\Models\Pinjam;
 use App\Models\User;
@@ -15,7 +16,7 @@ use Illuminate\Support\Str;
 
 class ChatbotService
 {
-    protected $systemPrompt = 'Anda adalah AI Assistant Layanan TIK. Jawab pertanyaan pengguna dengan ramah, ringkas, dan jelas.';
+    protected $systemPrompt = 'Anda adalah AI Assistant Layanan TIK. Jawab pertanyaan pengguna dengan ramah, ringkas, dan jelas. Jika Konteks FAQ Resmi tersedia, jadikan itu sumber utama dan jangan membuat prosedur yang bertentangan dengannya. Jika FAQ tidak menjawab pertanyaan, jelaskan keterbatasannya secara jujur.';
 
     public function sendMessage(User $user, string $message, ?string $sessionId)
     {
@@ -38,7 +39,8 @@ class ChatbotService
             'provider_used' => 'gemini',
         ]);
 
-        $context = $this->buildContext($user, $message);
+        $userContext = $this->buildContext($user, $message);
+        $faqContext = $this->buildFaqContext($message);
 
         $history = ChatbotMessage::where('conversation_id', $conversation->id)
             ->orderBy('created_at', 'desc')
@@ -47,8 +49,12 @@ class ChatbotService
             ->reverse();
 
         $prompt = $this->systemPrompt."\n\n";
-        if ($context) {
-            $prompt .= "Konteks Data Pengguna saat ini:\n".$context."\n\n";
+        if ($faqContext) {
+            $prompt .= "Konteks FAQ Resmi (prioritaskan informasi ini):\n".$faqContext."\n\n";
+        }
+
+        if ($userContext) {
+            $prompt .= "Konteks Data Pengguna saat ini:\n".$userContext."\n\n";
         }
 
         $messages = [
@@ -178,6 +184,68 @@ class ChatbotService
         }
 
         return implode("\n\n", $context);
+    }
+
+    /**
+     * Select a small, relevant subset of active FAQ entries as a trusted
+     * knowledge base. This keeps the provider prompt bounded while allowing
+     * official guidance to take precedence over the model's general knowledge.
+     */
+    private function buildFaqContext(string $message): string
+    {
+        $terms = $this->faqSearchTerms($message);
+        if ($terms === []) {
+            return '';
+        }
+
+        $faqs = Faq::aktif()->with('topik')->get()
+            ->map(function (Faq $faq) use ($terms): array {
+                $title = $this->plainText($faq->judul);
+                $detail = $this->plainText($faq->detail);
+                $topic = $this->plainText($faq->topik?->topik ?? '');
+
+                $score = 0;
+                foreach ($terms as $term) {
+                    $score += Str::contains(Str::lower($title), $term) ? 3 : 0;
+                    $score += Str::contains(Str::lower($topic), $term) ? 2 : 0;
+                    $score += Str::contains(Str::lower($detail), $term) ? 1 : 0;
+                }
+
+                return compact('title', 'detail', 'topic', 'score');
+            })
+            ->filter(fn (array $faq): bool => $faq['score'] > 0)
+            ->sortByDesc('score')
+            ->take(3);
+
+        if ($faqs->isEmpty()) {
+            return '';
+        }
+
+        return $faqs->map(function (array $faq): string {
+            $topic = $faq['topic'] !== '' ? " (Topik: {$faq['topic']})" : '';
+
+            return "- Pertanyaan: {$faq['title']}{$topic}\n  Jawaban resmi: ".Str::limit($faq['detail'], 800);
+        })->implode("\n\n");
+    }
+
+    private function faqSearchTerms(string $message): array
+    {
+        $stopWords = [
+            'adalah', 'anda', 'atau', 'bagaimana', 'bagi', 'bisa', 'dengan',
+            'dan', 'dari', 'ini', 'itu', 'jika', 'kapan', 'karena', 'ke',
+            'saya', 'sudah', 'tentang', 'untuk', 'yang', 'cara', 'tolong',
+        ];
+
+        return collect(preg_split('/[^\\p{L}\\p{N}]+/u', Str::lower($message), -1, PREG_SPLIT_NO_EMPTY))
+            ->filter(fn (string $term): bool => Str::length($term) >= 3 && ! in_array($term, $stopWords, true))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function plainText(?string $value): string
+    {
+        return trim(html_entity_decode(strip_tags($value ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
     }
 
     private function callGemini(array $messages)

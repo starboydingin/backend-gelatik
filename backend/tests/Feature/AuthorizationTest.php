@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Konsultasi;
+use App\Models\Faq;
 use App\Models\Pinjam;
 use App\Models\PinjamItem;
 use App\Models\User;
@@ -10,6 +11,7 @@ use App\Models\UsulanEmail;
 use App\Services\ChatbotService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Passport\Passport;
 use Mockery\MockInterface;
@@ -101,6 +103,74 @@ class AuthorizationTest extends TestCase
                 'success' => false,
                 'message' => 'Maaf, layanan chatbot sedang tidak tersedia saat ini.',
             ]);
+    }
+
+    public function test_chatbot_prioritizes_relevant_active_faq_context(): void
+    {
+        Schema::create('chatbot_conversations', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->index();
+            $table->string('session_id');
+            $table->timestamps();
+        });
+        Schema::create('chatbot_messages', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('conversation_id')->index();
+            $table->enum('role', ['user', 'assistant']);
+            $table->text('content');
+            $table->enum('provider_used', ['gemini', 'groq']);
+            $table->timestamps();
+        });
+        Schema::create('faq', function (Blueprint $table): void {
+            $table->unsignedBigInteger('id')->primary();
+            $table->unsignedBigInteger('topik_id');
+            $table->string('judul');
+            $table->text('detail');
+            $table->string('status')->default('1');
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
+            $table->softDeletes();
+            $table->timestamps();
+        });
+        Faq::create([
+            'id' => 701,
+            'topik_id' => 601,
+            'judul' => 'Cara reset password WiFi',
+            'detail' => '<p>Hubungi helpdesk untuk verifikasi identitas sebelum password WiFi direset.</p>',
+            'status' => '1',
+        ]);
+        Faq::create([
+            'id' => 702,
+            'topik_id' => 601,
+            'judul' => 'Password WiFi lama',
+            'detail' => 'FAQ ini tidak boleh dikirim.',
+            'status' => '0',
+        ]);
+
+        config()->set('services.chatbot.gemini.key', 'test-key');
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [[
+                    'content' => ['parts' => [['text' => 'Silakan hubungi helpdesk.']]],
+                ]],
+            ]),
+        ]);
+
+        $response = app(ChatbotService::class)->sendMessage(
+            $this->userA,
+            'Bagaimana reset password WiFi saya?',
+            null,
+        );
+
+        $this->assertTrue($response['success']);
+        Http::assertSent(function ($request): bool {
+            $prompt = $request->data()['system_instruction']['parts'][0]['text'];
+
+            return str_contains($prompt, 'Konteks FAQ Resmi')
+                && str_contains($prompt, 'Cara reset password WiFi')
+                && str_contains($prompt, 'Hubungi helpdesk untuk verifikasi identitas')
+                && ! str_contains($prompt, 'FAQ ini tidak boleh dikirim.');
+        });
     }
 
     public function test_user_can_view_own_pinjam_but_not_another_users_pinjam(): void
