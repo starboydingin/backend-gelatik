@@ -112,6 +112,7 @@ void main() {
       await _pumpChat(tester, _WidgetRepository(), _MemoryStorage());
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('chatbot-empty')), findsOneWidget);
+      expect(find.byKey(const Key('chatbot-welcome')), findsOneWidget);
       expect(find.text('Pertanyaan cepat'), findsOneWidget);
       expect(find.byKey(const Key('chatbot-quick-0')), findsOneWidget);
     });
@@ -137,6 +138,8 @@ void main() {
       await _pumpChat(tester, repository, storage);
       await tester.pumpAndSettle();
       expect(find.text('History backend'), findsOneWidget);
+      expect(find.byKey(const Key('chatbot-welcome')), findsOneWidget);
+      expect(find.byKey(const Key('chatbot-quick-0')), findsOneWidget);
     });
 
     testWidgets('32. sending indicator dan duplicate tap terkunci', (

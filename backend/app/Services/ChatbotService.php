@@ -43,9 +43,11 @@ class ChatbotService
 
         $scope = $this->classifyQuestionScope($message);
         if ($scope !== 'allowed') {
-            $reply = $scope === 'welcome'
-                ? 'Halo! Saya siap membantu konsultasi layanan TIK Gelatik. Anda dapat menanyakan WiFi/internet, email dinas, peminjaman aset, konsultasi, hosting, subdomain, TTE, atau status pengajuan.'
-                : self::SCOPE_REFUSAL;
+            $reply = match ($scope) {
+                'welcome' => 'Halo! Saya siap membantu konsultasi layanan TIK Gelatik. Anda dapat menanyakan WiFi/internet, email dinas, peminjaman aset, konsultasi, hosting, subdomain, TTE, atau status pengajuan.',
+                'gratitude' => 'Sama-sama, senang bisa membantu! Jika ada pertanyaan lain seputar layanan TIK Gelatik, silakan tanyakan kapan saja. 😊',
+                default => self::SCOPE_REFUSAL,
+            };
 
             ChatbotMessage::create([
                 'conversation_id' => $conversation->id,
@@ -158,7 +160,7 @@ class ChatbotService
      */
     public function classifyQuestionScope(string $message): string
     {
-        $normalized = Str::lower(trim($message));
+        $normalized = rtrim(Str::lower(trim($message)), "!?.,");
 
         $jailbreakPatterns = [
             'abaikan instruksi', 'abaikan aturan', 'abaikan semua',
@@ -173,9 +175,13 @@ class ChatbotService
             return 'blocked';
         }
 
-        $greetings = ['halo', 'hai', 'hi', 'pagi', 'siang', 'sore', 'malam', 'terima kasih', 'makasih'];
+        $greetings = ['halo', 'hai', 'hi', 'pagi', 'siang', 'sore', 'malam'];
         if (in_array($normalized, $greetings, true)) {
             return 'welcome';
+        }
+
+        if (Str::contains($normalized, ['terima kasih', 'makasih', 'terimakasih', 'thanks'])) {
+            return 'gratitude';
         }
 
         $tikTerms = [
@@ -196,7 +202,8 @@ class ChatbotService
     private function isLocalPolicyReply(string $content): bool
     {
         return $content === self::SCOPE_REFUSAL
-            || Str::startsWith($content, 'Halo! Saya siap membantu konsultasi layanan TIK Gelatik.');
+            || Str::startsWith($content, 'Halo! Saya siap membantu konsultasi layanan TIK Gelatik.')
+            || Str::startsWith($content, 'Sama-sama, senang bisa membantu!');
     }
 
     public function getHistory(User $user, string $sessionId)

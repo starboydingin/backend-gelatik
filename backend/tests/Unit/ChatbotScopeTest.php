@@ -27,4 +27,9 @@ class ChatbotScopeTest extends TestCase
     {
         $this->assertSame('welcome', app(ChatbotService::class)->classifyQuestionScope('Halo'));
     }
+
+    public function test_it_handles_thanks_with_a_friendly_local_reply(): void
+    {
+        $this->assertSame('gratitude', app(ChatbotService::class)->classifyQuestionScope('Terima kasih ya!'));
+    }
 }
