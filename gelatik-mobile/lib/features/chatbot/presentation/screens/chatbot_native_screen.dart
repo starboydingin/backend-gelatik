@@ -49,8 +49,8 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
     });
   }
 
-  Future<void> _send() async {
-    final text = _messageController.text.trim();
+  Future<void> _send([String? quickQuestion]) async {
+    final text = (quickQuestion ?? _messageController.text).trim();
     final state = ref.read(chatbotProvider);
     if (text.isEmpty || state.isTyping) return;
     _messageController.clear();
@@ -187,11 +187,19 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
             const SizedBox(height: 12),
             Text(
               state.errorMessage == null
-                  ? 'Riwayat pesan kosong.\nKetik pertanyaan untuk memulai percakapan.'
+                  ? 'Pilih pertanyaan cepat atau ketik pertanyaan Anda.'
                   : 'Riwayat belum dapat dimuat.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: mutedText),
             ),
+            if (state.errorMessage == null) ...[
+              const SizedBox(height: 20),
+              _QuickQuestions(
+                primaryTeal: primaryTeal,
+                strokeColor: strokeColor,
+                onSelected: _send,
+              ),
+            ],
           ],
         ),
       );
@@ -297,6 +305,60 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
       ),
     );
   }
+}
+
+class _QuickQuestions extends StatelessWidget {
+  final Color primaryTeal;
+  final Color strokeColor;
+  final Future<void> Function(String) onSelected;
+
+  const _QuickQuestions({
+    required this.primaryTeal,
+    required this.strokeColor,
+    required this.onSelected,
+  });
+
+  static const _questions = [
+    'Bagaimana cara mengajukan peminjaman aset TIK?',
+    'WiFi terhubung tetapi tidak ada internet. Apa yang harus dilakukan?',
+    'Bagaimana cara reset kata sandi email resmi?',
+    'Bagaimana cara mengajukan sertifikat elektronik TTE?',
+  ];
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pertanyaan cepat',
+          style: TextStyle(
+            color: primaryTeal,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _questions
+              .map(
+                (question) => ActionChip(
+                  key: Key('chatbot-quick-${_questions.indexOf(question)}'),
+                  label: Text(question),
+                  labelStyle: TextStyle(color: primaryTeal, fontSize: 12),
+                  side: BorderSide(color: strokeColor),
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  onPressed: () => onSelected(question),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    ),
+  );
 }
 
 class _DayChip extends StatelessWidget {

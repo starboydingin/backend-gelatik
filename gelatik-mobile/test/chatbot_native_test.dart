@@ -112,7 +112,22 @@ void main() {
       await _pumpChat(tester, _WidgetRepository(), _MemoryStorage());
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('chatbot-empty')), findsOneWidget);
-      expect(find.textContaining('Riwayat pesan kosong'), findsOneWidget);
+      expect(find.text('Pertanyaan cepat'), findsOneWidget);
+      expect(find.byKey(const Key('chatbot-quick-0')), findsOneWidget);
+    });
+
+    testWidgets('30a. pertanyaan cepat mengirim pertanyaan ke chatbot', (
+      tester,
+    ) async {
+      await _pumpChat(tester, _WidgetRepository(), _MemoryStorage());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('chatbot-quick-0')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Bagaimana cara mengajukan peminjaman aset TIK?'),
+        findsOneWidget,
+      );
+      expect(find.text('Jawaban dari backend'), findsOneWidget);
     });
 
     testWidgets('31. history success dirender', (tester) async {
