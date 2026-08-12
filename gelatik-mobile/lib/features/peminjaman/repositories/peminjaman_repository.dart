@@ -141,9 +141,21 @@ class PeminjamanRepository {
       _objectRequest(() => apiClient.dio.get('/pinjam/$id'));
 
   Future<PinjamModel> createPeminjaman(PinjamRequest request) async =>
-      _objectRequest(
-        () => apiClient.dio.post('/pinjam', data: request.toJson()),
-      );
+      _objectRequest(() => apiClient.dio.post(
+            '/pinjam',
+            data: _createPayload(request),
+          ));
+
+  dynamic _createPayload(PinjamRequest request) {
+    final filePath = request.dokumenPath;
+    if (filePath == null || filePath.isEmpty) return request.toJson();
+
+    final payload = <String, dynamic>{
+      ...request.toJson(),
+      'dokumen_pendukung': MultipartFile.fromFileSync(filePath),
+    };
+    return FormData.fromMap(payload, ListFormat.multiCompatible);
+  }
 
   Future<PinjamModel> updatePeminjaman(
     int id,

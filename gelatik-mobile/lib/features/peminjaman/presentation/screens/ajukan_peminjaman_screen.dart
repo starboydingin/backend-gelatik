@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_button.dart';
@@ -35,14 +36,13 @@ class _AjukanPeminjamanScreenState
 
   // Step 2: Form Controllers & State
   late TextEditingController _namaPicController;
-  late TextEditingController _jabatanPicController;
   late TextEditingController _instansiPicController;
   late TextEditingController _kontakPicController;
   late TextEditingController _nomorIdentitasController;
   late TextEditingController _alamatPeminjamController;
   late TextEditingController _durasiCountController;
   late TextEditingController _keteranganController;
-  late TextEditingController _dokumenUrlController;
+  PlatformFile? _selectedDocument;
 
   String _jenisIdentitas = 'NIP';
   String _jenisDurasi = 'harian'; // harian, jam, menit
@@ -52,13 +52,13 @@ class _AjukanPeminjamanScreenState
 
   // Errors
   String? _namaPicError;
-  String? _jabatanPicError;
   String? _instansiPicError;
   String? _kontakPicError;
   String? _nomorIdentitasError;
   String? _alamatPeminjamError;
   String? _durasiError;
   String? _termsError;
+  String? _documentError;
 
   @override
   void initState() {
@@ -66,34 +66,24 @@ class _AjukanPeminjamanScreenState
     final user = ref.read(authProvider).currentUser;
 
     _namaPicController = TextEditingController(text: user?.name ?? '');
-    _jabatanPicController = TextEditingController(
-      text: 'Pranata Komputer Ahli Muda',
-    );
     _instansiPicController = TextEditingController(text: user?.namaOpd ?? '');
     _kontakPicController = TextEditingController(text: user?.noHp ?? '');
-    _nomorIdentitasController = TextEditingController(
-      text: '198804122014031002',
-    );
-    _alamatPeminjamController = TextEditingController(
-      text: 'Jl. Wolter Monginsidi No. 69, Bandar Lampung',
-    );
+    _nomorIdentitasController = TextEditingController(text: user?.nip ?? '');
+    _alamatPeminjamController = TextEditingController();
     _durasiCountController = TextEditingController(text: '1');
     _keteranganController = TextEditingController();
-    _dokumenUrlController = TextEditingController();
     Future.microtask(() => ref.read(infoAlatProvider.notifier).loadItems());
   }
 
   @override
   void dispose() {
     _namaPicController.dispose();
-    _jabatanPicController.dispose();
     _instansiPicController.dispose();
     _kontakPicController.dispose();
     _nomorIdentitasController.dispose();
     _alamatPeminjamController.dispose();
     _durasiCountController.dispose();
     _keteranganController.dispose();
-    _dokumenUrlController.dispose();
     super.dispose();
   }
 
@@ -172,25 +162,49 @@ class _AjukanPeminjamanScreenState
     }
   }
 
+  Future<void> _pickDocument() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
+      allowMultiple: false,
+      withData: false,
+    );
+    if (result == null || result.files.isEmpty || !mounted) return;
+
+    final file = result.files.single;
+    if (file.size > 1024 * 1024) {
+      setState(() {
+        _selectedDocument = null;
+        _documentError = 'Ukuran dokumen maksimal 1 MB.';
+      });
+      return;
+    }
+    if (file.path == null || file.path!.isEmpty) {
+      setState(() => _documentError = 'File tidak dapat diakses.');
+      return;
+    }
+
+    setState(() {
+      _selectedDocument = file;
+      _documentError = null;
+    });
+  }
+
   Future<void> _handleSubmit(List<MasterItemModel> masterItems) async {
     setState(() {
       _namaPicError = null;
-      _jabatanPicError = null;
       _instansiPicError = null;
       _kontakPicError = null;
       _nomorIdentitasError = null;
       _alamatPeminjamError = null;
       _durasiError = null;
       _termsError = null;
+      _documentError = null;
     });
 
     bool isValid = true;
     if (_namaPicController.text.trim().isEmpty) {
       setState(() => _namaPicError = 'Nama PIC wajib diisi');
-      isValid = false;
-    }
-    if (_jabatanPicController.text.trim().isEmpty) {
-      setState(() => _jabatanPicError = 'Jabatan PIC wajib diisi');
       isValid = false;
     }
     if (_instansiPicController.text.trim().isEmpty) {
@@ -227,7 +241,7 @@ class _AjukanPeminjamanScreenState
         .read(peminjamanProvider.notifier)
         .submitPengajuan(
           namaPic: _namaPicController.text.trim(),
-          jabatanPic: _jabatanPicController.text.trim(),
+          jabatanPic: ref.read(authProvider).currentUser?.jabatan ?? '',
           instansiPic: _instansiPicController.text.trim(),
           kontakPic: _kontakPicController.text.trim(),
           jenisIdentitas: _jenisIdentitas,
@@ -241,9 +255,7 @@ class _AjukanPeminjamanScreenState
           keterangan: _keteranganController.text.trim().isNotEmpty
               ? _keteranganController.text.trim()
               : null,
-          urlDokumen: _dokumenUrlController.text.trim().isEmpty
-              ? null
-              : _dokumenUrlController.text.trim(),
+          dokumenPath: _selectedDocument?.path,
           selectedItemsWithQuantity: selectedItemsMap,
         );
 
@@ -533,15 +545,7 @@ class _AjukanPeminjamanScreenState
                             controller: _namaPicController,
                             prefixIcon: const Icon(Icons.person_outline),
                             errorText: _namaPicError,
-                          ),
-                          const SizedBox(height: 12),
-
-                          AppTextField(
-                            labelText: 'Jabatan PIC',
-                            hintText: 'Jabatan resmi',
-                            controller: _jabatanPicController,
-                            prefixIcon: const Icon(Icons.work_outline),
-                            errorText: _jabatanPicError,
+                            readOnly: true,
                           ),
                           const SizedBox(height: 12),
 
@@ -551,6 +555,7 @@ class _AjukanPeminjamanScreenState
                             controller: _instansiPicController,
                             prefixIcon: const Icon(Icons.business_outlined),
                             errorText: _instansiPicError,
+                            readOnly: true,
                           ),
                           const SizedBox(height: 12),
 
@@ -563,6 +568,7 @@ class _AjukanPeminjamanScreenState
                               Icons.phone_android_outlined,
                             ),
                             errorText: _kontakPicError,
+                            readOnly: true,
                           ),
                           const SizedBox(height: 12),
 
@@ -593,7 +599,13 @@ class _AjukanPeminjamanScreenState
                             ],
                             onChanged: (val) {
                               if (val != null) {
-                                setState(() => _jenisIdentitas = val);
+                                setState(() {
+                                  _jenisIdentitas = val;
+                                  _nomorIdentitasController.text = val == 'NIP'
+                                      ? (ref.read(authProvider).currentUser?.nip ?? '')
+                                      : '';
+                                  _nomorIdentitasError = null;
+                                });
                               }
                             },
                           ),
@@ -605,6 +617,7 @@ class _AjukanPeminjamanScreenState
                             controller: _nomorIdentitasController,
                             prefixIcon: const Icon(Icons.credit_card_outlined),
                             errorText: _nomorIdentitasError,
+                            readOnly: _jenisIdentitas == 'NIP',
                           ),
                           const SizedBox(height: 12),
 
@@ -748,15 +761,86 @@ class _AjukanPeminjamanScreenState
                           ),
                           const SizedBox(height: 16),
 
-                          // 5. Upload Dokumen (opsional) — map to field url_dokumen
-                          AppTextField(
-                            labelText: 'URL Dokumen Pendukung (opsional)',
-                            hintText:
-                                'https://contoh.go.id/surat-permohonan.pdf',
-                            controller: _dokumenUrlController,
-                            keyboardType: TextInputType.url,
-                            prefixIcon: const Icon(Icons.link_rounded),
+                          // 5. Upload dokumen pendukung (opsional, maksimal 1 MB)
+                          InkWell(
+                            onTap: peminjamanState.isSubmitting
+                                ? null
+                                : _pickDocument,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _documentError == null
+                                      ? strokeColor
+                                      : theme.colorScheme.error,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    _selectedDocument == null
+                                        ? Icons.upload_file_rounded
+                                        : Icons.description_rounded,
+                                    color: primaryTeal,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _selectedDocument?.name ??
+                                              'Upload Dokumen Pendukung (opsional)',
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: theme.colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          _selectedDocument == null
+                                              ? 'PDF, JPG, PNG, DOC/DOCX • Maksimal 1 MB'
+                                              : '${(_selectedDocument!.size / 1024).ceil()} KB • Ketuk untuk mengganti',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: mutedText,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: mutedText,
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
+                          if (_documentError != null) ...[
+                            const SizedBox(height: 5),
+                            Text(
+                              _documentError!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 20),
 
                           // 6. Checkbox Syarat & Ketentuan

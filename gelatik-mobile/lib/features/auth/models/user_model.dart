@@ -6,6 +6,8 @@ class UserModel {
   final String username;
   final String noHp;
   final String namaOpd;
+  final String nip;
+  final String jabatan;
   final String role;
   final String status; // '0' = pending/nonaktif, '1' = aktif
   final DateTime? createdAt;
@@ -17,6 +19,8 @@ class UserModel {
     required this.username,
     required this.noHp,
     required this.namaOpd,
+    this.nip = '',
+    this.jabatan = '',
     required this.role,
     required this.status,
     this.createdAt,
@@ -39,6 +43,8 @@ class UserModel {
       username: _asString(json['username']),
       noHp: _asString(json['no_hp'] ?? json['noHp']),
       namaOpd: _asString(json['nama_opd'] ?? json['namaOpd']),
+      nip: _asString(json['nip']),
+      jabatan: _asString(json['jabatan']),
       role: directRole?.isNotEmpty == true
           ? directRole!
           : (roleFromRelation?.isNotEmpty == true ? roleFromRelation! : 'user'),
@@ -68,6 +74,8 @@ class UserModel {
       'username': username,
       'no_hp': noHp,
       'nama_opd': namaOpd,
+      'nip': nip,
+      'jabatan': jabatan,
       'role': role,
       'status': status,
       'created_at': createdAt?.toIso8601String(),

@@ -192,7 +192,7 @@ class PeminjamanNotifier extends StateNotifier<PeminjamanState> {
     String? jamMulai,
     required int durasiPeminjaman,
     String? keterangan,
-    String? urlDokumen,
+    String? dokumenPath,
     required Map<MasterItemModel, int> selectedItemsWithQuantity,
   }) async {
     if (state.isSubmitting) return false;
@@ -229,7 +229,7 @@ class PeminjamanNotifier extends StateNotifier<PeminjamanState> {
           jamMulai: jamMulai,
           durasiPeminjaman: durasiPeminjaman,
           keterangan: keterangan,
-          urlDokumen: urlDokumen,
+          dokumenPath: dokumenPath,
           itemQuantities: itemQuantities,
         ),
       );

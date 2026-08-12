@@ -47,7 +47,7 @@ class PinjamService
 
             if ($qty > $sisaStok) {
                 throw ValidationException::withMessages([
-                    'items' => "Stok aset '{$masterItem->nama}' tidak mencukupi untuk rentang waktu yang dipilih. Stok tersedia: {$sisaStok}, diminta: {$qty}."
+                    'items' => "Stok aset '{$masterItem->nama}' tidak mencukupi untuk rentang waktu yang dipilih. Stok tersedia: {$sisaStok}, diminta: {$qty}.",
                 ]);
             }
 
@@ -57,33 +57,42 @@ class PinjamService
             ];
         }
 
+        if (isset($data['dokumen_pendukung'])) {
+            $data['url_dokumen'] = $data['dokumen_pendukung']->store(
+                'dokumen_peminjaman',
+                'public'
+            );
+        }
+
         // Simpan Pinjam dan PinjamItem dalam 1 DB Transaction
         $pinjam = DB::transaction(function () use ($user, $data, $tanggalMulai, $jenisDurasi, $jumlahDurasi, $tanggalSelesai, $itemsToInsert) {
             $pinjam = Pinjam::create([
-                'user_id'           => $user->id,
-                'nama_pic'          => $data['nama_pic'],
-                'jabatan_pic'       => $data['jabatan_pic'],
-                'instansi_pic'      => $data['instansi_pic'],
-                'kontak_pic'        => $data['kontak_pic'],
-                'jenis_identitas'   => $data['jenis_identitas'] ?? 'KTP',
-                'nomor_identitas'   => $data['nomor_identitas'],
-                'alamat_peminjam'   => $data['alamat_peminjam'],
-                'jenis_durasi'      => $jenisDurasi,
-                'tanggal_mulai'     => $tanggalMulai,
-                'jam_mulai'         => $data['jam_mulai'] ?? null,
+                'user_id' => $user->id,
+                'nama_pic' => $data['nama_pic'],
+                'jabatan_pic' => filled($data['jabatan_pic'] ?? null)
+                    ? $data['jabatan_pic']
+                    : ($user->jabatan ?: '-'),
+                'instansi_pic' => $data['instansi_pic'],
+                'kontak_pic' => $data['kontak_pic'],
+                'jenis_identitas' => $data['jenis_identitas'] ?? 'KTP',
+                'nomor_identitas' => $data['nomor_identitas'],
+                'alamat_peminjam' => $data['alamat_peminjam'],
+                'jenis_durasi' => $jenisDurasi,
+                'tanggal_mulai' => $tanggalMulai,
+                'jam_mulai' => $data['jam_mulai'] ?? null,
                 'durasi_peminjaman' => $jumlahDurasi,
-                'tanggal_selesai'   => $tanggalSelesai,
-                'keterangan'        => $data['keterangan'] ?? null,
-                'url_dokumen'       => $data['url_dokumen'] ?? null,
-                'status'            => 'Menunggu',
-                'created_by'        => $user->id,
+                'tanggal_selesai' => $tanggalSelesai,
+                'keterangan' => $data['keterangan'] ?? null,
+                'url_dokumen' => $data['url_dokumen'] ?? null,
+                'status' => 'Menunggu',
+                'created_by' => $user->id,
             ]);
 
             foreach ($itemsToInsert as $item) {
                 PinjamItem::create([
                     'pinjam_id' => $pinjam->id,
-                    'item_id'   => $item['item_id'],
-                    'quantity'  => $item['quantity'],
+                    'item_id' => $item['item_id'],
+                    'quantity' => $item['quantity'],
                 ]);
             }
 
@@ -106,15 +115,15 @@ class PinjamService
         // Validasi transisi status
         $allowedTransitions = [
             'Menunggu' => ['Proses', 'Ditolak'],
-            'Proses'   => ['Selesai'],
+            'Proses' => ['Selesai'],
         ];
 
-        if (!isset($allowedTransitions[$oldStatus]) || !in_array($statusBaru, $allowedTransitions[$oldStatus])) {
+        if (! isset($allowedTransitions[$oldStatus]) || ! in_array($statusBaru, $allowedTransitions[$oldStatus])) {
             throw new \InvalidArgumentException("Transisi status dari '{$oldStatus}' ke '{$statusBaru}' tidak diperbolehkan.");
         }
 
         $updateData = [
-            'status'     => $statusBaru,
+            'status' => $statusBaru,
             'updated_by' => $admin ? $admin->id : null,
         ];
 
@@ -159,7 +168,7 @@ class PinjamService
 
             if ($qty > $sisaStok) {
                 throw ValidationException::withMessages([
-                    'items' => "Stok aset '{$masterItem->nama}' tidak mencukupi. Stok tersedia: {$sisaStok}, diminta: {$qty}."
+                    'items' => "Stok aset '{$masterItem->nama}' tidak mencukupi. Stok tersedia: {$sisaStok}, diminta: {$qty}.",
                 ]);
             }
 
@@ -169,8 +178,8 @@ class PinjamService
             } else {
                 PinjamItem::create([
                     'pinjam_id' => $pinjam->id,
-                    'item_id'   => $itemId,
-                    'quantity'  => $qty,
+                    'item_id' => $itemId,
+                    'quantity' => $qty,
                 ]);
             }
         }
@@ -189,7 +198,7 @@ class PinjamService
 
         $countCurrent = $pinjam->pinjamItems()->count();
         if ($countCurrent <= 1) {
-            throw new \InvalidArgumentException("Minimal harus tersisa 1 item dalam pengajuan peminjaman.");
+            throw new \InvalidArgumentException('Minimal harus tersisa 1 item dalam pengajuan peminjaman.');
         }
 
         PinjamItem::where('pinjam_id', $pinjam->id)->where('item_id', $itemId)->delete();
@@ -203,7 +212,7 @@ class PinjamService
     public function updatePengajuan(Pinjam $pinjam, array $data): Pinjam
     {
         if ($pinjam->status !== 'Menunggu') {
-            throw new \InvalidArgumentException("Pengajuan yang sudah diproses tidak dapat diubah.");
+            throw new \InvalidArgumentException('Pengajuan yang sudah diproses tidak dapat diubah.');
         }
 
         $updateData = [];
@@ -242,15 +251,15 @@ class PinjamService
                     ->where('pinjam_id', '!=', $pinjam->id)
                     ->whereHas('pinjam', function ($query) use ($tanggalMulai, $tanggalSelesai) {
                         $query->whereIn('status', ['Menunggu', 'Proses'])
-                              ->where('tanggal_mulai', '<=', $tanggalSelesai->toDateTimeString())
-                              ->where('tanggal_selesai', '>=', $tanggalMulai);
+                            ->where('tanggal_mulai', '<=', $tanggalSelesai->toDateTimeString())
+                            ->where('tanggal_selesai', '>=', $tanggalMulai);
                     })
                     ->sum('quantity');
 
                 $sisaStok = max(0, $totalStok - (int) $dipinjamLain);
                 if ($pItem->quantity > $sisaStok) {
                     throw ValidationException::withMessages([
-                        'items' => "Stok aset '{$masterItem->nama}' tidak mencukupi untuk rentang waktu baru yang dipilih. Stok tersedia: {$sisaStok}, diminta: {$pItem->quantity}."
+                        'items' => "Stok aset '{$masterItem->nama}' tidak mencukupi untuk rentang waktu baru yang dipilih. Stok tersedia: {$sisaStok}, diminta: {$pItem->quantity}.",
                     ]);
                 }
             }
@@ -272,7 +281,7 @@ class PinjamService
     public function hapusPengajuan(Pinjam $pinjam): bool
     {
         if ($pinjam->status !== 'Menunggu') {
-            throw new \InvalidArgumentException("Pengajuan yang sudah diproses tidak dapat dihapus.");
+            throw new \InvalidArgumentException('Pengajuan yang sudah diproses tidak dapat dihapus.');
         }
 
         return (bool) $pinjam->delete();

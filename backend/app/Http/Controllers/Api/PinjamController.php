@@ -37,9 +37,21 @@ class PinjamController extends Controller
     /** POST /api/pinjam */
     public function store(AjukanPinjamRequest $request)
     {
+        $data = $request->validated();
+        $user = $request->user();
+
+        // Profile-owned identity fields are authoritative. Read-only fields in
+        // the mobile form must not be forgeable through a crafted request.
+        $data['nama_pic'] = $user->name ?: $data['nama_pic'];
+        $data['kontak_pic'] = $user->no_hp ?: $data['kontak_pic'];
+        $data['instansi_pic'] = $user->nama_opd ?: $data['instansi_pic'];
+        if (($data['jenis_identitas'] ?? null) === 'NIP' && filled($user->nip)) {
+            $data['nomor_identitas'] = $user->nip;
+        }
+
         $pinjam = $this->pinjamService->ajukanPeminjaman(
-            $request->user(),
-            $request->validated()
+            $user,
+            $data
         );
 
         return response()->json([

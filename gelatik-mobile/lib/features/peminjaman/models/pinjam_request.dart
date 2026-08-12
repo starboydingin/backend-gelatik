@@ -11,7 +11,7 @@ class PinjamRequest {
   final String? jamMulai;
   final int durasiPeminjaman;
   final String? keterangan;
-  final String? urlDokumen;
+  final String? dokumenPath;
   final Map<int, int> itemQuantities;
 
   const PinjamRequest({
@@ -27,7 +27,7 @@ class PinjamRequest {
     this.jamMulai,
     required this.durasiPeminjaman,
     this.keterangan,
-    this.urlDokumen,
+    this.dokumenPath,
     required this.itemQuantities,
   });
 
@@ -45,7 +45,6 @@ class PinjamRequest {
     if (jamMulai != null) 'jam_mulai': jamMulai,
     'durasi_peminjaman': durasiPeminjaman,
     if (keterangan != null && keterangan!.isNotEmpty) 'keterangan': keterangan,
-    if (urlDokumen != null && urlDokumen!.isNotEmpty) 'url_dokumen': urlDokumen,
     'items': itemQuantities.entries
         .map((entry) => {'item_id': entry.key, 'quantity': entry.value})
         .toList(),

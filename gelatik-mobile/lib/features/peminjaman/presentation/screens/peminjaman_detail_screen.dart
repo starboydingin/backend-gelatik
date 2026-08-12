@@ -285,7 +285,7 @@ class _PeminjamanDetailScreenState
                         pinjam.urlDokumen!.isNotEmpty)
                       _buildDetailRow(
                         context,
-                        'Url Dokumen (url_dokumen)',
+                        'Dokumen Pendukung',
                         pinjam.urlDokumen!,
                       ),
                   ],

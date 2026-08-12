@@ -9,6 +9,7 @@ import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../internet/presentation/screens/self_assessment_screen.dart';
+import '../../../peminjaman/presentation/screens/ajukan_peminjaman_screen.dart';
 import '../../providers/wa_notification_provider.dart';
 import 'notifikasi_whatsapp_screen.dart';
 
@@ -434,8 +435,11 @@ class ProfilScreen extends ConsumerWidget {
           if (index == 0) {
             Navigator.of(context).popUntil((route) => route.isFirst);
           } else if (index == 1) {
-            // Tab Ajukan Peminjaman
-            Navigator.of(context).popUntil((route) => route.isFirst);
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => const AjukanPeminjamanScreen(),
+              ),
+            );
           } else if (index == 2) {
             // Already in ProfilScreen
           }
