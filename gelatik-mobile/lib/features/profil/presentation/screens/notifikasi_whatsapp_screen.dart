@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -25,6 +26,25 @@ class _NotifikasiWhatsAppScreenState
   String? _waError;
   bool _isSubscribed = false;
   bool _initialized = false;
+  bool _numberEdited = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadSubscription());
+  }
+
+  Future<void> _loadSubscription() async {
+    if (!ref.read(authProvider).isLoggedIn) return;
+    await ref.read(waNotificationProvider.notifier).loadSubscription();
+    if (!mounted || _numberEdited) return;
+
+    final subscription = ref.read(waNotificationProvider).subscription;
+    setState(() {
+      _waController.text = subscription.waNumber;
+      _isSubscribed = subscription.isSubscribed;
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -89,6 +109,13 @@ class _NotifikasiWhatsAppScreenState
         ),
       );
       Navigator.of(context).pop();
+    } else if (mounted) {
+      final message = ref.read(waNotificationProvider).errorMessage;
+      if (message != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+        );
+      }
     }
   }
 
@@ -188,7 +215,7 @@ class _NotifikasiWhatsAppScreenState
                           ),
                         ),
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Icon(
                               Icons.check_circle_rounded,
@@ -196,12 +223,15 @@ class _NotifikasiWhatsAppScreenState
                               size: 18,
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              'Akun terdaftar sejak ${dateFormat.format(accountCreatedAt)}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: actionEmerald,
+                            Expanded(
+                              child: Text(
+                                'Akun terdaftar sejak ${dateFormat.format(accountCreatedAt)}',
+                                softWrap: true,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: actionEmerald,
+                                ),
                               ),
                             ),
                           ],
@@ -236,8 +266,13 @@ class _NotifikasiWhatsAppScreenState
                       hintText: 'Misal: 081234567890',
                       controller: _waController,
                       keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(15),
+                      ],
                       errorText: _waError,
                       onChanged: (val) {
+                        _numberEdited = true;
                         if (_waError != null) {
                           setState(() {
                             _waError = null;

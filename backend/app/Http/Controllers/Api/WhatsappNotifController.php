@@ -15,22 +15,27 @@ class WhatsappNotifController extends Controller
     public function subscribe(Request $request)
     {
         $request->validate([
-            'nomor_wa' => ['required', 'string', 'regex:/^(08|62)[0-9]{8,13}$/']
+            'nomor_wa' => ['required', 'string', 'regex:/^(?:08[0-9]{8,13}|628[0-9]{7,12})$/'],
+            'is_opt_in' => ['sometimes', 'boolean'],
         ]);
+
+        $isOptIn = $request->has('is_opt_in')
+            ? $request->boolean('is_opt_in')
+            : true;
 
         $subscription = WhatsappSubscription::updateOrCreate(
             ['user_id' => $request->user()->id],
             [
                 'nomor_wa' => $request->nomor_wa,
-                'is_opt_in' => true,
-                'verified_at' => now(), // Assuming verified upon subscribe for this scope
+                'is_opt_in' => $isOptIn,
+                'verified_at' => $isOptIn ? now() : null,
             ]
         );
 
         return response()->json([
             'success' => true, 
-            'message' => 'Berhasil subscribe notifikasi WhatsApp.',
-            'data' => $subscription
+            'message' => 'Pengaturan notifikasi WhatsApp berhasil disimpan.',
+            'data' => $this->subscriptionData($subscription),
         ]);
     }
 
@@ -62,8 +67,7 @@ class WhatsappNotifController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'nomor_wa' => $subscription->nomor_wa,
-                    'is_opt_in' => (bool)$subscription->is_opt_in,
+                    ...$this->subscriptionData($subscription),
                 ]
             ]);
         }
@@ -72,8 +76,19 @@ class WhatsappNotifController extends Controller
             'success' => true,
             'data' => [
                 'nomor_wa' => null,
-                'is_opt_in' => false,
+                'is_subscribed' => false,
+                'subscribed_at' => null,
             ]
         ]);
+    }
+
+    private function subscriptionData(WhatsappSubscription $subscription): array
+    {
+        return [
+            'user_id' => $subscription->user_id,
+            'wa_number' => $subscription->nomor_wa,
+            'is_subscribed' => (bool) $subscription->is_opt_in,
+            'subscribed_at' => $subscription->verified_at?->toISOString(),
+        ];
     }
 }

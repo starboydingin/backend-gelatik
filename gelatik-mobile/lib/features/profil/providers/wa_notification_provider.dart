@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/api_exception.dart';
 import '../models/wa_subscription_model.dart';
+import '../repositories/wa_notification_repository.dart';
 
 class WaNotificationState {
   final WaSubscriptionModel subscription;
@@ -19,26 +21,33 @@ class WaNotificationState {
     bool? isLoading,
     String? successMessage,
     String? errorMessage,
+    bool clearError = false,
   }) {
     return WaNotificationState(
       subscription: subscription ?? this.subscription,
       isLoading: isLoading ?? this.isLoading,
       successMessage: successMessage,
-      errorMessage: errorMessage,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
 }
 
 class WaNotificationNotifier extends StateNotifier<WaNotificationState> {
-  WaNotificationNotifier()
+  final WaNotificationRepository repository;
+
+  WaNotificationNotifier({
+    required this.repository,
+    WaSubscriptionModel? initialSubscription,
+  })
       : super(
           WaNotificationState(
-            subscription: WaSubscriptionModel(
-              userId: 1,
-              waNumber: '081234567890',
-              isSubscribed: true,
-              subscribedAt: DateTime(2026, 1, 15),
-            ),
+            subscription:
+                initialSubscription ??
+                const WaSubscriptionModel(
+                  userId: 0,
+                  waNumber: '',
+                  isSubscribed: false,
+                ),
           ),
         );
 
@@ -62,43 +71,63 @@ class WaNotificationNotifier extends StateNotifier<WaNotificationState> {
     return null;
   }
 
-  /// Update / Simpan Pengaturan Notifikasi WhatsApp
+  Future<void> loadSubscription() async {
+    if (state.isLoading) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      state = state.copyWith(
+        subscription: await repository.getStatus(),
+        isLoading: false,
+      );
+    } on ApiException catch (error) {
+      state = state.copyWith(isLoading: false, errorMessage: error.message);
+    } on FormatException catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Status notifikasi WhatsApp tidak valid.',
+      );
+    }
+  }
+
+  /// Simpan nomor terbaru untuk user yang sedang login melalui API upsert.
   Future<bool> saveSubscription({
     required String waNumber,
     required bool isSubscribed,
   }) async {
-    if (isSubscribed) {
-      final validationError = validateWaNumber(waNumber);
-      if (validationError != null) {
-        state = state.copyWith(errorMessage: validationError);
-        return false;
-      }
+    final validationError = validateWaNumber(waNumber);
+    if (validationError != null) {
+      state = state.copyWith(errorMessage: validationError);
+      return false;
     }
 
     state = state.copyWith(isLoading: true);
-
-    // Simulasikan delay API
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    final now = DateTime.now();
-    final updated = state.subscription.copyWith(
-      waNumber: waNumber.trim(),
-      isSubscribed: isSubscribed,
-      subscribedAt: isSubscribed
-          ? (state.subscription.subscribedAt ?? now)
-          : state.subscription.subscribedAt,
-    );
-
-    state = state.copyWith(
-      subscription: updated,
-      isLoading: false,
-      successMessage: 'Pengaturan Notifikasi WhatsApp berhasil disimpan.',
-    );
-    return true;
+    try {
+      final updated = await repository.save(
+        waNumber: waNumber.trim(),
+        isSubscribed: isSubscribed,
+      );
+      state = state.copyWith(
+        subscription: updated,
+        isLoading: false,
+        successMessage: 'Pengaturan Notifikasi WhatsApp berhasil disimpan.',
+      );
+      return true;
+    } on ApiException catch (error) {
+      state = state.copyWith(isLoading: false, errorMessage: error.message);
+      return false;
+    } on FormatException catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Respons notifikasi WhatsApp tidak valid.',
+      );
+      return false;
+    }
   }
 }
 
 final waNotificationProvider =
     StateNotifierProvider<WaNotificationNotifier, WaNotificationState>((ref) {
-  return WaNotificationNotifier();
+  return WaNotificationNotifier(
+    repository: ref.watch(waNotificationRepositoryProvider),
+  );
 });

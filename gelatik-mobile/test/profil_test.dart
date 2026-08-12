@@ -8,6 +8,34 @@ import 'package:gelatik/features/auth/providers/auth_provider.dart';
 import 'package:gelatik/features/profil/presentation/screens/notifikasi_whatsapp_screen.dart';
 import 'package:gelatik/features/profil/presentation/screens/profil_screen.dart';
 import 'package:gelatik/features/profil/providers/wa_notification_provider.dart';
+import 'package:gelatik/features/profil/repositories/wa_notification_repository.dart';
+import 'package:gelatik/features/profil/models/wa_subscription_model.dart';
+import 'package:gelatik/core/network/api_client.dart';
+import 'package:gelatik/core/storage/secure_storage_service.dart';
+
+class _FakeWaNotificationRepository extends WaNotificationRepository {
+  _FakeWaNotificationRepository({required this.subscription})
+      : super(
+          apiClient: ApiClient(secureStorageService: SecureStorageService()),
+        );
+
+  WaSubscriptionModel subscription;
+
+  @override
+  Future<WaSubscriptionModel> getStatus() async => subscription;
+
+  @override
+  Future<WaSubscriptionModel> save({
+    required String waNumber,
+    required bool isSubscribed,
+  }) async {
+    subscription = subscription.copyWith(
+      waNumber: waNumber,
+      isSubscribed: isSubscribed,
+    );
+    return subscription;
+  }
+}
 
 void main() {
   setUpAll(() async {
@@ -35,6 +63,11 @@ void main() {
     );
 
     Widget buildProfilWidget({AuthState? initialState}) {
+      const subscription = WaSubscriptionModel(
+        userId: 1,
+        waNumber: '081234567890',
+        isSubscribed: true,
+      );
       return ProviderScope(
         overrides: [
           authProvider.overrideWith((ref) {
@@ -44,6 +77,12 @@ void main() {
                 AuthState(isLoggedIn: true, currentUser: DummyData.activeUser);
             return notifier;
           }),
+          waNotificationProvider.overrideWith((ref) => WaNotificationNotifier(
+                repository: _FakeWaNotificationRepository(
+                  subscription: subscription,
+                ),
+                initialSubscription: subscription,
+              )),
         ],
         child: const MaterialApp(home: ProfilScreen()),
       );
@@ -141,9 +180,23 @@ void main() {
     });
 
     testWidgets(
-      '5. Submitting valid WhatsApp number saves data to dummy store and returns success',
+      '5. Submitting valid WhatsApp number saves the latest number through the repository',
       (tester) async {
-        final container = ProviderContainer();
+        const subscription = WaSubscriptionModel(
+          userId: 1,
+          waNumber: '081234567890',
+          isSubscribed: true,
+        );
+        final container = ProviderContainer(
+          overrides: [
+            waNotificationProvider.overrideWith((ref) => WaNotificationNotifier(
+                  repository: _FakeWaNotificationRepository(
+                    subscription: subscription,
+                  ),
+                  initialSubscription: subscription,
+                )),
+          ],
+        );
         addTearDown(container.dispose);
 
         await tester.pumpWidget(
@@ -197,6 +250,20 @@ void main() {
               );
               return notifier;
             }),
+            waNotificationProvider.overrideWith((ref) => WaNotificationNotifier(
+                  repository: _FakeWaNotificationRepository(
+                    subscription: const WaSubscriptionModel(
+                      userId: 99,
+                      waNumber: '081234567890',
+                      isSubscribed: true,
+                    ),
+                  ),
+                  initialSubscription: const WaSubscriptionModel(
+                    userId: 99,
+                    waNumber: '081234567890',
+                    isSubscribed: true,
+                  ),
+                )),
           ],
           child: const MaterialApp(home: NotifikasiWhatsAppScreen()),
         ),
