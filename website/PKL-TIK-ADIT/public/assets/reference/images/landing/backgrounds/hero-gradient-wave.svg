@@ -1,0 +1,29 @@
+<svg width="1440" height="620" viewBox="0 0 1440 620" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1440" height="620" rx="28" fill="url(#heroBg)"/>
+  <circle cx="1120" cy="170" r="240" fill="#6DBDFF" opacity="0.18"/>
+  <circle cx="230" cy="95" r="170" fill="#10B981" opacity="0.08"/>
+  <path d="M0 430C185 353 343 423 520 456C733 495 882 442 1038 394C1176 351 1305 361 1440 426V620H0V430Z" fill="url(#waveA)" opacity="0.64"/>
+  <path d="M0 502C179 452 331 478 515 522C752 579 944 533 1114 490C1248 456 1347 475 1440 516V620H0V502Z" fill="url(#waveB)" opacity="0.8"/>
+  <g opacity="0.2" stroke="#0B57B7">
+    <path d="M875 128H980L1024 84H1190"/>
+    <path d="M970 238H1118L1164 192H1370"/>
+    <circle cx="1024" cy="84" r="5" fill="#0B57B7"/>
+    <circle cx="1164" cy="192" r="5" fill="#0B57B7"/>
+    <circle cx="1190" cy="84" r="4" fill="#10B981"/>
+  </g>
+  <defs>
+    <linearGradient id="heroBg" x1="0" y1="0" x2="1440" y2="620" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FCFF"/>
+      <stop offset="0.55" stop-color="#EAF5FF"/>
+      <stop offset="1" stop-color="#D8ECFF"/>
+    </linearGradient>
+    <linearGradient id="waveA" x1="0" y1="370" x2="1440" y2="620" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BFE3FF"/>
+      <stop offset="1" stop-color="#5AB8FF"/>
+    </linearGradient>
+    <linearGradient id="waveB" x1="0" y1="480" x2="1440" y2="620" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#91D4FF"/>
+      <stop offset="1" stop-color="#0B57B7"/>
+    </linearGradient>
+  </defs>
+</svg>

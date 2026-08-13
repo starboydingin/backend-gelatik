@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <title>Buku Panduan Layanan TIK Provinsi Lampung</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 18mm 16mm 18mm;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            color: #17345f;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            line-height: 1.55;
+        }
+
+        h1,
+        h2,
+        h3,
+        p {
+            margin-top: 0;
+        }
+
+        h1 {
+            color: #082e73;
+            font-size: 30pt;
+            line-height: 1.1;
+        }
+
+        h2 {
+            margin-bottom: 12px;
+            color: #082e73;
+            font-size: 21pt;
+            line-height: 1.2;
+        }
+
+        h3 {
+            margin-bottom: 7px;
+            color: #087d69;
+            font-size: 13pt;
+        }
+
+        p,
+        li {
+            color: #526785;
+        }
+
+        ul,
+        ol {
+            margin: 8px 0 16px;
+            padding-left: 22px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        .page {
+            min-height: 255mm;
+            page-break-after: always;
+            position: relative;
+        }
+
+        .page:last-child {
+            page-break-after: auto;
+        }
+
+        .cover {
+            min-height: 255mm;
+            overflow: hidden;
+            border-radius: 20px;
+            background:
+                radial-gradient(circle at 90% 10%, rgba(91, 184, 242, .25), transparent 34%),
+                radial-gradient(circle at 10% 90%, rgba(16, 215, 182, .18), transparent 36%),
+                linear-gradient(145deg, #edf9f7 0%, #f7fbff 48%, #e5f1ff 100%);
+            padding: 32px;
+        }
+
+        .cover-bar {
+            height: 12px;
+            margin: -32px -32px 42px;
+            background: linear-gradient(90deg, #082e73, #243f92 60%, #0dae8b);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            min-height: 72px;
+            margin-bottom: 55px;
+        }
+
+        .brand img {
+            width: 255px;
+            max-height: 70px;
+            object-fit: contain;
+            object-position: left center;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            margin-bottom: 17px;
+            border: 1px solid #a7dfd3;
+            border-radius: 99px;
+            background: rgba(255, 255, 255, .85);
+            padding: 7px 13px;
+            color: #087d69;
+            font-size: 9pt;
+            font-weight: 700;
+            letter-spacing: 1.3px;
+            text-transform: uppercase;
+        }
+
+        .cover h1 {
+            max-width: 520px;
+            margin-bottom: 20px;
+            font-size: 39pt;
+        }
+
+        .cover-intro {
+            max-width: 520px;
+            font-size: 14pt;
+            line-height: 1.65;
+        }
+
+        .cover-card {
+            margin-top: 55px;
+            border: 1px solid rgba(8, 46, 115, .12);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .88);
+            padding: 22px 24px;
+            box-shadow: 0 16px 40px rgba(8, 46, 115, .10);
+        }
+
+        .cover-card strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #082e73;
+            font-size: 13pt;
+        }
+
+        .section-head {
+            margin-bottom: 24px;
+            border-bottom: 2px solid #dce8f3;
+            padding-bottom: 14px;
+        }
+
+        .section-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            margin-right: 8px;
+            border-radius: 10px;
+            background: #0dae8b;
+            color: white;
+            font-size: 12pt;
+            font-weight: 700;
+            vertical-align: middle;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .card {
+            break-inside: avoid;
+            border: 1px solid #dce8f3;
+            border-radius: 14px;
+            background: #f8fbfe;
+            padding: 16px;
+        }
+
+        .card p:last-child,
+        .card ul:last-child,
+        .card ol:last-child {
+            margin-bottom: 0;
+        }
+
+        .step {
+            display: grid;
+            grid-template-columns: 38px 1fr;
+            gap: 12px;
+            break-inside: avoid;
+            margin-bottom: 12px;
+            border: 1px solid #dce8f3;
+            border-radius: 13px;
+            padding: 13px 15px;
+        }
+
+        .step-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #e4f7f2;
+            color: #087d69;
+            font-weight: 700;
+        }
+
+        .step strong {
+            display: block;
+            margin-bottom: 3px;
+            color: #17345f;
+        }
+
+        .step p {
+            margin-bottom: 0;
+            font-size: 10pt;
+        }
+
+        .notice {
+            margin: 18px 0;
+            border-left: 5px solid #0dae8b;
+            border-radius: 10px;
+            background: #eaf8f5;
+            padding: 13px 16px;
+        }
+
+        .notice.warning {
+            border-left-color: #f0b33b;
+            background: #fff8e8;
+        }
+
+        .notice strong {
+            display: block;
+            margin-bottom: 3px;
+            color: #17345f;
+        }
+
+        .status-table {
+            width: 100%;
+            margin: 12px 0 20px;
+            border-collapse: collapse;
+        }
+
+        .status-table th,
+        .status-table td {
+            border: 1px solid #dce8f3;
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .status-table th {
+            background: #082e73;
+            color: white;
+        }
+
+        .status-table td:first-child {
+            width: 28%;
+            color: #17345f;
+            font-weight: 700;
+        }
+
+        .toc {
+            margin-top: 20px;
+            border-top: 1px solid #dce8f3;
+        }
+
+        .toc-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #dce8f3;
+            padding: 12px 0;
+            color: #526785;
+        }
+
+        .toc-row strong {
+            color: #17345f;
+        }
+
+        .footer-note {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            border-top: 1px solid #dce8f3;
+            padding-top: 9px;
+            color: #8a9ab0;
+            font-size: 8.5pt;
+        }
+    </style>
+</head>
+<body>
+    <section class="page cover">
+        <div class="cover-bar"></div>
+        <div class="brand">
+            <img src="../../public/frontend/images/landing/brand/logo_tik-clean.png" alt="TIK Interfaces">
+        </div>
+        <span class="eyebrow">Portal Layanan TIK Provinsi Lampung</span>
+        <h1>Buku Panduan Pengguna</h1>
+        <p class="cover-intro">
+            Panduan ringkas untuk menggunakan portal konsultasi TIK, peminjaman perangkat,
+            usulan email resmi, notifikasi, dan layanan pendukung OPD.
+        </p>
+        <div class="cover-card">
+            <strong>Dinas Komunikasi, Informatika dan Statistik Provinsi Lampung</strong>
+            <p>Versi portal 2026 - diperbarui untuk tampilan Vue/Inertia.</p>
+        </div>
+    </section>
+
+    <section class="page">
+        <div class="section-head">
+            <span class="eyebrow">Daftar isi</span>
+            <h2>Isi buku panduan</h2>
+        </div>
+        <div class="toc">
+            <div class="toc-row"><strong>1. Mulai menggunakan portal</strong><span>Halaman 3</span></div>
+            <div class="toc-row"><strong>2. Mengajukan konsultasi TIK</strong><span>Halaman 4</span></div>
+            <div class="toc-row"><strong>3. Mengajukan peminjaman perangkat</strong><span>Halaman 5</span></div>
+            <div class="toc-row"><strong>4. Mengajukan email resmi ASN</strong><span>Halaman 6</span></div>
+            <div class="toc-row"><strong>5. Status dan notifikasi</strong><span>Halaman 7</span></div>
+            <div class="toc-row"><strong>6. Profil, keamanan, dan bantuan</strong><span>Halaman 8</span></div>
+        </div>
+        <div class="notice">
+            <strong>Catatan penting</strong>
+            Tampilan portal telah diperbarui, tetapi route, validasi, role, permission,
+            serta status proses layanan tetap mengikuti proses bisnis aplikasi.
+        </div>
+        <div class="footer-note">Buku Panduan Layanan TIK Provinsi Lampung</div>
+    </section>
+
+    <section class="page">
+        <div class="section-head">
+            <span class="section-number">1</span>
+            <span class="eyebrow">Persiapan</span>
+            <h2>Mulai menggunakan portal</h2>
+        </div>
+        <div class="step">
+            <div class="step-number">1</div>
+            <div><strong>Buka portal Layanan TIK</strong><p>Akses alamat portal melalui peramban modern seperti Chrome, Edge, atau Firefox.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">2</div>
+            <div><strong>Pilih tombol Login</strong><p>Semua pengguna masuk melalui portal login yang sama. Sistem akan mengarahkan halaman berdasarkan role akun.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">3</div>
+            <div><strong>Masukkan email atau username</strong><p>Gunakan identitas akun dan password yang telah diberikan oleh pengelola layanan.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">4</div>
+            <div><strong>Periksa dashboard</strong><p>Dashboard menampilkan ringkasan konsultasi, akses layanan, notifikasi, dan status terbaru milik Anda.</p></div>
+        </div>
+        <div class="grid">
+            <div class="card">
+                <h3>Portal pengguna</h3>
+                <p>Digunakan oleh OPD untuk membuat pengajuan, melihat riwayat, membalas konsultasi, serta memantau status.</p>
+            </div>
+            <div class="card">
+                <h3>Portal petugas</h3>
+                <p>Filament digunakan oleh admin, operator, dan BKD sesuai hak akses untuk memproses pengajuan.</p>
+            </div>
+        </div>
+        <div class="notice warning">
+            <strong>Jaga keamanan akun</strong>
+            Jangan membagikan password. Setelah memakai komputer bersama, selalu pilih menu Keluar.
+        </div>
+        <div class="footer-note">1. Mulai menggunakan portal</div>
+    </section>
+
+    <section class="page">
+        <div class="section-head">
+            <span class="section-number">2</span>
+            <span class="eyebrow">Konsultasi</span>
+            <h2>Mengajukan konsultasi TIK</h2>
+        </div>
+        <div class="step">
+            <div class="step-number">1</div>
+            <div><strong>Buka menu Konsultasi TIK</strong><p>Pilih Buat Konsultasi atau tombol Ajukan Konsultasi pada dashboard.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">2</div>
+            <div><strong>Pilih topik dan substansi</strong><p>Pilih kategori yang paling sesuai agar konsultasi diteruskan kepada petugas yang tepat.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">3</div>
+            <div><strong>Isi judul dan pesan</strong><p>Jelaskan kebutuhan, kendala, waktu kejadian, dan informasi pendukung secara jelas.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">4</div>
+            <div><strong>Lampirkan bukti bila diperlukan</strong><p>Gunakan format file yang diperbolehkan dan pastikan ukurannya mengikuti batas pada formulir.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">5</div>
+            <div><strong>Kirim dan pantau percakapan</strong><p>Petugas dapat membalas konsultasi. Balasan baru akan muncul pada detail konsultasi dan notifikasi.</p></div>
+        </div>
+        <table class="status-table">
+            <tr><th>Status</th><th>Makna</th></tr>
+            <tr><td>Menunggu</td><td>Pengajuan telah diterima dan menunggu tindak lanjut.</td></tr>
+            <tr><td>Proses</td><td>Petugas sedang menangani konsultasi.</td></tr>
+            <tr><td>Selesai</td><td>Konsultasi telah diselesaikan.</td></tr>
+            <tr><td>Ditolak</td><td>Konsultasi tidak dapat dilanjutkan sesuai catatan petugas.</td></tr>
+        </table>
+        <div class="footer-note">2. Mengajukan konsultasi TIK</div>
+    </section>
+
+    <section class="page">
+        <div class="section-head">
+            <span class="section-number">3</span>
+            <span class="eyebrow">Peminjaman</span>
+            <h2>Mengajukan peminjaman perangkat</h2>
+        </div>
+        <div class="step">
+            <div class="step-number">1</div>
+            <div><strong>Buka menu Peminjaman</strong><p>Pilih Buat Peminjaman untuk memulai permohonan perangkat pendukung kegiatan.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">2</div>
+            <div><strong>Lengkapi informasi kegiatan</strong><p>Isi PIC, kontak aktif, tanggal, waktu, lokasi, dan kebutuhan kegiatan secara lengkap.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">3</div>
+            <div><strong>Pilih perangkat dan jumlah</strong><p>Pilih item yang dibutuhkan sesuai ketersediaan dan ketentuan layanan.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">4</div>
+            <div><strong>Unggah dokumen pendukung</strong><p>Lampirkan surat atau dokumen kegiatan jika diwajibkan oleh formulir.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">5</div>
+            <div><strong>Pantau persetujuan dan pengembalian</strong><p>Perubahan status, catatan petugas, dan proses pengembalian dapat dipantau dari riwayat peminjaman.</p></div>
+        </div>
+        <div class="notice warning">
+            <strong>Perhatikan jadwal</strong>
+            Pastikan tanggal serta waktu peminjaman benar. Perubahan hanya dapat dilakukan selama status dan permission masih mengizinkan.
+        </div>
+        <div class="footer-note">3. Mengajukan peminjaman perangkat</div>
+    </section>
+
+    <section class="page">
+        <div class="section-head">
+            <span class="section-number">4</span>
+            <span class="eyebrow">Email resmi</span>
+            <h2>Mengajukan email resmi ASN</h2>
+        </div>
+        <div class="step">
+            <div class="step-number">1</div>
+            <div><strong>Buka menu Usulan Email</strong><p>Daftar pegawai ditampilkan sesuai unit kerja akun pengguna.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">2</div>
+            <div><strong>Pilih pegawai</strong><p>Pastikan nama, NIP, unit kerja, dan jabatan sesuai dengan data pegawai yang tersedia.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">3</div>
+            <div><strong>Masukkan email pribadi</strong><p>Email pribadi dipakai sebagai informasi pendukung pengajuan dan harus menggunakan format yang valid.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">4</div>
+            <div><strong>Kirim pengajuan</strong><p>Pengajuan akan berstatus Diajukan dan masuk ke daftar verifikasi petugas.</p></div>
+        </div>
+        <div class="step">
+            <div class="step-number">5</div>
+            <div><strong>Pantau hasil verifikasi</strong><p>Email resmi dan catatan verifikasi hanya dapat diisi oleh admin, BKD, operator, atau petugas berwenang.</p></div>
+        </div>
+        <div class="notice">
+            <strong>Perlindungan data</strong>
+            Pengguna hanya dapat melihat serta mengubah pengajuan miliknya sendiri. Pengajuan yang sudah disetujui atau ditolak tidak dapat diubah pengguna.
+        </div>
+        <div class="footer-note">4. Mengajukan email resmi ASN</div>
+    </section>
+
+    <section class="page">
+        <div class="section-head">
+            <span class="section-number">5</span>
+            <span class="eyebrow">Pembaruan</span>
+            <h2>Status dan notifikasi</h2>
+        </div>
+        <div class="grid">
+            <div class="card">
+                <h3>Ikon lonceng</h3>
+                <p>Jumlah notifikasi yang belum dibaca ditampilkan pada badge di kanan atas portal pengguna.</p>
+            </div>
+            <div class="card">
+                <h3>Notifikasi real-time</h3>
+                <p>Jika koneksi Pusher tersedia, pemberitahuan baru muncul otomatis tanpa memuat ulang halaman.</p>
+            </div>
+            <div class="card">
+                <h3>Riwayat notifikasi</h3>
+                <p>Pilih Lihat Semua atau menu Notifikasi untuk mencari dan memfilter pemberitahuan sebelumnya.</p>
+            </div>
+            <div class="card">
+                <h3>Tandai dibaca</h3>
+                <p>Membuka panel notifikasi akan menandai pemberitahuan yang belum dibaca pada akun tersebut.</p>
+            </div>
+        </div>
+        <div class="notice">
+            <strong>Jika real-time tidak aktif</strong>
+            Data notifikasi tetap tersimpan di database. Muat ulang halaman atau buka menu Notifikasi untuk melihat pembaruan terbaru.
+        </div>
+        <h3>Jenis pemberitahuan utama</h3>
+        <ul>
+            <li>Balasan dan perubahan status konsultasi.</li>
+            <li>Perubahan status peminjaman serta catatan petugas.</li>
+            <li>Pemberitahuan lain yang diarahkan ke halaman Notifikasi.</li>
+        </ul>
+        <div class="footer-note">5. Status dan notifikasi</div>
+    </section>
+
+    <section class="page">
+        <div class="section-head">
+            <span class="section-number">6</span>
+            <span class="eyebrow">Akun & bantuan</span>
+            <h2>Profil, keamanan, dan bantuan</h2>
+        </div>
+        <div class="grid">
+            <div class="card">
+                <h3>Perbarui profil</h3>
+                <p>Buka menu Profil untuk memeriksa nama, email, OPD, nomor handphone, dan foto akun.</p>
+            </div>
+            <div class="card">
+                <h3>Ganti password</h3>
+                <p>Gunakan password yang kuat dan berbeda dari layanan lain. Ikuti validasi yang tampil pada formulir.</p>
+            </div>
+            <div class="card">
+                <h3>FAQ</h3>
+                <p>Buka halaman Panduan untuk mencari jawaban berdasarkan topik layanan yang aktif.</p>
+            </div>
+            <div class="card">
+                <h3>Konsultasi bantuan</h3>
+                <p>Jika jawaban tidak ditemukan, buat konsultasi baru dengan kategori yang paling sesuai.</p>
+            </div>
+        </div>
+        <div class="notice warning">
+            <strong>Pemecahan masalah singkat</strong>
+            Jika tampilan tidak berubah setelah pembaruan, lakukan refresh kuat dengan Ctrl + F5.
+            Pastikan server Laravel dan Vite berjalan saat menggunakan mode pengembangan.
+        </div>
+        <h3>Kontak pengelola</h3>
+        <p>
+            Dinas Komunikasi, Informatika dan Statistik Provinsi Lampung<br>
+            Jl. WR Supratman No. 39, Bandar Lampung<br>
+            Email: diskominfotik@lampungprov.go.id
+        </p>
+        <div class="footer-note">6. Profil, keamanan, dan bantuan</div>
+    </section>
+</body>
+</html>

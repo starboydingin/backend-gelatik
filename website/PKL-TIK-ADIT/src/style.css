@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        @apply bg-canvas;
+    }
+    body {
+        @apply min-w-[320px] overflow-x-hidden bg-canvas font-sans text-slate-800 antialiased;
+    }
+    button,
+    a,
+    input,
+    select,
+    textarea {
+        @apply transition duration-200;
+    }
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+        @apply outline-none ring-2 ring-brand-600 ring-offset-2;
+    }
+}
+@layer components {
+    .btn {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50;
+    }
+    .btn-primary {
+        @apply btn bg-action text-white shadow-lg shadow-emerald-500/15 hover:bg-emerald-600;
+    }
+    .btn-secondary {
+        @apply btn border border-stroke bg-white text-navy hover:border-brand-300 hover:bg-brand-50;
+    }
+    .btn-danger {
+        @apply btn border border-rose-200 bg-white text-danger hover:bg-rose-50;
+    }
+    .card {
+        @apply rounded-2xl border border-stroke bg-white p-5 shadow-soft;
+    }
+    .input {
+        @apply min-h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm text-navy placeholder:text-slate-400 hover:border-slate-400 focus:border-brand-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-100;
+    }
+    .label {
+        @apply mb-1.5 block text-xs font-bold uppercase tracking-[.08em] text-navy;
+    }
+    .badge {
+        @apply inline-flex rounded-full px-2.5 py-1 text-xs font-semibold;
+    }
+    .table-wrap {
+        @apply overflow-x-auto rounded-2xl border border-stroke bg-white shadow-soft;
+    }
+    .data-table {
+        @apply min-w-full divide-y divide-slate-200 text-sm;
+    }
+    .data-table th {
+        @apply whitespace-nowrap bg-slate-100/80 px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500;
+    }
+    .data-table td {
+        @apply max-w-sm px-4 py-4 align-top text-slate-700;
+    }
+    .data-table tbody {
+        @apply divide-y divide-slate-100;
+    }
+    .data-table tbody tr {
+        @apply transition hover:bg-brand-50/40;
+    }
+    .eyebrow {
+        @apply text-[10px] font-bold uppercase tracking-[.2em] text-brand-600;
+    }
+    .service-hero {
+        @apply relative flex flex-col justify-between gap-7 overflow-hidden rounded-[28px] bg-gradient-to-r from-navy via-blue-800 to-cyan-600 p-6 shadow-lg shadow-blue-950/10 md:flex-row md:items-center md:p-8;
+    }
+    .service-hero::after {
+        content: '';
+        @apply pointer-events-none absolute -right-20 -top-32 size-80 rounded-full border-[42px] border-white/5;
+    }
+    .section-panel {
+        @apply overflow-hidden rounded-2xl border border-stroke bg-white shadow-soft;
+    }
+    .section-panel-header {
+        @apply border-b border-stroke bg-gradient-to-r from-brand-50/80 to-cyan-50/60 px-5 py-4;
+    }
+    .page-stack {
+        @apply space-y-5 md:space-y-6;
+    }
+}
