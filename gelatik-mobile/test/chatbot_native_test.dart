@@ -115,6 +115,7 @@ void main() {
       expect(find.byKey(const Key('chatbot-welcome')), findsOneWidget);
       expect(find.text('Pertanyaan cepat'), findsOneWidget);
       expect(find.byKey(const Key('chatbot-quick-0')), findsOneWidget);
+      expect(find.byKey(const Key('chatbot-quick-4')), findsOneWidget);
     });
 
     testWidgets('30a. pertanyaan cepat mengirim pertanyaan ke chatbot', (
@@ -129,6 +130,8 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Jawaban dari backend'), findsOneWidget);
+      expect(find.byKey(const Key('chatbot-welcome')), findsNothing);
+      expect(find.byKey(const Key('chatbot-quick-0')), findsNothing);
     });
 
     testWidgets('31. history success dirender', (tester) async {

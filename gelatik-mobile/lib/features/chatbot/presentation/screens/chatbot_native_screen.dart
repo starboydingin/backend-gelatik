@@ -17,13 +17,19 @@ class ChatbotNativeScreen extends ConsumerStatefulWidget {
       _ChatbotNativeScreenState();
 }
 
-class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
+class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen>
+    with WidgetsBindingObserver {
+  static const _starterPromptResetAfter = Duration(minutes: 5);
+
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  DateTime? _inactiveSince;
+  bool _showStarterPrompts = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _messageController.addListener(_onInputChanged);
   }
 
@@ -31,11 +37,34 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _messageController
       ..removeListener(_onInputChanged)
       ..dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        _inactiveSince ??= DateTime.now();
+        return;
+      case AppLifecycleState.resumed:
+        final inactiveSince = _inactiveSince;
+        _inactiveSince = null;
+        if (inactiveSince != null &&
+            DateTime.now().difference(inactiveSince) >=
+                _starterPromptResetAfter) {
+          setState(() => _showStarterPrompts = true);
+          _scrollToStarterPrompts();
+        }
+        return;
+    }
   }
 
   void _scrollToBottom() {
@@ -49,10 +78,24 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
     });
   }
 
+  void _scrollToStarterPrompts() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.minScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   Future<void> _send([String? quickQuestion]) async {
     final text = (quickQuestion ?? _messageController.text).trim();
     final state = ref.read(chatbotProvider);
     if (text.isEmpty || state.isTyping) return;
+    if (_showStarterPrompts) {
+      setState(() => _showStarterPrompts = false);
+    }
     _messageController.clear();
     FocusScope.of(context).unfocus();
     await ref.read(chatbotProvider.notifier).sendMessage(text);
@@ -176,17 +219,17 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
         key: Key(state.messages.isEmpty ? 'chatbot-empty' : 'chatbot-messages'),
         padding: const EdgeInsets.all(16),
         physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: state.messages.length + (state.isTyping ? 4 : 3),
+        itemCount: _itemCount(state),
         itemBuilder: (context, index) {
           if (index == 0) return const _DayChip();
-          if (index == 1) {
+          if (_showStarterPrompts && index == 1) {
             return _AssistantWelcome(
               primaryTeal: primaryTeal,
               strokeColor: strokeColor,
               mutedText: mutedText,
             );
           }
-          if (index == 2) {
+          if (_showStarterPrompts && index == 2) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 20),
               child: _QuickQuestions(
@@ -196,7 +239,7 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
               ),
             );
           }
-          final messageIndex = index - 3;
+          final messageIndex = index - (_showStarterPrompts ? 3 : 1);
           if (messageIndex == state.messages.length) {
             return _TypingIndicator(
               primaryTeal: primaryTeal,
@@ -219,6 +262,13 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen> {
         },
       ),
     );
+  }
+
+  int _itemCount(ChatbotState state) {
+    final starterItems = _showStarterPrompts ? 2 : 0;
+    final typingItems = state.isTyping ? 1 : 0;
+
+    return 1 + starterItems + state.messages.length + typingItems;
   }
 
   Widget _buildInput(
@@ -306,6 +356,7 @@ class _QuickQuestions extends StatelessWidget {
     'WiFi terhubung tetapi tidak ada internet. Apa yang harus dilakukan?',
     'Bagaimana cara reset kata sandi email resmi?',
     'Bagaimana cara mengajukan sertifikat elektronik TTE?',
+    'Bagaimana cara mengajukan usulan email dinas?',
   ];
 
   @override
