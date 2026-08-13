@@ -4,7 +4,7 @@ import { PaperAirplaneIcon, SparklesIcon, TrashIcon } from '@heroicons/vue/24/ou
 import { api, payload, errorMessage } from '../../lib/api'
 import PageHeader from '../../components/PageHeader.vue'
 import AlertMessage from '../../components/AlertMessage.vue'
-const sessionId = localStorage.getItem('gelatik_chat_session') || crypto.randomUUID()
+const sessionId = ref(localStorage.getItem('gelatik_chat_session') || '')
 const messages = ref([]),
     input = ref(''),
     error = ref(''),
@@ -16,12 +16,16 @@ const quickQuestions = [
     'Bagaimana mengecek status pengajuan?',
     'Bagaimana melaporkan gangguan internet OPD?',
 ]
-localStorage.setItem('gelatik_chat_session', sessionId)
 async function history() {
+    if (!sessionId.value) return
     try {
         messages.value =
-            payload(await api.get('/chatbot/history', { params: { session_id: sessionId } })) || []
-    } catch {}
+            payload(await api.get('/chatbot/history', { params: { session_id: sessionId.value } })) || []
+    } catch {
+        // A locally stored session can outlive a deleted server conversation.
+        sessionId.value = ''
+        localStorage.removeItem('gelatik_chat_session')
+    }
 }
 async function send(text = input.value) {
     if (!String(text).trim() || sending.value) return
@@ -32,8 +36,15 @@ async function send(text = input.value) {
     sending.value = true
     try {
         const result = payload(
-            await api.post('/chatbot/message', { message: prompt, session_id: sessionId })
+            await api.post('/chatbot/message', {
+                message: prompt,
+                session_id: sessionId.value || null,
+            })
         )
+        if (result.session_id) {
+            sessionId.value = result.session_id
+            localStorage.setItem('gelatik_chat_session', result.session_id)
+        }
         messages.value.push({
             role: 'assistant',
             message: result.reply || result.message || result.answer || 'Respons diterima.',
@@ -45,9 +56,15 @@ async function send(text = input.value) {
     }
 }
 async function clear() {
-    try {
-        await api.delete('/chatbot/history', { params: { session_id: sessionId } })
+    if (!sessionId.value) {
         messages.value = []
+        return
+    }
+    try {
+        await api.delete('/chatbot/history', { params: { session_id: sessionId.value } })
+        messages.value = []
+        sessionId.value = ''
+        localStorage.removeItem('gelatik_chat_session')
     } catch (requestError) {
         error.value = errorMessage(requestError)
     }

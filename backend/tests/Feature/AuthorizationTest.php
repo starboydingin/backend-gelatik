@@ -105,6 +105,37 @@ class AuthorizationTest extends TestCase
             ]);
     }
 
+    public function test_chatbot_replaces_a_missing_browser_session_with_a_new_private_session(): void
+    {
+        Schema::create('chatbot_conversations', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->index();
+            $table->string('session_id');
+            $table->timestamps();
+        });
+        Schema::create('chatbot_messages', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('conversation_id')->index();
+            $table->enum('role', ['user', 'assistant']);
+            $table->text('content');
+            $table->enum('provider_used', ['gemini', 'groq']);
+            $table->timestamps();
+        });
+
+        $response = app(ChatbotService::class)->sendMessage(
+            $this->userA,
+            'Halo',
+            'browser-session-yang-sudah-dihapus',
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertNotSame('browser-session-yang-sudah-dihapus', $response['session_id']);
+        $this->assertDatabaseHas('chatbot_conversations', [
+            'user_id' => $this->userA->id,
+            'session_id' => $response['session_id'],
+        ]);
+    }
+
     public function test_chatbot_prioritizes_relevant_active_faq_context(): void
     {
         Schema::create('chatbot_conversations', function (Blueprint $table): void {

@@ -22,16 +22,23 @@ class ChatbotService
 
     public function sendMessage(User $user, string $message, ?string $sessionId)
     {
-        if (! $sessionId) {
+        if ($sessionId) {
+            $conversation = ChatbotConversation::where('user_id', $user->id)
+                ->where('session_id', $sessionId)
+                ->first();
+        }
+
+        // Browser storage may outlive a manually deleted conversation or a
+        // local database reset. Start a new private conversation instead of
+        // surfacing a ModelNotFound error to the user. A supplied session is
+        // always scoped to the authenticated user, so another user's history
+        // can never be reused.
+        if (! isset($conversation) || ! $conversation) {
             $sessionId = Str::uuid()->toString();
             $conversation = ChatbotConversation::create([
                 'user_id' => $user->id,
                 'session_id' => $sessionId,
             ]);
-        } else {
-            $conversation = ChatbotConversation::where('user_id', $user->id)
-                ->where('session_id', $sessionId)
-                ->firstOrFail();
         }
 
         ChatbotMessage::create([
