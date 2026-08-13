@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\CalendarController;
 use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\Api\ChatbotUrlController;
 use App\Http\Controllers\Api\DashboardController;
@@ -32,6 +34,8 @@ Route::post('/internal/wa/webhook-delivery-status', [InternalWebhookController::
 // Auth
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,1');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 
 // OPD List
 Route::get('/opd', [OpdController::class, 'index']);
@@ -44,11 +48,13 @@ Route::middleware('auth:api')->group(function () {
 
     // Auth
     Route::get('/me', [AuthController::class, 'me']);
+    Route::patch('/me', [AuthController::class, 'updateProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Dashboard
     Route::get('/slider', [SliderController::class, 'index']);
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/dashboard/calendar', [CalendarController::class, 'index']);
 
     // Peminjaman Aset TIK
     Route::get('/pinjam', [PinjamController::class, 'index']);
@@ -93,6 +99,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/pengajuan-email', [UsulanEmailController::class, 'store']);
     Route::get('/pengajuan-email', [UsulanEmailController::class, 'index']);
     Route::get('/pengajuan-email/{id}', [UsulanEmailController::class, 'show']);
+    Route::put('/pengajuan-email/{id}', [UsulanEmailController::class, 'update']);
     Route::post('/pengajuan-email/{id}/verifikasi', [UsulanEmailController::class, 'verifikasi']);
     Route::post('/pengajuan-email/{id}/buat-email-resmi', [UsulanEmailController::class, 'buatEmailResmi']);
     Route::post('/pengajuan-email/{id}/tolak-email', [UsulanEmailController::class, 'tolakEmail']);
@@ -104,11 +111,19 @@ Route::middleware('auth:api')->group(function () {
     // Manajemen Notifikasi User/Admin
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
     // Chatbot Config (Chatbase iframe)
     Route::get('/chatbot', [ChatbotUrlController::class, 'index']);
 
     Route::middleware('role:admin|superadmin,api')->group(function () {
+        // Admin dashboard and notification management
+        Route::get('/admin/dashboard', [AdminDashboardController::class, 'index']);
+        Route::get('/admin/notifications', [NotificationController::class, 'adminIndex']);
+        Route::post('/admin/notifications', [NotificationController::class, 'store']);
+        Route::put('/admin/notifications/{id}', [NotificationController::class, 'update']);
+        Route::delete('/admin/notifications/{id}', [NotificationController::class, 'destroy']);
+
         // Admin: Kritik & Saran
         Route::get('/admin/kritik-saran', [KritikSaranController::class, 'index']);
         Route::post('/admin/kritik-saran/bulk-delete', [KritikSaranController::class, 'bulkDelete']);

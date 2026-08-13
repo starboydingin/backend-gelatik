@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AjukanUsulanEmailRequest;
+use App\Http\Requests\UpdateUsulanEmailRequest;
 use App\Models\UsulanEmail;
 use App\Services\UsulanEmailService;
 use Illuminate\Http\Request;
@@ -61,6 +62,21 @@ class UsulanEmailController extends Controller
         Gate::authorize('view', $usulan);
 
         return response()->json(['success' => true, 'data' => $usulan]);
+    }
+
+    /** PUT /api/pengajuan-email/{id} */
+    public function update(UpdateUsulanEmailRequest $request, $id)
+    {
+        $usulan = UsulanEmail::findOrFail($id);
+        Gate::authorize('update', $usulan);
+
+        $updatedUsulan = $this->usulanEmailService->updateUsulan($usulan, $request->validated());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Usulan email berhasil diperbarui.',
+            'data' => $updatedUsulan,
+        ]);
     }
 
     /** POST /api/pengajuan-email/{id}/verifikasi */

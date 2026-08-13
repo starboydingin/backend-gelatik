@@ -80,6 +80,27 @@ class UsulanEmailService
         return $usulan;
     }
 
+    /** Update an unverified submission without changing its approval state. */
+    public function updateUsulan(UsulanEmail $usulan, array $data): UsulanEmail
+    {
+        $idPeg = $data['id_peg'] ?? $data['id_peg_bkd'] ?? null;
+        if ($idPeg !== null || isset($data['nip'])) {
+            $pegawai = $idPeg === null
+                ? PegawaiBelumPunyaEmail::where('NIP_Baru', $data['nip'])->first()
+                : PegawaiBelumPunyaEmail::where('ID_Peg', (string) $idPeg)->first();
+            if (! $pegawai) {
+                throw ValidationException::withMessages(['nip' => 'Data pegawai tidak ditemukan.']);
+            }
+            $usulan->id_peg_bkd = (int) $pegawai->getKey();
+        }
+        if (array_key_exists('email_pribadi', $data)) {
+            $usulan->email_pribadi = $data['email_pribadi'];
+        }
+        $usulan->save();
+
+        return $usulan->fresh();
+    }
+
     /**
      * Verifikasi usulan email (Approval / Rejection tunggal).
      */

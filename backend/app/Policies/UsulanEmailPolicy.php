@@ -18,6 +18,13 @@ class UsulanEmailPolicy
             || $user->hasAnyRole(['admin', 'superadmin', 'bkd']);
     }
 
+    public function update(User $user, UsulanEmail $usulanEmail): bool
+    {
+        return (int) $usulanEmail->created_by === (int) $user->id
+            && $usulanEmail->status === 'diajukan'
+            && $usulanEmail->tanggal_verifikasi === null;
+    }
+
     public function verify(User $user, UsulanEmail $usulanEmail): bool
     {
         return $user->hasAnyRole(['admin', 'superadmin', 'bkd']);

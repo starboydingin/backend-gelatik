@@ -2,6 +2,20 @@
 
 Aplikasi Backend Terpadu ini dikembangkan menggunakan **Laravel 11 (PHP 8.3)** dan **Node.js Realtime Service (Express + Socket.io + WhatsApp Web JS)** untuk mengelola layanan TIK Pemprov Lampung (Peminjaman Aset TIK, Konsultasi TIK, Chatbot AI Gelatik, Notifikasi Realtime & WhatsApp Gateway).
 
+## API tambahan untuk frontend web
+
+- `PATCH /api/me` memperbarui profil pengguna yang sedang masuk.
+- `POST /api/forgot-password` dan `POST /api/reset-password` memakai password broker Laravel. Set `APP_FRONTEND_URL` ke URL Vue agar link reset membuka halaman frontend `/reset-password`.
+- `GET /api/dashboard/calendar?start=YYYY-MM-DD&end=YYYY-MM-DD` mengembalikan event konsultasi dan peminjaman yang boleh dilihat pengguna. Rentang maksimal 93 hari.
+- `GET /api/admin/dashboard` dan `/api/admin/notifications` tersedia untuk `admin`/`superadmin`.
+- `PUT /api/pengajuan-email/{id}` mengubah usulan milik pemohon hanya sebelum diverifikasi.
+
+Jalankan migration baru sebelum memakai notifikasi broadcast per-pengguna atau reset password:
+
+```bash
+php artisan migrate
+```
+
 ---
 
 ## 🛠️ 1. PRASYARAT SISTEM

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -119,6 +120,77 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'data'    => $user,
+        ]);
+    }
+
+    /** PATCH /api/me */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'email' => 'sometimes|required|email|max:255|unique:users,email,'.$user->id,
+            'no_hp' => 'sometimes|nullable|string|max:20',
+            'nama_opd' => 'sometimes|nullable|string|max:255',
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui.',
+            'data' => $user->fresh()->load('roles:id,name'),
+        ]);
+    }
+
+    /** POST /api/forgot-password */
+    public function forgotPassword(Request $request)
+    {
+        $validated = $request->validate(['email' => 'required|email']);
+
+        try {
+            Password::sendResetLink(['email' => $validated['email']]);
+        } catch (\Throwable) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email reset belum dapat dikirim. Silakan hubungi administrator layanan.',
+            ], 503);
+        }
+
+        // Do not reveal whether an address is registered.
+        return response()->json([
+            'success' => true,
+            'message' => 'Jika alamat email terdaftar, tautan reset kata sandi telah dikirim.',
+        ]);
+    }
+
+    /** POST /api/reset-password */
+    public function resetPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'token' => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $status = Password::reset($validated, function (User $user, string $password): void {
+            $user->forceFill([
+                'password' => Hash::make($password),
+                'remember_token' => \Illuminate\Support\Str::random(60),
+            ])->save();
+            $user->tokens()->update(['revoked' => true]);
+        });
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tautan reset tidak valid atau telah kedaluwarsa.',
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kata sandi berhasil diperbarui. Silakan masuk kembali.',
         ]);
     }
 

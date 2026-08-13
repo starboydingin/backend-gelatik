@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Passport\ClientRepository;
 use Laravel\Passport\Passport;
@@ -98,6 +99,37 @@ class AuthRegistrationTest extends TestCase
             ->assertJsonPath('data.id', $admin->id)
             ->assertJsonPath('data.roles.0.name', 'admin')
             ->assertJsonMissingPath('data.password');
+    }
+
+    public function test_authenticated_user_can_update_own_profile(): void
+    {
+        $user = $this->createUser('profile@example.test', '1');
+        Passport::actingAs($user);
+
+        $this->patchJson('/api/me', [
+            'name' => 'Profil Diperbarui',
+            'no_hp' => '081234567899',
+        ])->assertOk()
+            ->assertJsonPath('data.name', 'Profil Diperbarui')
+            ->assertJsonPath('data.no_hp', '081234567899');
+    }
+
+    public function test_password_can_be_reset_with_a_valid_broker_token(): void
+    {
+        $user = $this->createUser('reset@example.test', '1');
+        $token = Password::createToken($user);
+
+        $this->postJson('/api/reset-password', [
+            'email' => $user->email,
+            'token' => $token,
+            'password' => 'password456',
+            'password_confirmation' => 'password456',
+        ])->assertOk()->assertJsonPath('success', true);
+
+        $this->postJson('/api/login', [
+            'identifier' => $user->email,
+            'password' => 'password456',
+        ])->assertOk();
     }
 
     public function test_inactive_existing_user_remains_inactive_and_cannot_login(): void
@@ -206,6 +238,11 @@ class AuthRegistrationTest extends TestCase
             $table->string('no_hp')->nullable();
             $table->string('status')->default('0');
             $table->timestamps();
+        });
+        Schema::create('password_reset_tokens', function (Blueprint $table): void {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
         });
         Schema::create('unker_list_router', function (Blueprint $table): void {
             $table->unsignedBigInteger('id')->primary();
