@@ -1,21 +1,49 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { PaperAirplaneIcon, SparklesIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import { api, payload, errorMessage } from '../../lib/api'
+import { useAuthStore } from '../../stores/auth'
 import PageHeader from '../../components/PageHeader.vue'
 import AlertMessage from '../../components/AlertMessage.vue'
+const auth = useAuthStore()
+const starterResetAfter = 5 * 60 * 1000
+const visitKey = `gelatik_chat_left_at:${auth.user?.id || 'current-session'}`
 const sessionId = ref(localStorage.getItem('gelatik_chat_session') || '')
 const messages = ref([]),
     input = ref(''),
     error = ref(''),
     sending = ref(false)
 const quickQuestions = [
-    'Bagaimana cara mengajukan peminjaman perangkat?',
-    'Bagaimana membuat email resmi ASN?',
-    'Apa layanan konsultasi TIK yang tersedia?',
-    'Bagaimana mengecek status pengajuan?',
-    'Bagaimana melaporkan gangguan internet OPD?',
+    'Bagaimana cara mengajukan peminjaman aset TIK?',
+    'WiFi terhubung tetapi tidak ada internet. Apa yang harus dilakukan?',
+    'Bagaimana cara reset kata sandi email resmi?',
+    'Bagaimana cara mengajukan sertifikat elektronik TTE?',
+    'Bagaimana cara mengajukan usulan email dinas?',
 ]
+function appendStarterIfDue() {
+    const lastLeftAt = Number(sessionStorage.getItem(visitKey) || 0)
+    if (lastLeftAt && Date.now() - lastLeftAt < starterResetAfter) return
+    sessionStorage.removeItem(visitKey)
+    messages.value.push({
+        id: `starter-${Date.now()}`,
+        role: 'assistant',
+        localStarter: true,
+        message:
+            'Halo, saya Asisten Konsultasi TIK Gelatik. Ada yang bisa saya bantu hari ini? Pilih salah satu pertanyaan cepat di bawah atau tulis pertanyaan Anda sendiri.',
+    })
+}
+function handleVisibilityChange() {
+    if (document.hidden) {
+        sessionStorage.setItem(visitKey, String(Date.now()))
+        return
+    }
+    appendStarterIfDue()
+}
+function chatText(item) {
+    return String(item.message || item.content || item.text || '')
+        .replace(/\*\*(.*?)\*\*/gs, '$1')
+        .replace(/^\s*\*\s+/gm, '- ')
+}
 async function history() {
     if (!sessionId.value) return
     try {
@@ -60,6 +88,7 @@ async function send(text = input.value) {
 async function clear() {
     if (!sessionId.value) {
         messages.value = []
+        appendStarterIfDue()
         return
     }
     try {
@@ -67,11 +96,22 @@ async function clear() {
         messages.value = []
         sessionId.value = ''
         localStorage.removeItem('gelatik_chat_session')
+        sessionStorage.removeItem(visitKey)
+        appendStarterIfDue()
     } catch (requestError) {
         error.value = errorMessage(requestError)
     }
 }
-onMounted(history)
+async function initialize() {
+    await history()
+    appendStarterIfDue()
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+}
+onMounted(initialize)
+onBeforeUnmount(() => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    sessionStorage.setItem(visitKey, String(Date.now()))
+})
 </script>
 <template>
     <div class="page-stack">
@@ -96,13 +136,6 @@ onMounted(history)
             </header>
             <div class="min-h-[420px] space-y-4 p-4 sm:p-6">
                 <div
-                    v-if="!messages.length"
-                    class="rounded-2xl bg-slate-100 p-4 text-sm leading-6 text-slate-700"
-                >
-                    Halo, saya asisten Gelatik. Pilih pertanyaan cepat atau tulis kebutuhan layanan
-                    TIK Anda.
-                </div>
-                <div
                     v-for="(item, index) in messages"
                     :key="index"
                     class="flex"
@@ -120,7 +153,7 @@ onMounted(history)
                                 : 'rounded-bl-md bg-slate-100 text-slate-700'
                         "
                     >
-                        {{ item.message || item.content || item.text }}
+                        {{ chatText(item) }}
                     </p>
                 </div>
                 <p v-if="sending" class="text-sm text-slate-400">

@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Konsultasi;
 use App\Models\Faq;
+use App\Models\Konsultasi;
 use App\Models\Pinjam;
 use App\Models\PinjamItem;
 use App\Models\User;
@@ -202,6 +202,79 @@ class AuthorizationTest extends TestCase
                 && str_contains($prompt, 'Hubungi helpdesk untuk verifikasi identitas')
                 && ! str_contains($prompt, 'FAQ ini tidak boleh dikirim.');
         });
+    }
+
+    public function test_chatbot_quick_questions_return_complete_active_faq_answers_without_ai(): void
+    {
+        Schema::create('chatbot_conversations', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->index();
+            $table->string('session_id');
+            $table->timestamps();
+        });
+        Schema::create('chatbot_messages', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('conversation_id')->index();
+            $table->enum('role', ['user', 'assistant']);
+            $table->text('content');
+            $table->enum('provider_used', ['gemini', 'groq']);
+            $table->timestamps();
+        });
+        Schema::create('faq', function (Blueprint $table): void {
+            $table->unsignedBigInteger('id')->primary();
+            $table->unsignedBigInteger('topik_id');
+            $table->string('judul');
+            $table->text('detail');
+            $table->string('status')->default('1');
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        $faqs = [
+            [701, 'Cara pinjam aset/perangkat untuk video conference', '<p>Login ke Gelatik.</p><ol><li>Buka menu Pinjam Aset.</li><li>Isi formulir dan pilih perangkat.</li><li>Kirim pengajuan.</li></ol>'],
+            [702, 'WiFi terhubung tetapi tidak ada internet', '<p>Uji perangkat lain dan restart WiFi.</p><p>Jika belum selesai, hubungi helpdesk TIK.</p>'],
+            [703, 'Pengajuan reset kata sandi email resmi', '<p>Pastikan email pribadi aktif.</p><p>Kirim formulir reset lalu ikuti petunjuk yang diterima.</p>'],
+            [704, 'Cara mengajukan sertifikat elektronik/TTE', '<p>Buka Konsultasi TIK dan pilih topik TTE.</p><p>Lengkapi identitas serta unggah surat instansi.</p>'],
+            [705, 'Cara mendapatkan akun email resmi Pemprov Lampung', '<p>Ajukan surat permohonan melalui BKD.</p><ul><li>Lampirkan fotokopi e-KTP.</li><li>Lampirkan SK jabatan terakhir.</li></ul>'],
+            [706, 'WiFi terhubung tetapi tidak ada internet lama', '<p>Jawaban nonaktif tidak boleh dipakai.</p>'],
+        ];
+        foreach ($faqs as [$id, $judul, $detail]) {
+            Faq::create([
+                'id' => $id,
+                'topik_id' => 601,
+                'judul' => $judul,
+                'detail' => $detail,
+                'status' => $id === 706 ? '0' : '1',
+            ]);
+        }
+
+        Http::preventStrayRequests();
+        $questions = [
+            'Bagaimana cara mengajukan peminjaman aset TIK?' => 'Kirim pengajuan.',
+            'WiFi terhubung tetapi tidak ada internet. Apa yang harus dilakukan?' => 'hubungi helpdesk TIK.',
+            'Bagaimana cara reset kata sandi email resmi?' => 'ikuti petunjuk yang diterima.',
+            'Bagaimana cara mengajukan sertifikat elektronik TTE?' => 'unggah surat instansi.',
+            'Bagaimana cara mengajukan usulan email dinas?' => 'Lampirkan SK jabatan terakhir.',
+        ];
+
+        $sessionId = null;
+        foreach ($questions as $question => $expectedEnding) {
+            $response = app(ChatbotService::class)->sendMessage(
+                $this->userA,
+                $question,
+                $sessionId,
+            );
+            $sessionId = $response['session_id'];
+
+            $this->assertTrue($response['success']);
+            $this->assertSame('faq', $response['provider']);
+            $this->assertStringContainsString($expectedEnding, $response['reply']);
+            $this->assertStringNotContainsString('<p>', $response['reply']);
+            $this->assertStringNotContainsString('**', $response['reply']);
+            $this->assertStringNotContainsString('Jawaban nonaktif', $response['reply']);
+        }
     }
 
     public function test_user_can_view_own_pinjam_but_not_another_users_pinjam(): void

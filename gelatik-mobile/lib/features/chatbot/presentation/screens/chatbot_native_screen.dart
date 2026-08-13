@@ -8,6 +8,7 @@ import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../models/chat_message_model.dart';
 import '../../providers/chatbot_provider.dart';
+import '../../services/chatbot_visit_tracker.dart';
 
 class ChatbotNativeScreen extends ConsumerStatefulWidget {
   const ChatbotNativeScreen({super.key});
@@ -19,24 +20,33 @@ class ChatbotNativeScreen extends ConsumerStatefulWidget {
 
 class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen>
     with WidgetsBindingObserver {
-  static const _starterPromptResetAfter = Duration(minutes: 5);
-
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  late final ChatbotVisitTracker _visitTracker;
+  late final String _visitSessionKey;
   DateTime? _inactiveSince;
-  bool _showStarterPrompts = true;
+  int? _starterPromptAnchor;
+  bool _showStarterPrompts = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _messageController.addListener(_onInputChanged);
+    _visitTracker = ref.read(chatbotVisitTrackerProvider);
+    final userId = ref.read(authProvider).currentUser?.id;
+    _visitSessionKey = userId == null ? 'current-session' : 'user:$userId';
+    _showStarterPrompts = _visitTracker.shouldShowStarter(
+      _visitSessionKey,
+      DateTime.now(),
+    );
   }
 
   void _onInputChanged() => setState(() {});
 
   @override
   void dispose() {
+    _visitTracker.markLeft(_visitSessionKey, DateTime.now());
     WidgetsBinding.instance.removeObserver(this);
     _messageController
       ..removeListener(_onInputChanged)
@@ -59,9 +69,12 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen>
         _inactiveSince = null;
         if (inactiveSince != null &&
             DateTime.now().difference(inactiveSince) >=
-                _starterPromptResetAfter) {
-          setState(() => _showStarterPrompts = true);
-          _scrollToStarterPrompts();
+                ChatbotVisitTracker.promptResetAfter) {
+          setState(() {
+            _showStarterPrompts = true;
+            _starterPromptAnchor = ref.read(chatbotProvider).messages.length;
+          });
+          _scrollToBottom();
         }
         return;
     }
@@ -78,23 +91,12 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen>
     });
   }
 
-  void _scrollToStarterPrompts() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      _scrollController.animateTo(
-        _scrollController.position.minScrollExtent,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-
   Future<void> _send([String? quickQuestion]) async {
     final text = (quickQuestion ?? _messageController.text).trim();
     final state = ref.read(chatbotProvider);
     if (text.isEmpty || state.isTyping) return;
-    if (_showStarterPrompts) {
-      setState(() => _showStarterPrompts = false);
+    if (_showStarterPrompts && _starterPromptAnchor == null) {
+      setState(() => _starterPromptAnchor = state.messages.length);
     }
     _messageController.clear();
     FocusScope.of(context).unfocus();
@@ -212,63 +214,66 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen>
         child: CircularProgressIndicator(),
       );
     }
+    final starterAnchor = (_starterPromptAnchor ?? state.messages.length).clamp(
+      0,
+      state.messages.length,
+    );
+    final timeline = <Widget>[const _DayChip()];
+    for (var index = 0; index <= state.messages.length; index++) {
+      if (_showStarterPrompts && index == starterAnchor) {
+        timeline.add(
+          _AssistantWelcome(
+            primaryTeal: primaryTeal,
+            strokeColor: strokeColor,
+            mutedText: mutedText,
+          ),
+        );
+        timeline.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: _QuickQuestions(
+              primaryTeal: primaryTeal,
+              strokeColor: strokeColor,
+              onSelected: _send,
+            ),
+          ),
+        );
+      }
+      if (index >= state.messages.length) continue;
+      final message = state.messages[index];
+      timeline.add(
+        _MessageBubble(
+          message: message,
+          primaryTeal: primaryTeal,
+          strokeColor: strokeColor,
+          mutedText: mutedText,
+          onRetry: message.status == ChatMessageStatus.failed
+              ? () =>
+                    ref.read(chatbotProvider.notifier).retryMessage(message.id)
+              : null,
+        ),
+      );
+    }
+    if (state.isTyping) {
+      timeline.add(
+        _TypingIndicator(
+          primaryTeal: primaryTeal,
+          strokeColor: strokeColor,
+          mutedText: mutedText,
+        ),
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: ref.read(chatbotProvider.notifier).refreshHistory,
-      child: ListView.builder(
+      child: ListView(
         controller: _scrollController,
         key: Key(state.messages.isEmpty ? 'chatbot-empty' : 'chatbot-messages'),
         padding: const EdgeInsets.all(16),
         physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: _itemCount(state),
-        itemBuilder: (context, index) {
-          if (index == 0) return const _DayChip();
-          if (_showStarterPrompts && index == 1) {
-            return _AssistantWelcome(
-              primaryTeal: primaryTeal,
-              strokeColor: strokeColor,
-              mutedText: mutedText,
-            );
-          }
-          if (_showStarterPrompts && index == 2) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: _QuickQuestions(
-                primaryTeal: primaryTeal,
-                strokeColor: strokeColor,
-                onSelected: _send,
-              ),
-            );
-          }
-          final messageIndex = index - (_showStarterPrompts ? 3 : 1);
-          if (messageIndex == state.messages.length) {
-            return _TypingIndicator(
-              primaryTeal: primaryTeal,
-              strokeColor: strokeColor,
-              mutedText: mutedText,
-            );
-          }
-          final message = state.messages[messageIndex];
-          return _MessageBubble(
-            message: message,
-            primaryTeal: primaryTeal,
-            strokeColor: strokeColor,
-            mutedText: mutedText,
-            onRetry: message.status == ChatMessageStatus.failed
-                ? () => ref
-                      .read(chatbotProvider.notifier)
-                      .retryMessage(message.id)
-                : null,
-          );
-        },
+        children: timeline,
       ),
     );
-  }
-
-  int _itemCount(ChatbotState state) {
-    final starterItems = _showStarterPrompts ? 2 : 0;
-    final typingItems = state.isTyping ? 1 : 0;
-
-    return 1 + starterItems + state.messages.length + typingItems;
   }
 
   Widget _buildInput(
@@ -417,9 +422,9 @@ class _AssistantWelcome extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(
-          alpha: .5,
-        ),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: .5),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(16),
           topRight: Radius.circular(16),
@@ -554,7 +559,7 @@ class _MessageBubble extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              message.text,
+              _plainChatText(message.text),
               style: TextStyle(
                 fontSize: 13,
                 height: 1.4,
@@ -574,6 +579,17 @@ class _MessageBubble extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  String _plainChatText(String value) {
+    final withoutBold = value.replaceAllMapped(
+      RegExp(r'\*\*(.*?)\*\*', dotAll: true),
+      (match) => match.group(1) ?? '',
+    );
+    return withoutBold.replaceAllMapped(
+      RegExp(r'^\s*\*\s+', multiLine: true),
+      (_) => '- ',
     );
   }
 }

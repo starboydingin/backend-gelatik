@@ -127,11 +127,17 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.text('Bagaimana cara mengajukan peminjaman aset TIK?'),
-        findsOneWidget,
+        findsNWidgets(2),
       );
       expect(find.text('Jawaban dari backend'), findsOneWidget);
-      expect(find.byKey(const Key('chatbot-welcome')), findsNothing);
-      expect(find.byKey(const Key('chatbot-quick-0')), findsNothing);
+      expect(
+        find.byKey(const Key('chatbot-welcome'), skipOffstage: false),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('chatbot-quick-0'), skipOffstage: false),
+        findsOneWidget,
+      );
     });
 
     testWidgets('31. history success dirender', (tester) async {
@@ -165,7 +171,10 @@ void main() {
       );
       await tester.tap(find.byKey(const Key('chatbot-send')));
       await tester.pump();
-      expect(find.byKey(const Key('chatbot-typing')), findsOneWidget);
+      expect(
+        find.byKey(const Key('chatbot-typing'), skipOffstage: false),
+        findsOneWidget,
+      );
       expect(
         tester
             .widget<IconButton>(find.byKey(const Key('chatbot-send')))
