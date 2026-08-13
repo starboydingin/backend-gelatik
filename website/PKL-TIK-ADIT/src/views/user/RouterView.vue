@@ -14,7 +14,7 @@ const auth = useAuthStore(),
     loading = ref(true),
     search = ref(''),
     status = ref('all')
-const allRows = computed(() => rows(data.value))
+const allRows = computed(() => [...rows(data.value?.list_router), ...rows(data.value?.router)])
 const list = computed(() =>
     allRows.value.filter((item) => {
         const matchesSearch = Object.values(item)

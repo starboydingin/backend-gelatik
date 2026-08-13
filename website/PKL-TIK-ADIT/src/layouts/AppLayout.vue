@@ -128,7 +128,6 @@ onBeforeUnmount(disconnectRealtime)
                 :items="items"
                 :active-path="route.path"
                 :admin-area="adminArea"
-                :is-admin="auth.isAdmin"
                 :open="open"
                 @close="open = false"
                 @logout="logout"

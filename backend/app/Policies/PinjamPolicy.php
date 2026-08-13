@@ -24,7 +24,7 @@ class PinjamPolicy
 
     public function delete(User $user, Pinjam $pinjam): bool
     {
-        return $this->isOwner($user, $pinjam);
+        return $this->isOwner($user, $pinjam) || $this->isAdmin($user);
     }
 
     public function modifyItems(User $user, Pinjam $pinjam): bool

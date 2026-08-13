@@ -63,31 +63,42 @@ const services = [
                         ><span>✓ Dukungan responsif</span>
                     </div>
                 </div>
-                <div class="relative mx-auto w-full max-w-xl">
-                    <div class="absolute inset-10 rounded-full bg-brand-100 blur-3xl" />
-                    <div
-                        class="card relative overflow-hidden border-brand-700 bg-brand-700 p-8 text-white"
-                    >
-                        <img
-                            src="/assets/images/helpdesk-support-transparent.png"
-                            alt="Ilustrasi dukungan layanan TIK"
-                            class="mx-auto h-72 object-contain drop-shadow-2xl"
-                        />
-                        <div class="grid grid-cols-3 gap-3">
-                            <div
-                                v-for="stat in [
-                                    ['24/7', 'Akses portal'],
-                                    ['1', 'Akun terpadu'],
-                                    ['100%', 'Daring'],
-                                ]"
-                                :key="stat[1]"
-                                class="rounded-xl border border-white/20 bg-white/10 p-3 text-center backdrop-blur"
+                <div
+                    class="w-full border-l-4 border-brand-700 bg-white p-7 ring-1 ring-stroke md:p-9"
+                >
+                    <p class="eyebrow">Alur layanan</p>
+                    <h2 class="mt-2 text-2xl font-bold text-navy">
+                        Satu akun untuk seluruh proses
+                    </h2>
+                    <ol class="mt-7 divide-y divide-stroke">
+                        <li
+                            v-for="(step, index) in [
+                                [
+                                    'Ajukan kebutuhan',
+                                    'Pilih layanan dan lengkapi data yang diperlukan.',
+                                ],
+                                [
+                                    'Pantau proses',
+                                    'Status dan tanggapan petugas tersedia pada akun Anda.',
+                                ],
+                                [
+                                    'Terima hasil',
+                                    'Dapatkan pembaruan setelah layanan selesai diproses.',
+                                ],
+                            ]"
+                            :key="step[0]"
+                            class="flex gap-4 py-5 first:pt-0 last:pb-0"
+                        >
+                            <span
+                                class="grid size-9 shrink-0 place-items-center rounded-full bg-brand-700 text-sm font-bold text-white"
+                                >{{ index + 1 }}</span
                             >
-                                <strong class="block text-lg">{{ stat[0] }}</strong
-                                ><small class="text-brand-100">{{ stat[1] }}</small>
+                            <div>
+                                <h3 class="font-bold text-slate-900">{{ step[0] }}</h3>
+                                <p class="mt-1 text-sm leading-6 text-slate-500">{{ step[1] }}</p>
                             </div>
-                        </div>
-                    </div>
+                        </li>
+                    </ol>
                 </div>
             </section>
             <section id="layanan" class="bg-white py-20">

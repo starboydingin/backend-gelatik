@@ -215,7 +215,7 @@ onMounted(load)
                             <p class="mt-1">{{ response.isi_respon || response.jawaban }}</p>
                         </div>
                     </div>
-                    <div class="mt-4 flex gap-2">
+                    <div v-if="admin" class="mt-4 flex gap-2">
                         <input
                             v-model="reply[item.id]"
                             class="input"

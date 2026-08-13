@@ -11,7 +11,7 @@ class Slider extends Model
 
     protected $table = 'sliders';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     protected $fillable = [
         'id',

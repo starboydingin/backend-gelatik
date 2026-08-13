@@ -106,7 +106,6 @@ Route::middleware('auth:api')->group(function () {
 
     // Pengumuman
     Route::get('/pengumuman', [PengumumanController::class, 'index']);
-    Route::post('/pengumuman', [PengumumanController::class, 'store']);
 
     // Manajemen Notifikasi User/Admin
     Route::get('/notifications', [NotificationController::class, 'index']);
@@ -124,6 +123,33 @@ Route::middleware('auth:api')->group(function () {
         Route::put('/admin/notifications/{id}', [NotificationController::class, 'update']);
         Route::delete('/admin/notifications/{id}', [NotificationController::class, 'destroy']);
 
+        // Admin: master data used by both web and mobile clients
+        Route::get('/admin/items', [ItemController::class, 'adminIndex']);
+        Route::post('/admin/items', [ItemController::class, 'store']);
+        Route::put('/admin/items/{id}', [ItemController::class, 'update']);
+        Route::delete('/admin/items/{id}', [ItemController::class, 'destroy']);
+        Route::get('/admin/topik', [TopikController::class, 'adminIndex']);
+        Route::post('/admin/topik', [TopikController::class, 'store']);
+        Route::put('/admin/topik/{id}', [TopikController::class, 'update']);
+        Route::delete('/admin/topik/{id}', [TopikController::class, 'destroy']);
+        Route::get('/admin/faq', [FaqController::class, 'adminIndex']);
+        Route::post('/admin/faq', [FaqController::class, 'store']);
+        Route::put('/admin/faq/{id}', [FaqController::class, 'update']);
+        Route::delete('/admin/faq/{id}', [FaqController::class, 'destroy']);
+        Route::get('/admin/sliders', [SliderController::class, 'adminIndex']);
+        Route::post('/admin/sliders', [SliderController::class, 'store']);
+        Route::put('/admin/sliders/{id}', [SliderController::class, 'update']);
+        Route::delete('/admin/sliders/{id}', [SliderController::class, 'destroy']);
+        Route::get('/admin/routers', [RouterController::class, 'adminIndex']);
+        Route::post('/admin/routers', [RouterController::class, 'store']);
+        Route::put('/admin/routers/{id}', [RouterController::class, 'update']);
+        Route::delete('/admin/routers/{id}', [RouterController::class, 'destroy']);
+
+        Route::get('/admin/pengumuman', [PengumumanController::class, 'adminIndex']);
+        Route::post('/admin/pengumuman', [PengumumanController::class, 'store']);
+        Route::put('/admin/pengumuman/{id}', [PengumumanController::class, 'update']);
+        Route::delete('/admin/pengumuman/{id}', [PengumumanController::class, 'destroy']);
+
         // Admin: Kritik & Saran
         Route::get('/admin/kritik-saran', [KritikSaranController::class, 'index']);
         Route::post('/admin/kritik-saran/bulk-delete', [KritikSaranController::class, 'bulkDelete']);
@@ -140,10 +166,13 @@ Route::middleware('auth:api')->group(function () {
 
         // Admin: Role & Permission Management
         Route::get('/admin/roles', [RoleController::class, 'index']);
-        Route::post('/admin/roles', [RoleController::class, 'store']);
+        Route::post('/admin/roles', [RoleController::class, 'store'])
+            ->middleware('role:superadmin,api');
         Route::get('/admin/roles/{id}', [RoleController::class, 'show']);
-        Route::put('/admin/roles/{id}', [RoleController::class, 'update']);
-        Route::delete('/admin/roles/{id}', [RoleController::class, 'destroy']);
+        Route::put('/admin/roles/{id}', [RoleController::class, 'update'])
+            ->middleware('role:superadmin,api');
+        Route::delete('/admin/roles/{id}', [RoleController::class, 'destroy'])
+            ->middleware('role:superadmin,api');
         Route::get('/admin/permissions', [RoleController::class, 'permissions']);
 
         // Admin: System Settings (m_settings)

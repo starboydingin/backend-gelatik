@@ -9,7 +9,7 @@ class RouterList extends Model
     // Tabel non-konvensi — wajib eksplisit
     protected $table = 'unker_list_router';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     protected $fillable = [
         'id',

@@ -59,7 +59,30 @@ Route publik: `/`, `/login`, `/register`, `/forgot-password`, `/reset-password`.
 
 Route pengguna berada di `/app`: dashboard, kalender, pengumuman, peminjaman, konsultasi, email resmi, router OPD, kritik-saran, rating, notifikasi, FAQ, WhatsApp, chatbot, dan profil.
 
-Route administrator berada di `/admin`: dashboard, pengguna, peran/izin, konsultasi, peminjaman, email resmi, pegawai, laporan peminjaman, kritik-saran, pengumuman, notifikasi, referensi layanan, dan pengaturan. Akses admin/superadmin berasal dari `GET /me`; pembuatan admin hanya ditampilkan untuk superadmin.
+Route administrator berada di `/admin`: dashboard, pengguna, peran/izin, konsultasi, peminjaman, email resmi, pegawai, laporan peminjaman, kritik-saran, pengumuman, notifikasi, referensi layanan, dan pengaturan. Akses admin/superadmin berasal dari `GET /me`; pembuatan admin hanya tersedia melalui endpoint yang dilindungi role superadmin.
+
+Login user dan admin menggunakan halaman yang sama di `/login`. Backend membaca role akun dari `GET /api/me`; user diarahkan ke `/app/dashboard`, sedangkan admin/superadmin diarahkan ke `/admin/dashboard`. Sesi disimpan per tab browser, sehingga akun user dan admin dapat dibuka bersamaan pada dua tab untuk pengujian tanpa saling menimpa token.
+
+## Membuat akun admin melalui Postman
+
+Pembuatan admin tidak tersedia pada registrasi publik. Hanya akun `superadmin` yang dapat membuatnya.
+
+1. Login sebagai superadmin melalui `POST http://127.0.0.1:8000/api/login`.
+2. Ambil `access_token` dari respons tanpa menyalinnya ke source code atau dokumentasi.
+3. Kirim `POST http://127.0.0.1:8000/api/admin/users` dengan header `Authorization: Bearer <access_token>` dan `Accept: application/json`.
+4. Gunakan body JSON berikut, dengan password yang dikonfigurasi secara lokal:
+
+```json
+{
+  "name": "Admin Gelatik",
+  "email": "admin.local@example.test",
+  "username": "admin.local",
+  "password": "<configured-locally>",
+  "nama_opd": "Dinas Komunikasi, Informatika dan Statistik"
+}
+```
+
+Respons `201` berarti akun aktif dibuat dengan role `admin`. Akun tersebut selanjutnya login melalui halaman `/login` yang sama. Role dari body request diabaikan; endpoint selalu membuat admin dan dilindungi middleware superadmin.
 
 ## Endpoint API
 
@@ -74,14 +97,14 @@ Route administrator berada di `/admin`: dashboard, pengguna, peran/izin, konsult
 | Notifikasi | `/notifications`, `/notifications/{id}/read`, `/notifications/read-all` |
 | WhatsApp | `/notifikasi/wa/status`, `/notifikasi/wa/subscribe` |
 | Chatbot | `/chatbot/message`, `/chatbot/history` |
-| Admin | `/admin/dashboard`, `/admin/users`, `/admin/roles`, `/admin/permissions`, `/admin/notifications`, `/admin/kritik-saran`, `/admin/settings` |
+| Admin | `/admin/dashboard`, `/admin/users`, `/admin/roles`, `/admin/permissions`, `/admin/notifications`, `/admin/kritik-saran`, `/admin/settings`, CRUD `/admin/items`, `/admin/topik`, `/admin/faq`, `/admin/sliders`, `/admin/routers` |
 | Laporan | `/laporan/peminjaman` |
 
 Axios menambahkan Bearer token pada request terautentikasi. Respons `401` menghapus sesi; error `403`, `422`, timeout, network, dan `5xx` diterjemahkan menjadi pesan yang aman. REST tetap berfungsi ketika realtime dimatikan atau tidak tersedia.
 
 ## Gap integrasi
 
-- Backend belum menyediakan endpoint admin untuk CRUD FAQ, router OPD, domain, master item, topik, dan slider. Frontend tidak membuat approval atau data palsu untuk fitur tersebut.
+- CRUD admin untuk item/aset, topik, FAQ, slider, dan daftar router OPD sudah tersedia. Manajemen domain belum tersedia sebagai endpoint admin terpisah.
 - `PATCH /me` saat ini mendukung data profil dasar; endpoint khusus avatar, ganti password dari profil, dan log aktivitas akun belum tersedia.
 - Kontrak event realtime selain event `notification` belum terdokumentasi, sehingga frontend tidak membuat nama event baru.
 - Font Montserrat/Inter pada mobile berasal dari Google Fonts dependency dan tidak tersedia sebagai file lokal. Web menggunakan fallback system dan wordmark logo resmi tanpa mengunduh font eksternal.

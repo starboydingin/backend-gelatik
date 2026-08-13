@@ -11,7 +11,7 @@ class MasterTopik extends Model
 
     protected $table = 'master_topik';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     protected $fillable = [
         'id',

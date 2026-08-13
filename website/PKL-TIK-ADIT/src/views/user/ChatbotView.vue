@@ -20,7 +20,9 @@ async function history() {
     if (!sessionId.value) return
     try {
         messages.value =
-            payload(await api.get('/chatbot/history', { params: { session_id: sessionId.value } })) || []
+            payload(
+                await api.get('/chatbot/history', { params: { session_id: sessionId.value } })
+            ) || []
     } catch {
         // A locally stored session can outlive a deleted server conversation.
         sessionId.value = ''
@@ -83,9 +85,7 @@ onMounted(history)
         <section
             class="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-stroke bg-white shadow-soft"
         >
-            <header
-                class="flex items-center gap-3 bg-gradient-to-r from-navy to-cyan-700 p-5 text-white"
-            >
+            <header class="flex items-center gap-3 bg-navy p-5 text-white">
                 <span class="grid size-11 place-items-center rounded-xl bg-white/10"
                     ><SparklesIcon class="size-6"
                 /></span>

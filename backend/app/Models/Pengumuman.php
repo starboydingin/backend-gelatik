@@ -8,7 +8,7 @@ class Pengumuman extends Model
 {
     protected $table = 'pengumumans';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     protected $fillable = [
         'id',

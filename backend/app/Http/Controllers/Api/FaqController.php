@@ -26,6 +26,14 @@ class FaqController extends Controller
         return response()->json(['success' => true, 'data' => $faqs]);
     }
 
+    public function adminIndex()
+    {
+        return response()->json([
+            'success' => true,
+            'data' => Faq::with('topik')->orderBy('judul')->get(),
+        ]);
+    }
+
     /** POST /api/faq */
     public function store(Request $request)
     {
@@ -59,7 +67,14 @@ class FaqController extends Controller
     {
         $faq = Faq::findOrFail($id);
 
-        $faq->update($request->only(['topik_id', 'judul', 'detail', 'status']) + [
+        $validated = $request->validate([
+            'topik_id' => 'sometimes|required|exists:master_topik,id',
+            'judul' => 'sometimes|required|string|max:255',
+            'detail' => 'sometimes|required|string',
+            'status' => 'nullable|in:1,0',
+        ]);
+
+        $faq->update($validated + [
             'updated_by' => $request->user()->id ?? null,
         ]);
 

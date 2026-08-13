@@ -14,7 +14,7 @@ class UserController extends Controller
     /** GET /api/admin/users */
     public function index(Request $request)
     {
-        $query = User::query();
+        $query = User::with('roles:id,name');
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -74,13 +74,18 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $this->authorizeManagement($request, $user);
+
+        if ($request->has('role') && ! $request->user()->hasRole('superadmin')) {
+            abort(403, 'Hanya superadmin yang dapat mengubah role.');
+        }
 
         $request->validate([
             'name'     => 'sometimes|string|max:255',
             'email'    => 'sometimes|email|unique:users,email,' . $id,
             'username' => 'sometimes|string|unique:users,username,' . $id,
             'password' => 'nullable|string|min:6',
-            'role'     => 'nullable|string',
+            'role'     => 'nullable|string|exists:roles,name|not_in:superadmin',
             'nama_opd' => 'nullable|string',
             'status'   => 'nullable|in:0,1',
         ]);
@@ -100,18 +105,20 @@ class UserController extends Controller
     }
 
     /** DELETE /api/admin/users/{id} */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $this->authorizeManagement($request, $user);
         $user->delete();
 
         return response()->json(['success' => true, 'message' => 'User berhasil dihapus.']);
     }
 
     /** POST /api/admin/users/{id}/activate */
-    public function activate($id)
+    public function activate(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $this->authorizeManagement($request, $user);
         $user->update(['status' => '1']);
 
         return response()->json([
@@ -122,9 +129,10 @@ class UserController extends Controller
     }
 
     /** POST /api/admin/users/{id}/deactivate */
-    public function deactivate($id)
+    public function deactivate(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $this->authorizeManagement($request, $user);
         $user->update(['status' => '0']);
 
         return response()->json([
@@ -132,5 +140,16 @@ class UserController extends Controller
             'message' => 'User berhasil dinonaktifkan.',
             'data'    => $user,
         ]);
+    }
+
+    private function authorizeManagement(Request $request, User $target): void
+    {
+        if ($target->hasRole('superadmin')) {
+            abort(403, 'Akun superadmin tidak dapat dikelola melalui endpoint ini.');
+        }
+
+        if ($target->hasRole('admin') && ! $request->user()->hasRole('superadmin')) {
+            abort(403, 'Hanya superadmin yang dapat mengelola akun admin.');
+        }
     }
 }

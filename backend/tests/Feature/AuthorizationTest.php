@@ -297,11 +297,11 @@ class AuthorizationTest extends TestCase
         $this->getJson('/api/konsul')->assertOk()->assertJsonCount(2, 'data.data');
     }
 
-    public function test_only_owner_or_admin_can_respond_to_konsultasi(): void
+    public function test_only_admin_can_respond_to_konsultasi(): void
     {
         $this->actingAsApi($this->userA);
         $this->postJson('/api/konsul/202/response', ['isi_respon' => 'Lintas user'])->assertForbidden();
-        $this->postJson('/api/konsul/201/response', ['isi_respon' => 'Balasan pemilik'])->assertCreated();
+        $this->postJson('/api/konsul/201/response', ['isi_respon' => 'Balasan pemilik'])->assertForbidden();
 
         $this->actingAsApi($this->admin);
         $this->postJson('/api/konsul/202/response', ['isi_respon' => 'Balasan admin'])->assertCreated();
@@ -322,8 +322,9 @@ class AuthorizationTest extends TestCase
         $konsultasiId = $createResponse->json('data.id');
         $this->assertIsInt($konsultasiId);
 
+        $this->actingAsApi($this->admin);
         $response = $this->postJson('/api/konsul/'.$konsultasiId.'/response', [
-            'isi_respon' => 'Informasi tambahan dari pemilik.',
+            'isi_respon' => 'Tanggapan petugas TIK.',
         ])->assertCreated();
 
         $responseId = $response->json('data.id');
@@ -331,7 +332,7 @@ class AuthorizationTest extends TestCase
         $this->assertDatabaseHas('tr_konsultasi_response', [
             'id' => $responseId,
             'konsultasi_id' => $konsultasiId,
-            'user_id' => $this->userA->id,
+            'user_id' => $this->admin->id,
         ]);
     }
 
@@ -461,6 +462,38 @@ class AuthorizationTest extends TestCase
         $this->getJson('/api/admin/users')->assertOk();
     }
 
+    public function test_admin_master_data_and_announcements_are_role_gated(): void
+    {
+        $this->actingAsApi($this->userA);
+        $this->getJson('/api/admin/items')->assertForbidden();
+        $this->postJson('/api/admin/pengumuman', [
+            'judul' => 'Tidak boleh',
+            'konten' => 'Percobaan dari user.',
+        ])->assertForbidden();
+        $this->postJson('/api/admin/routers', [
+            'nama_opd' => 'OPD User',
+            'identity_router' => 'router-user',
+        ])->assertForbidden();
+
+        $this->actingAsApi($this->admin);
+        $this->getJson('/api/admin/items')
+            ->assertOk()
+            ->assertJsonPath('data.0.nama', 'Laptop Test');
+
+        $router = $this->postJson('/api/admin/routers', [
+            'nama_opd' => 'OPD Test',
+            'identity_router' => 'router-test',
+            'interface' => 'ether1',
+            'lokasi' => 'Ruang server',
+            'status' => 1,
+        ])->assertCreated()->json('data');
+
+        $this->putJson('/api/admin/routers/'.$router['id'], ['lokasi' => 'Ruang NOC'])
+            ->assertOk()
+            ->assertJsonPath('data.lokasi', 'Ruang NOC');
+        $this->deleteJson('/api/admin/routers/'.$router['id'])->assertOk();
+    }
+
     public function test_only_superadmin_can_provision_an_active_admin_account(): void
     {
         $payload = [
@@ -489,6 +522,20 @@ class AuthorizationTest extends TestCase
         $this->assertTrue($created->hasRole('admin'));
         $this->assertFalse($created->hasRole('superadmin'));
         $this->assertNotSame($payload['password'], $created->password);
+    }
+
+    public function test_admin_cannot_escalate_roles_or_manage_privileged_accounts(): void
+    {
+        $this->actingAsApi($this->admin);
+        $this->putJson('/api/admin/users/'.$this->userA->id, ['role' => 'admin'])
+            ->assertForbidden();
+        $this->postJson('/api/admin/users/'.$this->superadmin->id.'/deactivate')
+            ->assertForbidden();
+
+        $this->actingAsApi($this->superadmin);
+        $this->putJson('/api/admin/users/'.$this->userA->id, ['role' => 'superadmin'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('role');
     }
 
     private function actingAsApi(User $user): void
@@ -688,6 +735,17 @@ class AuthorizationTest extends TestCase
             $table->string('NUnKer', 255)->nullable();
             $table->string('EmailUsulan', 35)->nullable();
             $table->string('EmailPribadi', 150)->nullable();
+        });
+        Schema::create('unker_list_router', function (Blueprint $table): void {
+            $table->id();
+            $table->string('nama_opd');
+            $table->text('identity_router');
+            $table->string('interface')->nullable();
+            $table->text('lokasi')->nullable();
+            $table->integer('status')->default(1);
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
+            $table->timestamps();
         });
 
         \DB::table('master_item')->insert([

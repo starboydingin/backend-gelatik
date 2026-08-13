@@ -11,7 +11,7 @@ class Faq extends Model
 
     protected $table = 'faq';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     protected $fillable = [
         'id',

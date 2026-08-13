@@ -3,6 +3,8 @@ import { onMounted, ref } from 'vue'
 import { api, payload, rows, errorMessage } from '../../lib/api'
 import PageHeader from '../../components/PageHeader.vue'
 import AlertMessage from '../../components/AlertMessage.vue'
+import { useAuthStore } from '../../stores/auth'
+const auth = useAuthStore()
 const list = ref([]),
     permissions = ref([]),
     error = ref(''),
@@ -39,7 +41,7 @@ onMounted(load)
         description="Atur kelompok akses yang digunakan Backend Gelatik."
     /><AlertMessage :message="error" />
     <div class="grid gap-5 xl:grid-cols-[1fr_1.5fr]">
-        <form class="card" @submit.prevent="create">
+        <form v-if="auth.isSuperAdmin" class="card" @submit.prevent="create">
             <h2 class="font-bold">Buat peran</h2>
             <label class="mt-4 block"
                 ><span class="label">Nama peran</span
@@ -70,7 +72,9 @@ onMounted(load)
                             }}
                         </p>
                     </div>
-                    <button class="btn-danger" @click="remove(role.id)">Hapus</button>
+                    <button v-if="auth.isSuperAdmin" class="btn-danger" @click="remove(role.id)">
+                        Hapus
+                    </button>
                 </div>
             </article>
         </div>

@@ -33,7 +33,7 @@ async function submit() {
     error.value = ''
     try {
         auth.user = payload(await api.patch('/me', form.value))
-        localStorage.setItem('gelatik_user', JSON.stringify(auth.user))
+        sessionStorage.setItem('gelatik_user', JSON.stringify(auth.user))
         message.value = 'Profil berhasil diperbarui.'
     } catch (requestError) {
         error.value = errorMessage(requestError)
@@ -53,15 +53,15 @@ async function submit() {
             <aside class="space-y-5">
                 <section class="service-hero flex-col items-center text-center md:flex-col">
                     <span
-                        class="relative z-10 grid size-24 place-items-center rounded-3xl border-4 border-white/30 bg-white/90 text-3xl font-semibold text-brand-700"
+                        class="grid size-24 place-items-center rounded-xl border border-brand-200 bg-brand-50 text-3xl font-semibold text-brand-700"
                         >{{ initials }}</span
                     >
-                    <div class="relative z-10">
-                        <h2 class="text-xl font-bold text-white">{{ auth.user?.name }}</h2>
-                        <p class="mt-1 text-sm text-blue-100">
+                    <div>
+                        <h2 class="text-xl font-bold text-navy">{{ auth.user?.name }}</h2>
+                        <p class="mt-1 text-sm text-slate-500">
                             {{ auth.user?.username || auth.user?.nip }}
                         </p>
-                        <span class="badge mt-3 bg-white/10 text-white">{{
+                        <span class="badge mt-3 bg-brand-50 text-brand-800">{{
                             auth.roles.join(', ') || 'user'
                         }}</span>
                     </div>

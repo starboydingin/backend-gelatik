@@ -25,6 +25,14 @@ class TopikController extends Controller
         return response()->json(['success' => true, 'data' => $topiks]);
     }
 
+    public function adminIndex()
+    {
+        return response()->json([
+            'success' => true,
+            'data' => MasterTopik::withCount('faqs')->orderBy('topik')->get(),
+        ]);
+    }
+
     /** POST /api/topik */
     public function store(Request $request)
     {
@@ -54,7 +62,12 @@ class TopikController extends Controller
     {
         $topik = MasterTopik::findOrFail($id);
 
-        $topik->update($request->only(['topik', 'status']) + [
+        $validated = $request->validate([
+            'topik' => 'sometimes|required|string|max:100',
+            'status' => 'nullable|in:1,0',
+        ]);
+
+        $topik->update($validated + [
             'updated_by' => $request->user()->id ?? null,
         ]);
 

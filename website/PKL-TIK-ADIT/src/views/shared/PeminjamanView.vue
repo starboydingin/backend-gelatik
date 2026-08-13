@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '../../stores/auth'
 import { api, payload, rows, errorMessage } from '../../lib/api'
 import AlertMessage from '../../components/AlertMessage.vue'
 import EmptyState from '../../components/EmptyState.vue'
@@ -9,6 +10,7 @@ import ServiceHero from '../../components/ServiceHero.vue'
 import StatusSummary from '../../components/StatusSummary.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
 const route = useRoute(),
+    auth = useAuthStore(),
     admin = computed(() => route.path.startsWith('/admin')),
     items = ref([]),
     assets = ref([]),
@@ -84,10 +86,31 @@ async function load() {
 }
 async function openForm() {
     editingId.value = null
+    form.value = {
+        ...form.value,
+        nama_pic: auth.user?.name || '',
+        jabatan_pic: '',
+        instansi_pic: auth.user?.nama_opd || '',
+        kontak_pic: auth.user?.no_hp || '',
+        nomor_identitas: form.value.jenis_identitas === 'NIP' ? auth.user?.nip || '' : '',
+    }
     showForm.value = true
     try {
         assets.value = rows(payload(await api.get('/items')))
     } catch {}
+}
+function identityChanged() {
+    form.value.nomor_identitas = form.value.jenis_identitas === 'NIP' ? auth.user?.nip || '' : ''
+}
+function setDocument(event) {
+    const file = event.target.files?.[0] || null
+    if (file && file.size > 1024 * 1024) {
+        event.target.value = ''
+        form.value.dokumen_pendukung = null
+        error.value = 'Ukuran dokumen maksimal 1 MB.'
+        return
+    }
+    form.value.dokumen_pendukung = file
 }
 async function edit(item) {
     editingId.value = item.id
@@ -194,19 +217,28 @@ onMounted(load)
             <div class="mt-5 grid gap-4 md:grid-cols-2">
                 <label
                     ><span class="label">Nama PIC</span
-                    ><input v-model="form.nama_pic" class="input" required /></label
-                ><label
-                    ><span class="label">Jabatan PIC</span
-                    ><input v-model="form.jabatan_pic" class="input" /></label
+                    ><input
+                        v-model="form.nama_pic"
+                        class="input bg-slate-50"
+                        readonly
+                        required /></label
                 ><label
                     ><span class="label">Instansi PIC</span
-                    ><input v-model="form.instansi_pic" class="input" required /></label
+                    ><input
+                        v-model="form.instansi_pic"
+                        class="input bg-slate-50"
+                        readonly
+                        required /></label
                 ><label
                     ><span class="label">Kontak PIC</span
-                    ><input v-model="form.kontak_pic" class="input" required /></label
+                    ><input
+                        v-model="form.kontak_pic"
+                        class="input bg-slate-50"
+                        readonly
+                        required /></label
                 ><label
                     ><span class="label">Jenis identitas</span
-                    ><select v-model="form.jenis_identitas" class="input">
+                    ><select v-model="form.jenis_identitas" class="input" @change="identityChanged">
                         <option>KTP</option>
                         <option>SIM</option>
                         <option>Passport</option>
@@ -214,7 +246,12 @@ onMounted(load)
                     </select></label
                 ><label
                     ><span class="label">Nomor identitas</span
-                    ><input v-model="form.nomor_identitas" class="input" required /></label
+                    ><input
+                        v-model="form.nomor_identitas"
+                        class="input"
+                        :class="form.jenis_identitas === 'NIP' ? 'bg-slate-50' : ''"
+                        :readonly="form.jenis_identitas === 'NIP'"
+                        required /></label
                 ><label
                     ><span class="label">Alamat peminjam</span
                     ><input v-model="form.alamat_peminjam" class="input" required /></label
@@ -247,12 +284,12 @@ onMounted(load)
                     ><span class="label">Keterangan</span
                     ><textarea v-model="form.keterangan" class="input min-h-24"></textarea></label
                 ><label class="md:col-span-2"
-                    ><span class="label">Dokumen pendukung (opsional)</span
+                    ><span class="label">Unggah dokumen pendukung (opsional, maksimal 1 MB)</span
                     ><input
                         type="file"
                         class="input"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                        @change="form.dokumen_pendukung = $event.target.files[0]"
+                        @change="setDocument"
                 /></label>
             </div>
             <div class="mt-4 flex flex-wrap items-end gap-3">
@@ -261,7 +298,8 @@ onMounted(load)
                     ><select v-model="draft.item_id" class="input">
                         <option value="">Pilih aset</option>
                         <option v-for="asset in assets" :key="asset.id" :value="asset.id">
-                            {{ asset.nama_item || asset.name }} (stok {{ asset.stok ?? '-' }})
+                            {{ asset.nama || asset.nama_item || asset.name }} (stok
+                            {{ asset.stok ?? '-' }})
                         </option>
                     </select></label
                 ><label class="w-28"

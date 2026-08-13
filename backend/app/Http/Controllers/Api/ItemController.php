@@ -31,6 +31,15 @@ class ItemController extends Controller
         return response()->json(['success' => true, 'data' => $items]);
     }
 
+    /** GET /api/admin/items — complete master list for administrators. */
+    public function adminIndex()
+    {
+        return response()->json([
+            'success' => true,
+            'data' => MasterItem::orderBy('nama')->get(),
+        ]);
+    }
+
     /** GET /api/items/{id} */
     public function show($id)
     {
@@ -81,7 +90,15 @@ class ItemController extends Controller
     {
         $item = MasterItem::findOrFail($id);
 
-        $item->update($request->only(['nama', 'deskripsi', 'foto', 'kondisi', 'stok']) + [
+        $validated = $request->validate([
+            'nama' => 'sometimes|required|string|max:255',
+            'deskripsi' => 'sometimes|required|string',
+            'foto' => 'nullable|string',
+            'kondisi' => 'nullable|in:Baik,Rusak Sebagian,Rusak Parah,Tidak Berfungsi',
+            'stok' => 'sometimes|required|integer|min:0',
+        ]);
+
+        $item->update($validated + [
             'updated_by' => $request->user()->id ?? null,
         ]);
 

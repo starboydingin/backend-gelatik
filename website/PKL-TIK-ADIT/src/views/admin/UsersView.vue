@@ -8,23 +8,12 @@ import { useAuthStore } from '../../stores/auth'
 const auth = useAuthStore()
 const list = ref([]),
     search = ref(''),
-    error = ref(''),
-    show = ref(false),
-    form = ref({ name: '', email: '', username: '', password: '', nama_opd: '' })
+    error = ref('')
 async function load() {
     try {
         list.value = rows(
             payload(await api.get('/admin/users', { params: { search: search.value } }))
         )
-    } catch (e) {
-        error.value = errorMessage(e)
-    }
-}
-async function create() {
-    try {
-        await api.post('/admin/users', form.value)
-        show.value = false
-        await load()
     } catch (e) {
         error.value = errorMessage(e)
     }
@@ -41,34 +30,16 @@ async function remove(id) {
         load()
     }
 }
+function isPrivileged(item) {
+    return (item.roles || []).some((role) => ['admin', 'superadmin'].includes(role.name || role))
+}
 onMounted(load)
 </script>
 <template>
     <PageHeader
         title="Manajemen pengguna"
-        description="Kelola akun, status akses, dan admin Gelatik."
-        ><button v-if="auth.isSuperAdmin" class="btn-primary" @click="show = !show">
-            Tambah admin
-        </button></PageHeader
-    ><AlertMessage :message="error" />
-    <form v-if="show" class="card mb-5" @submit.prevent="create">
-        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-            <input v-model="form.name" class="input" placeholder="Nama" required /><input
-                v-model="form.email"
-                type="email"
-                class="input"
-                placeholder="Email"
-                required
-            /><input v-model="form.username" class="input" placeholder="Username" required /><input
-                v-model="form.password"
-                type="password"
-                class="input"
-                placeholder="Password"
-                required
-            /><input v-model="form.nama_opd" class="input" placeholder="OPD" />
-        </div>
-        <button class="btn-primary mt-4">Simpan admin</button>
-    </form>
+        description="Kelola akun dan status akses. Akun admin dibuat secara aman melalui API oleh superadmin."
+    /><AlertMessage :message="error" />
     <form class="mb-4 flex max-w-lg gap-2" @submit.prevent="load">
         <input
             v-model="search"
@@ -108,7 +79,7 @@ onMounted(load)
                         >
                     </td>
                     <td>
-                        <div class="flex gap-2">
+                        <div v-if="auth.isSuperAdmin || !isPrivileged(item)" class="flex gap-2">
                             <button class="btn-secondary min-h-9 px-3" @click="active(item)">
                                 {{
                                     String(item.status) === '1' ? 'Nonaktifkan' : 'Aktifkan'
@@ -117,6 +88,7 @@ onMounted(load)
                                 Hapus
                             </button>
                         </div>
+                        <span v-else class="text-xs text-slate-400">Dilindungi</span>
                     </td>
                 </tr>
             </tbody>

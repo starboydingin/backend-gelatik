@@ -8,21 +8,48 @@ const list = ref([]),
     error = ref(''),
     message = ref(''),
     show = ref(false),
+    editingId = ref(null),
     form = ref({ judul: '', konten: '', expired_at: '' })
 async function load() {
     try {
-        list.value = rows(payload(await api.get('/pengumuman')))
+        list.value = rows(payload(await api.get('/admin/pengumuman')))
     } catch (e) {
         error.value = errorMessage(e)
     }
 }
 async function submit() {
     try {
-        await api.post('/pengumuman', form.value)
-        message.value = 'Pengumuman berhasil diterbitkan.'
+        if (editingId.value) await api.put(`/admin/pengumuman/${editingId.value}`, form.value)
+        else await api.post('/admin/pengumuman', form.value)
+        message.value = editingId.value
+            ? 'Pengumuman berhasil diperbarui.'
+            : 'Pengumuman berhasil diterbitkan.'
+        editingId.value = null
         form.value = { judul: '', konten: '', expired_at: '' }
         show.value = false
         load()
+    } catch (e) {
+        error.value = errorMessage(e)
+    }
+}
+function edit(item) {
+    editingId.value = item.id
+    form.value = {
+        judul: item.judul,
+        konten: item.konten,
+        expired_at: item.expired_at ? String(item.expired_at).slice(0, 10) : '',
+    }
+    show.value = true
+}
+function cancelEdit() {
+    editingId.value = null
+    show.value = false
+}
+async function remove(id) {
+    if (!confirm('Hapus pengumuman ini?')) return
+    try {
+        await api.delete(`/admin/pengumuman/${id}`)
+        await load()
     } catch (e) {
         error.value = errorMessage(e)
     }
@@ -42,8 +69,14 @@ onMounted(load)
             ><textarea v-model="form.konten" class="input min-h-28" required></textarea></label
         ><label class="mt-4 block max-w-xs"
             ><span class="label">Berakhir pada (opsional)</span
-            ><input v-model="form.expired_at" type="date" class="input" /></label
-        ><button class="btn-primary mt-5">Terbitkan</button>
+            ><input v-model="form.expired_at" type="date" class="input"
+        /></label>
+        <div class="mt-5 flex gap-2">
+            <button class="btn-primary">{{ editingId ? 'Simpan perubahan' : 'Terbitkan' }}</button
+            ><button v-if="editingId" type="button" class="btn-secondary" @click="cancelEdit">
+                Batal
+            </button>
+        </div>
     </form>
     <div class="card divide-y divide-slate-100">
         <EmptyState v-if="!list.length" />
@@ -53,6 +86,10 @@ onMounted(load)
                 {{ item.konten }}
             </p>
             <p class="mt-2 text-xs text-slate-400">{{ item.created_at }}</p>
+            <div class="mt-3 flex gap-2">
+                <button class="btn-secondary min-h-9 px-3" @click="edit(item)">Ubah</button
+                ><button class="btn-danger min-h-9 px-3" @click="remove(item.id)">Hapus</button>
+            </div>
         </article>
     </div>
 </template>

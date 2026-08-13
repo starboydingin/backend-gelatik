@@ -22,7 +22,7 @@ const routes = [
     {
         path: '/app',
         component: () => import('../layouts/AppLayout.vue'),
-        meta: { auth: true },
+        meta: { auth: true, userPortal: true },
         children: [
             { path: '', redirect: '/app/dashboard' },
             { path: 'dashboard', component: () => import('../views/user/UserDashboard.vue') },
@@ -98,5 +98,6 @@ router.beforeEach(async (to) => {
     if (to.meta.admin) {
         if (!auth.isAdmin) return '/app/dashboard'
     }
+    if (to.meta.userPortal && auth.isAdmin) return '/admin/dashboard'
 })
 export default router

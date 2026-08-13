@@ -3,8 +3,9 @@ import { computed, ref } from 'vue'
 import { api, payload } from '../lib/api'
 
 export const useAuthStore = defineStore('auth', () => {
-    const token = ref(localStorage.getItem('gelatik_token'))
-    const user = ref(JSON.parse(localStorage.getItem('gelatik_user') || 'null'))
+    // Per-tab authentication allows user and admin monitoring in separate tabs.
+    const token = ref(sessionStorage.getItem('gelatik_token'))
+    const user = ref(JSON.parse(sessionStorage.getItem('gelatik_user') || 'null'))
     const sessionChecked = ref(false)
     const authenticated = computed(() => Boolean(token.value))
     const roles = computed(() =>
@@ -18,8 +19,8 @@ export const useAuthStore = defineStore('auth', () => {
     function save(data) {
         token.value = data.access_token
         user.value = data.user
-        localStorage.setItem('gelatik_token', token.value)
-        localStorage.setItem('gelatik_user', JSON.stringify(user.value))
+        sessionStorage.setItem('gelatik_token', token.value)
+        sessionStorage.setItem('gelatik_user', JSON.stringify(user.value))
     }
 
     async function login(credentials) {
@@ -28,7 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
     async function loadUser() {
         if (!token.value) return
         user.value = payload(await api.get('/me'))
-        localStorage.setItem('gelatik_user', JSON.stringify(user.value))
+        sessionStorage.setItem('gelatik_user', JSON.stringify(user.value))
         sessionChecked.value = true
     }
     async function logout() {
@@ -37,8 +38,8 @@ export const useAuthStore = defineStore('auth', () => {
         } finally {
             token.value = null
             user.value = null
-            localStorage.removeItem('gelatik_token')
-            localStorage.removeItem('gelatik_user')
+            sessionStorage.removeItem('gelatik_token')
+            sessionStorage.removeItem('gelatik_user')
         }
     }
     return {

@@ -16,6 +16,14 @@ class SliderController extends Controller
         return response()->json(['success' => true, 'data' => $sliders]);
     }
 
+    public function adminIndex()
+    {
+        return response()->json([
+            'success' => true,
+            'data' => Slider::latest()->get(),
+        ]);
+    }
+
     /** POST /api/slider */
     public function store(Request $request)
     {
@@ -47,7 +55,13 @@ class SliderController extends Controller
     {
         $slider = Slider::findOrFail($id);
 
-        $slider->update($request->only(['judul', 'image', 'status']) + [
+        $validated = $request->validate([
+            'judul' => 'sometimes|required|string|max:255',
+            'image' => 'sometimes|required|string',
+            'status' => 'nullable|integer|in:0,1',
+        ]);
+
+        $slider->update($validated + [
             'updated_by' => $request->user()->id ?? null,
         ]);
 

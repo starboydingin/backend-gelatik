@@ -87,12 +87,7 @@ onMounted(async () => {
                 eyebrow="Portal admin"
                 :title="`Selamat datang, ${auth.user?.name || 'Administrator'}`"
                 description="Pantau ringkasan operasional dan buka modul kerja dari satu dashboard yang terintegrasi."
-                ><RouterLink
-                    to="/app/dashboard"
-                    class="btn border border-white/25 bg-white/10 text-white hover:bg-white/20"
-                    >Lihat portal pengguna</RouterLink
-                ></ServiceHero
-            >
+            ></ServiceHero>
             <section class="section-panel p-5">
                 <div class="mb-4 flex items-center justify-between">
                     <div>

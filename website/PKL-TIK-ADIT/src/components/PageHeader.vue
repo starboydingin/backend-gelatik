@@ -7,7 +7,7 @@ defineProps({
 </script>
 <template>
     <header
-        class="mb-5 flex flex-col gap-4 rounded-2xl border border-stroke bg-gradient-to-r from-white via-white to-brand-50/70 px-5 py-4 shadow-soft sm:flex-row sm:items-center sm:justify-between"
+        class="mb-5 flex flex-col gap-4 border-b border-stroke pb-5 sm:flex-row sm:items-end sm:justify-between"
     >
         <div class="min-w-0">
             <p class="eyebrow">{{ eyebrow }}</p>
