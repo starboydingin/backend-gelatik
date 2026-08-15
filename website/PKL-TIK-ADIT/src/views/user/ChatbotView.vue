@@ -45,6 +45,13 @@ function chatText(item) {
         .replace(/\*\*(.*?)\*\*/gs, '$1')
         .replace(/^\s*\*\s+/gm, '- ')
 }
+function scrollQuickQuestions(event) {
+    const strip = event.currentTarget
+    if (strip.scrollWidth <= strip.clientWidth || event.deltaY === 0) return
+
+    strip.scrollLeft += event.deltaY
+    event.preventDefault()
+}
 async function history() {
     if (!sessionId.value) return
     try {
@@ -185,11 +192,17 @@ onBeforeUnmount(() => {
                 </p>
             </div>
             <div class="border-t-[4px] border-[var(--line)] p-4 sm:p-5">
-                <div class="mb-4 flex gap-2 overflow-x-auto pb-1">
+                <div
+                    class="quick-question-strip"
+                    role="region"
+                    aria-label="Pertanyaan cepat chatbot"
+                    tabindex="0"
+                    @wheel="scrollQuickQuestions"
+                >
                     <button
                         v-for="question in quickQuestions"
                         :key="question"
-                        class="shrink-0 border-[3px] border-[var(--line)] bg-[var(--gold)] px-3 py-2 text-xs font-black text-black shadow-[3px_3px_0_var(--line)] hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-none"
+                        class="quick-question"
                         :disabled="sending"
                         @click="send(question)"
                     >
@@ -215,3 +228,62 @@ onBeforeUnmount(() => {
         </section>
     </div>
 </template>
+
+<style scoped>
+.quick-question-strip {
+    display: flex;
+    width: 100%;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    overflow-x: scroll;
+    overscroll-behavior-x: contain;
+    padding: 0.125rem 0.125rem 0.375rem;
+    scroll-behavior: smooth;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.quick-question-strip::-webkit-scrollbar {
+    display: none;
+}
+
+.quick-question {
+    max-width: min(84vw, 38rem);
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    border: 3px solid var(--line);
+    background: var(--gold);
+    padding: 0.5rem 0.75rem;
+    color: #000;
+    font-size: 0.75rem;
+    font-weight: 900;
+    line-height: 1.35;
+    text-align: left;
+    white-space: normal;
+    box-shadow: 3px 3px 0 var(--line);
+    transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+}
+
+.quick-question:hover:not(:disabled),
+.quick-question:focus-visible:not(:disabled) {
+    transform: translate(3px, 3px);
+    box-shadow: none;
+}
+
+@media (min-width: 640px) {
+    .quick-question {
+        max-width: 32rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .quick-question-strip {
+        scroll-behavior: auto;
+    }
+
+    .quick-question {
+        transition: none;
+    }
+}
+</style>
