@@ -14,6 +14,7 @@ const messages = ref([]),
     error = ref(''),
     sending = ref(false),
     initialized = ref(false)
+const quickQuestionStrip = ref(null)
 const quickQuestionDrag = {
     pointerId: null,
     startX: 0,
@@ -53,13 +54,15 @@ function chatText(item) {
         .replace(/^\s*\*\s+/gm, '- ')
 }
 function scrollQuickQuestions(event) {
-    const strip = event.currentTarget
+    const strip = quickQuestionStrip.value
+    if (!strip) return
     const horizontalDelta = event.deltaX || event.deltaY
     if (strip.scrollWidth <= strip.clientWidth || horizontalDelta === 0) return
 
     // A mouse wheel usually emits deltaY; Shift+wheel and trackpads emit deltaX.
     strip.scrollLeft += horizontalDelta
-    event.preventDefault()
+    if (event.cancelable) event.preventDefault()
+    event.stopPropagation()
 }
 function beginQuickQuestionDrag(event) {
     if (event.pointerType !== 'mouse') return
@@ -173,7 +176,12 @@ async function initialize() {
         void history()
     }
 }
-onMounted(initialize)
+onMounted(() => {
+    initialize()
+    // Vue's declarative wheel listener can be passive in some embedded Windows
+    // runtimes. This explicit listener keeps mouse-wheel scrolling cancellable.
+    quickQuestionStrip.value?.addEventListener('wheel', scrollQuickQuestions, { passive: false })
+})
 onActivated(() => {
     if (initialized.value) initialize()
 })
@@ -183,6 +191,7 @@ onDeactivated(() => {
 })
 onBeforeUnmount(() => {
     document.removeEventListener('visibilitychange', handleVisibilityChange)
+    quickQuestionStrip.value?.removeEventListener('wheel', scrollQuickQuestions)
     sessionStorage.setItem(visitKey, String(Date.now()))
 })
 </script>
@@ -235,11 +244,11 @@ onBeforeUnmount(() => {
             </div>
             <div class="border-t-[4px] border-[var(--line)] p-4 sm:p-5">
                 <div
+                    ref="quickQuestionStrip"
                     class="quick-question-strip"
                     role="region"
                     aria-label="Pertanyaan cepat chatbot"
                     tabindex="0"
-                    @wheel="scrollQuickQuestions"
                     @pointerdown="beginQuickQuestionDrag"
                     @pointermove="moveQuickQuestionDrag"
                     @pointerup="endQuickQuestionDrag"
