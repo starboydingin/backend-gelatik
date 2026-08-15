@@ -53,8 +53,9 @@ const initials = computed(() => (String(route.meta?.initials || '') || '').trim(
         >
             <Bars3Icon class="size-6" />
         </button>
-        <GelatikLogo compact class="shrink-0" />
-        <div class="hidden min-w-0 flex-1 sm:block">
+        <!-- Desktop branding lives only in the persistent left navigation. -->
+        <GelatikLogo compact class="shrink-0 lg:hidden" />
+        <div class="min-w-0 flex-1">
             <p class="eyebrow truncate">{{ current[0] }}</p>
             <h1 class="truncate font-brand text-xl font-black uppercase tracking-[-.04em]">{{ current[1] }}</h1>
         </div>

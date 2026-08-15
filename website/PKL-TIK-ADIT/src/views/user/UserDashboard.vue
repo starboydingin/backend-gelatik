@@ -90,7 +90,7 @@ onMounted(async () => {
                     <RouterLink to="/app/konsultasi" class="btn-primary">Buat konsultasi</RouterLink
                     ><RouterLink
                         to="/app/peminjaman"
-                        class="btn border border-white/25 bg-white/10 text-white hover:bg-white/20"
+                        class="btn-secondary"
                         >Ajukan peminjaman</RouterLink
                     >
                 </div>
