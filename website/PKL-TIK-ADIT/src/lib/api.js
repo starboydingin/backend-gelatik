@@ -6,18 +6,20 @@ export const api = axios.create({
     timeout: 15000,
 })
 
-// Small per-tab cache for read-only reference data. It prevents loading states
-// on ordinary navigation without persisting another user's data across a logout.
+// Per-tab cache for GET requests. It makes returning to a page immediate while
+// keeping every account isolated and avoiding persistent sensitive data.
 const readCache = new Map()
+const defaultReadTtl = 20_000
 const cacheKey = (url, config = {}) =>
-    JSON.stringify([url, config.params || {}, config.headers?.Authorization || ''])
+    JSON.stringify([url, config.params || {}, sessionStorage.getItem('gelatik_token') || ''])
+const rawGet = api.get.bind(api)
 
-export async function cachedGet(url, config = {}, ttl = 60_000) {
+export async function cachedGet(url, config = {}, ttl = defaultReadTtl) {
     const key = cacheKey(url, config)
     const cached = readCache.get(key)
     if (cached && Date.now() - cached.createdAt < ttl) return cached.response
 
-    const request = api.get(url, config)
+    const request = rawGet(url, config)
     readCache.set(key, { createdAt: Date.now(), response: request })
     try {
         const response = await request
@@ -39,6 +41,13 @@ export function clearApiCache() {
     invalidateApiCache()
 }
 
+// Existing pages can keep using api.get(). Dynamic data uses a short TTL;
+// pages that need a longer cache still call cachedGet(url, config, ttl).
+api.get = (url, config = {}) => {
+    const { cache = true, cacheTtl = defaultReadTtl, ...requestConfig } = config
+    return cache ? cachedGet(url, requestConfig, cacheTtl) : rawGet(url, requestConfig)
+}
+
 api.interceptors.request.use((config) => {
     const token = sessionStorage.getItem('gelatik_token')
     if (token) config.headers.Authorization = `Bearer ${token}`
@@ -46,7 +55,12 @@ api.interceptors.request.use((config) => {
 })
 
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        if (!['get', 'head', 'options'].includes(response.config.method?.toLowerCase())) {
+            clearApiCache()
+        }
+        return response
+    },
     (error) => {
         if (error.response?.status === 401) {
             sessionStorage.removeItem('gelatik_token')

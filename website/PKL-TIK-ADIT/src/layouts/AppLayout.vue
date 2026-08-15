@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { api } from '../lib/api'
 import { connectRealtime, disconnectRealtime } from '../lib/realtime'
 import AppShell from '../components/AppShell.vue'
 import AppSidebar from '../components/AppSidebar.vue'
@@ -102,6 +103,14 @@ const adminItems = [
     { label: 'Pengaturan', to: '/admin/pengaturan', icon: Cog6ToothIcon, group: 'Sistem' },
 ]
 const adminArea = computed(() => route.path.startsWith('/admin'))
+const userWarmupEndpoints = [
+    '/pengumuman',
+    '/faq',
+    '/topik',
+    '/items',
+    '/list-router-opd',
+    '/notifikasi/wa/status',
+]
 // Cached user views retain their loaded list/form state while a user moves
 // between services. The route key separates the user and admin workspaces.
 const cacheableViews = [
@@ -126,12 +135,25 @@ const mobileItems = computed(() =>
         ? [adminItems[0], adminItems[3], adminItems[1]]
         : [userItems[0], userItems[1], userItems[3], userItems.at(-1)]
 )
+function warmUserNavigation() {
+    if (adminArea.value) return
+
+    const warm = () => userWarmupEndpoints.forEach((endpoint) => api.get(endpoint).catch(() => {}))
+    if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(warm, { timeout: 1500 })
+    } else {
+        window.setTimeout(warm, 600)
+    }
+}
 async function logout() {
     await auth.logout()
     disconnectRealtime()
     router.push('/login')
 }
-onMounted(() => connectRealtime(auth.token))
+onMounted(() => {
+    connectRealtime(auth.token)
+    warmUserNavigation()
+})
 onBeforeUnmount(disconnectRealtime)
 </script>
 
