@@ -267,7 +267,9 @@ class ChatbotService
             return [];
         }
 
-        return ChatbotMessage::where('conversation_id', $conversation->id)
+        return ChatbotMessage::query()
+            ->select(['id', 'role', 'content', 'created_at'])
+            ->where('conversation_id', $conversation->id)
             ->orderBy('created_at', 'asc')
             ->get();
     }

@@ -48,10 +48,20 @@ function chatText(item) {
 async function history() {
     if (!sessionId.value) return
     try {
-        messages.value =
+        const remoteMessages =
             payload(
                 await api.get('/chatbot/history', { params: { session_id: sessionId.value } })
             ) || []
+        const retainedMessages = messages.value.filter(
+            (localMessage) =>
+                localMessage.localStarter ||
+                !remoteMessages.some(
+                    (remoteMessage) =>
+                        remoteMessage.role === localMessage.role &&
+                        chatText(remoteMessage) === chatText(localMessage)
+                )
+        )
+        messages.value = [...remoteMessages, ...retainedMessages]
     } catch {
         // A locally stored session can outlive a deleted server conversation.
         sessionId.value = ''
@@ -63,7 +73,7 @@ async function send(text = input.value) {
     const prompt = String(text).trim()
     input.value = ''
     error.value = ''
-    messages.value.push({ role: 'user', message: prompt })
+    messages.value.push({ role: 'user', message: prompt, localMessage: true })
     sending.value = true
     try {
         const result = payload(
@@ -79,6 +89,7 @@ async function send(text = input.value) {
         messages.value.push({
             role: 'assistant',
             message: result.reply || result.message || result.answer || 'Respons diterima.',
+            localMessage: true,
         })
     } catch (requestError) {
         error.value = errorMessage(requestError)
@@ -104,12 +115,14 @@ async function clear() {
     }
 }
 async function initialize() {
-    if (!initialized.value) {
-        await history()
-        initialized.value = true
-    }
+    // The welcome is entirely local so opening this page never waits for the database.
     appendStarterIfDue()
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    if (!initialized.value) {
+        initialized.value = true
+        // History is supplemental. Load it without blocking the first visible chatbot bubble.
+        void history()
+    }
 }
 onMounted(initialize)
 onActivated(() => {
