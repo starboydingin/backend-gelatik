@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { MegaphoneIcon } from '@heroicons/vue/24/outline'
-import { api, errorMessage, payload, rows } from '../../lib/api'
+import { cachedGet, errorMessage, payload, rows } from '../../lib/api'
 import AlertMessage from '../../components/AlertMessage.vue'
 import EmptyState from '../../components/EmptyState.vue'
 import LoadingState from '../../components/LoadingState.vue'
@@ -11,7 +11,7 @@ const items = ref([]),
     error = ref('')
 onMounted(async () => {
     try {
-        items.value = rows(payload(await api.get('/pengumuman')))
+        items.value = rows(payload(await cachedGet('/pengumuman', {}, 5 * 60_000)))
     } catch (requestError) {
         error.value = errorMessage(requestError)
     } finally {

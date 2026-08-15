@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { api, payload } from '../lib/api'
+import { api, clearApiCache, payload } from '../lib/api'
 
 export const useAuthStore = defineStore('auth', () => {
     // Per-tab authentication allows user and admin monitoring in separate tabs.
@@ -17,6 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
     const isSuperAdmin = computed(() => roles.value.includes('superadmin'))
 
     function save(data) {
+        clearApiCache()
         token.value = data.access_token
         user.value = data.user
         sessionStorage.setItem('gelatik_token', token.value)
@@ -36,6 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             await api.post('/logout')
         } finally {
+            clearApiCache()
             token.value = null
             user.value = null
             sessionStorage.removeItem('gelatik_token')

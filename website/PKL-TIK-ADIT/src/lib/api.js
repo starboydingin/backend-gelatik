@@ -6,6 +6,39 @@ export const api = axios.create({
     timeout: 15000,
 })
 
+// Small per-tab cache for read-only reference data. It prevents loading states
+// on ordinary navigation without persisting another user's data across a logout.
+const readCache = new Map()
+const cacheKey = (url, config = {}) =>
+    JSON.stringify([url, config.params || {}, config.headers?.Authorization || ''])
+
+export async function cachedGet(url, config = {}, ttl = 60_000) {
+    const key = cacheKey(url, config)
+    const cached = readCache.get(key)
+    if (cached && Date.now() - cached.createdAt < ttl) return cached.response
+
+    const request = api.get(url, config)
+    readCache.set(key, { createdAt: Date.now(), response: request })
+    try {
+        const response = await request
+        readCache.set(key, { createdAt: Date.now(), response })
+        return response
+    } catch (error) {
+        readCache.delete(key)
+        throw error
+    }
+}
+
+export function invalidateApiCache(prefix = '') {
+    for (const key of readCache.keys()) {
+        if (!prefix || key.includes(`\"${prefix}\"`)) readCache.delete(key)
+    }
+}
+
+export function clearApiCache() {
+    invalidateApiCache()
+}
+
 api.interceptors.request.use((config) => {
     const token = sessionStorage.getItem('gelatik_token')
     if (token) config.headers.Authorization = `Bearer ${token}`

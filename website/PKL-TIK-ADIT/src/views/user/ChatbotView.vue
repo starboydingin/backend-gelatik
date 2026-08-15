@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onActivated, onBeforeUnmount, onDeactivated, onMounted, ref } from 'vue'
 import { PaperAirplaneIcon, SparklesIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import { api, payload, errorMessage } from '../../lib/api'
 import { useAuthStore } from '../../stores/auth'
@@ -12,7 +12,8 @@ const sessionId = ref(localStorage.getItem('gelatik_chat_session') || '')
 const messages = ref([]),
     input = ref(''),
     error = ref(''),
-    sending = ref(false)
+    sending = ref(false),
+    initialized = ref(false)
 const quickQuestions = [
     'Bagaimana cara mengajukan peminjaman aset TIK?',
     'WiFi terhubung tetapi tidak ada internet. Apa yang harus dilakukan?',
@@ -103,11 +104,21 @@ async function clear() {
     }
 }
 async function initialize() {
-    await history()
+    if (!initialized.value) {
+        await history()
+        initialized.value = true
+    }
     appendStarterIfDue()
     document.addEventListener('visibilitychange', handleVisibilityChange)
 }
 onMounted(initialize)
+onActivated(() => {
+    if (initialized.value) initialize()
+})
+onDeactivated(() => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    sessionStorage.setItem(visitKey, String(Date.now()))
+})
 onBeforeUnmount(() => {
     document.removeEventListener('visibilitychange', handleVisibilityChange)
     sessionStorage.setItem(visitKey, String(Date.now()))

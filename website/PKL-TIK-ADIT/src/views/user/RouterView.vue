@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { WifiIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
-import { api, payload, rows, errorMessage } from '../../lib/api'
+import { cachedGet, payload, rows, errorMessage } from '../../lib/api'
 import { useAuthStore } from '../../stores/auth'
 import AlertMessage from '../../components/AlertMessage.vue'
 import EmptyState from '../../components/EmptyState.vue'
@@ -50,7 +50,7 @@ const stats = computed(() => [
 async function load() {
     loading.value = true
     try {
-        data.value = payload(await api.get('/list-router-opd'))
+        data.value = payload(await cachedGet('/list-router-opd', {}, 2 * 60_000))
     } catch (requestError) {
         error.value = errorMessage(requestError)
     } finally {

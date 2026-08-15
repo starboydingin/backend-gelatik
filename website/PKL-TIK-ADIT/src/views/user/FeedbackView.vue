@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { ChatBubbleBottomCenterTextIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import { api, errorMessage } from '../../lib/api'
 import AlertMessage from '../../components/AlertMessage.vue'
+import PageHeader from '../../components/PageHeader.vue'
 const form = ref({ kritik: '', saran: '' }),
     message = ref(''),
     error = ref(''),
@@ -23,16 +24,23 @@ async function submit() {
 </script>
 <template>
     <div class="page-stack">
+        <PageHeader
+            eyebrow="Suara pengguna"
+            title="Kritik & Saran"
+            description="Sampaikan pengalaman Anda agar layanan TIK dapat terus diperbaiki."
+        />
         <AlertMessage :message="error" /><AlertMessage :message="message" type="success" />
         <div class="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[.75fr_1.25fr]">
-            <aside class="service-hero flex-col items-start md:flex-col md:items-start">
-                <ChatBubbleBottomCenterTextIcon class="size-10 text-teal-200" />
+            <aside
+                class="flex flex-col items-start border-[2px] border-[var(--line)] bg-[var(--navy)] p-6 text-white shadow-[3px_3px_0_var(--line)] md:p-7"
+            >
+                <ChatBubbleBottomCenterTextIcon class="size-10 text-[var(--gold)]" />
                 <div class="relative z-10">
-                    <p class="eyebrow text-teal-200">Suara pengguna</p>
-                    <h2 class="mt-3 text-3xl font-bold text-white">
+                    <p class="eyebrow !text-[var(--gold)]">Suara pengguna</p>
+                    <h2 class="mt-3 font-brand text-3xl font-black uppercase leading-tight text-white">
                         Ceritakan pengalaman Anda apa adanya
                     </h2>
-                    <p class="mt-4 text-sm leading-7 text-blue-100">
+                    <p class="mt-4 text-sm font-semibold leading-7 text-white">
                         Pisahkan kendala yang dirasakan dan usulan penyelesaiannya agar masukan
                         lebih mudah dipahami petugas.
                     </p>
@@ -43,9 +51,9 @@ async function submit() {
                                 'Berikan saran yang dapat dilakukan',
                             ]"
                             :key="tip"
-                            class="flex items-center gap-3 rounded-xl border border-white/10 bg-white/10 p-3 text-sm font-semibold text-white"
+                            class="flex items-center gap-3 border-2 border-[var(--line)] bg-white p-3 text-sm font-bold text-black"
                         >
-                            <CheckIcon class="size-5 text-teal-300" />{{ tip }}
+                            <CheckIcon class="size-5 text-[var(--teal)]" />{{ tip }}
                         </div>
                     </div>
                 </div>

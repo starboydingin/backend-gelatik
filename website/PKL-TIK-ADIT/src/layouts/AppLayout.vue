@@ -106,11 +106,19 @@ const adminArea = computed(() => route.path.startsWith('/admin'))
 // between services. The route key separates the user and admin workspaces.
 const cacheableViews = [
     'UserDashboard',
+    'CalendarView',
+    'AnnouncementsView',
     'PeminjamanView',
     'KonsultasiView',
     'EmailView',
     'NotificationsView',
     'FaqView',
+    'RouterView',
+    'RatingView',
+    'WhatsappView',
+    'ChatbotView',
+    'ProfileView',
+    'FeedbackView',
 ]
 const items = computed(() => (adminArea.value ? adminItems : userItems))
 const mobileItems = computed(() =>

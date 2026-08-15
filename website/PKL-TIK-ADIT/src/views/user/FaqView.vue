@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { api, payload, rows, errorMessage } from '../../lib/api'
+import { cachedGet, payload, rows, errorMessage } from '../../lib/api'
 import PageHeader from '../../components/PageHeader.vue'
 import AlertMessage from '../../components/AlertMessage.vue'
 import EmptyState from '../../components/EmptyState.vue'
@@ -22,12 +22,12 @@ async function load() {
     loading.value = true
     error.value = ''
     try {
-        topics.value = rows(payload(await api.get('/topik')))
+        topics.value = rows(payload(await cachedGet('/topik', {}, 5 * 60_000)))
         faqs.value = rows(
             payload(
-                await api.get('/faq', {
+                await cachedGet('/faq', {
                     params: selected.value ? { topik_id: selected.value } : {},
-                })
+                }, 5 * 60_000)
             )
         )
     } catch (e) {
