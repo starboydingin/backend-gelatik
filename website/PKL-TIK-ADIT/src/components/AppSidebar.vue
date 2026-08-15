@@ -15,14 +15,14 @@ const groups = computed(() => [...new Set(props.items.map((item) => item.group))
 
 <template>
     <aside
-        class="fixed inset-y-0 left-0 z-40 flex w-[270px] flex-col border-r border-stroke bg-white text-slate-700 transition-transform lg:sticky lg:top-0 lg:h-screen"
+        class="brutal-sidebar fixed inset-y-0 left-0 z-40 flex w-[286px] flex-col border-r-[4px] border-[var(--line)] text-[var(--ink)] transition-transform lg:sticky lg:top-0 lg:h-screen"
         :class="open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
     >
-        <div class="flex h-[76px] items-center border-b border-stroke px-6">
+        <div class="flex h-[76px] items-center border-b-[3px] border-[var(--line)] px-5">
             <GelatikLogo compact />
             <span
                 v-if="adminArea"
-                class="ml-auto rounded-md bg-navy px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white"
+                class="ml-auto border-2 border-[var(--line)] bg-[var(--gold)] px-2 py-1 text-[10px] font-black uppercase tracking-wider text-black"
                 >Admin</span
             >
         </div>
@@ -32,7 +32,7 @@ const groups = computed(() => [...new Set(props.items.map((item) => item.group))
         >
             <section v-for="group in groups" :key="group" class="mb-6">
                 <p
-                    class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.16em] text-slate-400"
+                    class="mb-2 border-b-2 border-[var(--line)] px-1 pb-1 text-[10px] font-black uppercase tracking-[.16em] text-[var(--ink)]"
                 >
                     {{ group }}
                 </p>
@@ -40,27 +40,27 @@ const groups = computed(() => [...new Set(props.items.map((item) => item.group))
                     v-for="item in items.filter((entry) => entry.group === group)"
                     :key="item.to"
                     :to="item.to"
-                    class="mb-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold"
+                    class="mb-2 flex items-center gap-3 border-2 border-transparent px-3 py-2.5 text-sm font-extrabold uppercase tracking-[-.02em]"
                     :class="
                         activePath === item.to
-                            ? 'bg-brand-50 text-brand-800'
-                            : 'text-slate-600 hover:bg-slate-50 hover:text-navy'
+                            ? 'border-[var(--line)] bg-[var(--teal)] text-black shadow-[3px_3px_0_var(--line)]'
+                            : 'text-[var(--ink)] hover:border-[var(--line)] hover:bg-[var(--gold)] hover:text-black'
                     "
                     @click="$emit('close')"
                 >
                     <span
-                        class="grid size-8 shrink-0 place-items-center rounded-lg"
+                        class="grid size-8 shrink-0 place-items-center border-2 border-transparent"
                         :class="
-                            activePath === item.to ? 'bg-white text-brand-700' : 'text-slate-400'
+                            activePath === item.to ? 'border-[var(--line)] bg-[var(--paper)] text-[var(--ink)]' : 'text-[var(--ink)]'
                         "
                         ><component :is="item.icon" class="size-5" /></span
                     ><span class="truncate">{{ item.label }}</span>
                 </RouterLink>
             </section>
         </nav>
-        <div class="border-t border-stroke p-4">
+        <div class="border-t-[3px] border-[var(--line)] p-4">
             <button
-                class="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-stroke px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                class="btn-danger flex w-full items-center justify-center gap-2 px-3 text-xs"
                 @click="$emit('logout')"
             >
                 <ArrowRightStartOnRectangleIcon class="size-5" />Keluar

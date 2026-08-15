@@ -123,15 +123,15 @@ onBeforeUnmount(() => {
             </button></PageHeader
         ><AlertMessage :message="error" />
         <section
-            class="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-stroke bg-white shadow-soft"
+            class="mx-auto max-w-4xl overflow-hidden border-[4px] border-[var(--line)] bg-[var(--paper)] shadow-[8px_8px_0_var(--line)]"
         >
-            <header class="flex items-center gap-3 bg-navy p-5 text-white">
-                <span class="grid size-11 place-items-center rounded-xl bg-white/10"
+            <header class="flex items-center gap-3 border-b-[4px] border-[var(--line)] bg-[var(--navy)] p-5 text-white">
+                <span class="grid size-11 place-items-center border-[3px] border-black bg-[var(--gold)] text-black"
                     ><SparklesIcon class="size-6"
                 /></span>
                 <div>
-                    <h2 class="font-bold">Asisten Gelatik</h2>
-                    <p class="text-xs text-blue-100">Siap membantu informasi layanan TIK</p>
+                    <h2 class="font-brand text-xl font-black uppercase tracking-[-.06em]">Asisten Gelatik</h2>
+                    <p class="text-xs font-bold text-white">Siap membantu informasi layanan TIK</p>
                 </div>
             </header>
             <div class="min-h-[420px] space-y-4 p-4 sm:p-6">
@@ -146,26 +146,26 @@ onBeforeUnmount(() => {
                     "
                 >
                     <p
-                        class="max-w-[88%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 sm:max-w-[75%]"
+                        class="max-w-[88%] whitespace-pre-wrap border-[3px] border-[var(--line)] px-4 py-3 text-sm font-semibold leading-6 shadow-[4px_4px_0_var(--line)] sm:max-w-[75%]"
                         :class="
                             item.role === 'user' || item.sender === 'user'
-                                ? 'rounded-br-md bg-brand-700 text-white'
-                                : 'rounded-bl-md bg-slate-100 text-slate-700'
+                                ? 'bg-[var(--teal)] text-black'
+                                : 'bg-[var(--paper)] text-[var(--ink)]'
                         "
                     >
                         {{ chatText(item) }}
                     </p>
                 </div>
                 <p v-if="sending" class="text-sm text-slate-400">
-                    Gelatik sedang menyiapkan jawaban…
+                    Gelatik sedang menyiapkan jawaban...
                 </p>
             </div>
-            <div class="border-t border-stroke p-4 sm:p-5">
+            <div class="border-t-[4px] border-[var(--line)] p-4 sm:p-5">
                 <div class="mb-4 flex gap-2 overflow-x-auto pb-1">
                     <button
                         v-for="question in quickQuestions"
                         :key="question"
-                        class="shrink-0 rounded-full border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-100"
+                        class="shrink-0 border-[3px] border-[var(--line)] bg-[var(--gold)] px-3 py-2 text-xs font-black text-black shadow-[3px_3px_0_var(--line)] hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-none"
                         :disabled="sending"
                         @click="send(question)"
                     >
@@ -176,7 +176,7 @@ onBeforeUnmount(() => {
                     <input
                         v-model="input"
                         class="input"
-                        placeholder="Tulis pertanyaan Anda…"
+                        placeholder="Tulis pertanyaan Anda..."
                         aria-label="Pertanyaan chatbot"
                     /><button
                         class="btn-primary shrink-0 px-4 sm:px-5"

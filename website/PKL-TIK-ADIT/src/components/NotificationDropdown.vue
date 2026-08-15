@@ -34,7 +34,7 @@ onUnmounted(() => window.removeEventListener('gelatik:notification', realtimeRef
 <template>
     <div class="relative">
         <button
-            class="relative grid size-11 place-items-center rounded-xl border border-stroke bg-white text-navy hover:bg-slate-50"
+            class="brutal-icon-button relative"
             aria-label="Buka notifikasi"
             :aria-expanded="open"
             @click="open = !open"
@@ -42,13 +42,13 @@ onUnmounted(() => window.removeEventListener('gelatik:notification', realtimeRef
             <BellIcon class="size-5" />
             <span
                 v-if="unread"
-                class="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-danger text-[10px] font-bold text-white"
+                class="absolute -right-1 -top-1 grid size-5 place-items-center border-2 border-[var(--line)] bg-[var(--danger)] text-[10px] font-black text-black"
                 >{{ unread > 9 ? '9+' : unread }}</span
             >
         </button>
         <div
             v-if="open"
-            class="absolute right-0 top-14 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-stroke bg-white shadow-xl"
+            class="absolute right-0 top-14 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden border-[3px] border-[var(--line)] bg-[var(--paper)] shadow-[6px_6px_0_var(--line)]"
         >
             <div class="flex items-center justify-between border-b border-stroke px-4 py-3">
                 <strong class="text-sm text-navy">Notifikasi terbaru</strong

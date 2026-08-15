@@ -99,3 +99,314 @@
         display: none;
     }
 }
+
+/*
+ * Gelatik neo-brutalist token system. White/black are deliberately absolute:
+ * the contrast and visible construction are part of the interface itself.
+ */
+:root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #000000;
+    --line: #000000;
+    --teal: #0f766e;
+    --emerald: #10b981;
+    --navy: #1e3a8a;
+    --gold: #f59e0b;
+    --danger: #dc2626;
+    --hard-shadow: 5px 5px 0 #000000;
+    --hard-shadow-small: 3px 3px 0 #000000;
+}
+
+:root[data-theme='dark'] {
+    color-scheme: dark;
+    --paper: #000000;
+    --ink: #ffffff;
+    --line: #ffffff;
+    --teal: #2dd4bf;
+    --emerald: #34d399;
+    --navy: #3b82f6;
+    --gold: #fbbf24;
+    --danger: #f87171;
+    --hard-shadow: 5px 5px 0 #ffffff;
+    --hard-shadow-small: 3px 3px 0 #ffffff;
+}
+
+@layer base {
+    html,
+    body {
+        background: var(--paper) !important;
+        color: var(--ink) !important;
+    }
+
+    * {
+        border-radius: 0 !important;
+    }
+
+    /* A spinner is a glyph, not a structural card/control. */
+    .animate-spin {
+        border-radius: 999px !important;
+    }
+
+    button,
+    a,
+    input,
+    select,
+    textarea {
+        transition-property: transform, box-shadow, border-width;
+        transition-duration: 100ms;
+        transition-timing-function: linear;
+    }
+
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+        outline: 3px solid var(--gold);
+        outline-offset: 3px;
+        box-shadow: none;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        color: var(--ink) !important;
+    }
+}
+
+/* Existing utility-heavy feature pages inherit high-contrast paper/ink. */
+:root .bg-slate-50,
+:root .bg-slate-100,
+:root .bg-slate-950 {
+    background-color: var(--paper) !important;
+}
+
+:root .text-slate-400,
+:root .text-slate-500,
+:root .text-slate-600,
+:root .text-slate-700,
+:root .text-slate-800,
+:root .text-slate-900,
+:root .text-slate-950,
+:root .text-navy {
+    color: var(--ink) !important;
+}
+
+:root .border-stroke,
+:root .border-slate-100,
+:root .border-slate-200,
+:root .border-slate-300,
+:root .border-slate-400 {
+    border-color: var(--line) !important;
+}
+
+/* Remove leftover translucent SaaS utilities from older feature pages. */
+:root [class*='bg-white/'] {
+    background-color: var(--paper) !important;
+}
+
+:root [class*='border-white/'] {
+    border-color: var(--line) !important;
+}
+
+:root .shadow-soft,
+:root .shadow-lg,
+:root .shadow-xl {
+    box-shadow: var(--hard-shadow) !important;
+}
+
+:root .transition,
+:root .transition-transform {
+    transition-duration: 100ms !important;
+    transition-timing-function: linear !important;
+}
+
+:root[data-theme='dark'] .bg-white,
+:root[data-theme='dark'] .bg-canvas,
+:root[data-theme='dark'] .bg-slate-50,
+:root[data-theme='dark'] .bg-slate-100,
+:root[data-theme='dark'] .bg-slate-950,
+:root[data-theme='dark'] .bg-brand-50 {
+    background-color: var(--paper) !important;
+}
+
+:root[data-theme='dark'] .text-slate-400,
+:root[data-theme='dark'] .text-slate-500,
+:root[data-theme='dark'] .text-slate-600,
+:root[data-theme='dark'] .text-slate-700,
+:root[data-theme='dark'] .text-slate-800,
+:root[data-theme='dark'] .text-slate-900,
+:root[data-theme='dark'] .text-slate-950,
+:root[data-theme='dark'] .text-navy {
+    color: var(--ink) !important;
+}
+
+:root[data-theme='dark'] .border-stroke,
+:root[data-theme='dark'] .border-slate-100,
+:root[data-theme='dark'] .border-slate-200,
+:root[data-theme='dark'] .border-slate-300,
+:root[data-theme='dark'] .border-slate-400 {
+    border-color: var(--line) !important;
+}
+
+@layer components {
+    /* Hard offset shadows emulate a printed card lifted from the page. */
+    .btn {
+        min-height: 2.75rem;
+        border: 3px solid var(--line);
+        background: var(--paper);
+        box-shadow: var(--hard-shadow-small);
+        color: var(--ink);
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .btn:hover:not(:disabled),
+    .btn:focus-visible:not(:disabled) {
+        transform: translate(3px, 3px);
+        box-shadow: none;
+    }
+
+    .btn:active:not(:disabled) {
+        transform: translate(5px, 5px);
+        box-shadow: none;
+    }
+
+    .btn-primary {
+        background: var(--emerald) !important;
+        color: #000000 !important;
+    }
+
+    .btn-secondary {
+        background: var(--paper) !important;
+        color: var(--ink) !important;
+    }
+
+    .btn-danger {
+        background: var(--danger) !important;
+        color: #000000 !important;
+    }
+
+    /* Structural cards use thick outlines, square corners and zero blur. */
+    .card {
+        border: 3px solid var(--line);
+        background: var(--paper) !important;
+        box-shadow: var(--hard-shadow);
+    }
+
+    .card:hover {
+        transform: translate(2px, 2px);
+        box-shadow: 3px 3px 0 var(--line);
+    }
+
+    .input {
+        min-height: 2.9rem;
+        border: 3px solid var(--line);
+        background: var(--paper) !important;
+        color: var(--ink) !important;
+        font-weight: 700;
+    }
+
+    .input::placeholder {
+        color: var(--ink);
+        opacity: 1;
+    }
+
+    .input:hover,
+    .input:focus {
+        border-color: var(--teal);
+        box-shadow: 3px 3px 0 var(--teal);
+    }
+
+    .label,
+    .eyebrow {
+        color: var(--ink) !important;
+        font-family: Montserrat, Inter, sans-serif;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+    }
+
+    .badge {
+        border: 2px solid var(--line);
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .table-wrap,
+    .section-panel {
+        border: 3px solid var(--line);
+        background: var(--paper) !important;
+        box-shadow: var(--hard-shadow);
+    }
+
+    .data-table th {
+        border-bottom: 3px solid var(--line);
+        background: var(--gold) !important;
+        color: #000000 !important;
+        font-weight: 900;
+    }
+
+    .data-table td,
+    .data-table tbody {
+        border-color: var(--line) !important;
+        color: var(--ink) !important;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--teal) !important;
+        color: #000000 !important;
+    }
+
+    .service-hero {
+        border: 4px solid var(--line);
+        border-left: 14px solid var(--teal);
+        background: var(--paper) !important;
+        box-shadow: 8px 8px 0 var(--line);
+    }
+
+    .section-panel-header {
+        border-bottom: 3px solid var(--line);
+        background: var(--gold) !important;
+        color: #000000;
+    }
+
+    .brutal-header,
+    .brutal-sidebar,
+    .brutal-mobile-nav {
+        background: var(--paper) !important;
+        color: var(--ink);
+    }
+
+    .brutal-icon-button {
+        display: grid;
+        width: 2.75rem;
+        height: 2.75rem;
+        place-items: center;
+        border: 3px solid var(--line);
+        background: var(--paper);
+        color: var(--ink);
+        box-shadow: var(--hard-shadow-small);
+    }
+
+    .brutal-icon-button:hover {
+        transform: translate(3px, 3px);
+        box-shadow: none;
+    }
+
+    .brutal-siger {
+        border: 4px solid var(--line);
+        clip-path: polygon(0 0, 100% 0, 86% 100%, 0 82%);
+    }
+
+    /* The app-wide divider stays deliberate and visible at every breakpoint. */
+    .brutal-divider {
+        border-color: var(--line);
+        border-width: 0 0 3px;
+    }
+}

@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { Bars3Icon } from '@heroicons/vue/24/outline'
 import NotificationDropdown from './NotificationDropdown.vue'
+import GelatikLogo from './GelatikLogo.vue'
+import ThemeToggle from './ThemeToggle.vue'
 
 defineProps({ user: Object, subtitle: String, adminArea: Boolean })
 defineEmits(['menu'])
@@ -42,23 +44,25 @@ const initials = computed(() => (String(route.meta?.initials || '') || '').trim(
 
 <template>
     <header
-        class="sticky top-0 z-20 flex min-h-[76px] items-center gap-4 border-b border-stroke bg-white/95 px-4 backdrop-blur md:px-7"
+        class="brutal-header sticky top-0 z-20 flex min-h-[76px] items-center gap-4 border-b-[3px] border-[var(--line)] px-4 md:px-7"
     >
         <button
-            class="grid size-11 shrink-0 place-items-center rounded-xl border border-stroke text-navy lg:hidden"
+            class="brutal-icon-button shrink-0 lg:hidden"
             aria-label="Buka menu navigasi"
             @click="$emit('menu')"
         >
             <Bars3Icon class="size-6" />
         </button>
-        <div class="min-w-0 flex-1">
+        <GelatikLogo compact class="shrink-0" />
+        <div class="hidden min-w-0 flex-1 sm:block">
             <p class="eyebrow truncate">{{ current[0] }}</p>
-            <h1 class="truncate text-xl font-bold text-navy">{{ current[1] }}</h1>
+            <h1 class="truncate font-brand text-xl font-black uppercase tracking-[-.04em]">{{ current[1] }}</h1>
         </div>
+        <ThemeToggle />
         <NotificationDropdown :admin-area="adminArea" />
         <div class="hidden min-w-0 items-center gap-3 sm:flex">
             <span
-                class="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-50 font-semibold text-brand-700"
+                class="grid size-11 shrink-0 place-items-center border-[3px] border-[var(--line)] bg-[var(--gold)] font-black text-black"
                 >{{
                     initials ||
                     (user?.name || 'G')
