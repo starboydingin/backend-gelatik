@@ -77,7 +77,7 @@ const services = [
                     </div>
                 </div>
                 <div
-                    class="relative z-10 w-full border-[4px] border-[var(--line)] border-l-[14px] border-l-[var(--teal)] bg-[var(--paper)] p-7 shadow-[9px_9px_0_var(--line)] md:p-9"
+                    class="relative z-10 w-full border-[4px] border-[var(--line)] border-l-[14px] border-l-[var(--teal)] bg-[var(--paper)] p-7 shadow-[9px_9px_0_var(--line)] md:p-9 lg:translate-y-3"
                 >
                     <p class="eyebrow">Alur layanan</p>
                     <h2 class="mt-2 font-brand text-3xl font-black uppercase leading-none tracking-[-.07em]">
