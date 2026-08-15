@@ -34,6 +34,6 @@ class PegawaiBelumPunyaEmail extends Model
 
     public function usulanEmails()
     {
-        return $this->hasMany(UsulanEmail::class, 'id_peg', 'ID_Peg');
+        return $this->hasMany(UsulanEmail::class, 'id_peg_bkd', 'ID_Peg');
     }
 }

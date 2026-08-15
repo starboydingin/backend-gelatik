@@ -10,7 +10,8 @@ class UsulanEmail extends Model
     // Tabel: usulan_email (singular, non-konvensi)
     protected $table = 'usulan_email';
 
-    public $incrementing = false;
+    // Kolom id pada schema usulan_email adalah auto-increment.
+    public $incrementing = true;
 
     protected $fillable = [
         'id',
@@ -32,6 +33,12 @@ class UsulanEmail extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** Data pegawai BKD yang menjadi subjek usulan, bukan akun user pengaju. */
+    public function pegawaiBkd()
+    {
+        return $this->belongsTo(PegawaiBelumPunyaEmail::class, 'id_peg_bkd', 'ID_Peg');
     }
 
     // Accessor manual ke PegawaiBelumPunyaEmail karena tipe data kolom beda (bigint vs varchar)

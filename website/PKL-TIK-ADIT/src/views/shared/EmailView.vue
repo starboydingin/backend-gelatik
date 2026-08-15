@@ -17,7 +17,13 @@ const route = useRoute(),
     statusFilter = ref('all'),
     showForm = ref(false),
     detail = ref(null),
-    form = ref({ id_peg: '', email_pribadi: '', nip: '' })
+    submitting = ref(false),
+    form = ref({ nip: '', email_pribadi: '' })
+const selectedEmployee = computed(() =>
+    employees.value.find(
+        (employee) => String(employee.NIP_Baru || employee.nip) === String(form.value.nip)
+    )
+)
 const displayedList = computed(() =>
     list.value.filter((item) => {
         const matchesSearch = Object.values(item)
@@ -32,7 +38,7 @@ const displayedList = computed(() =>
     })
 )
 const stats = computed(() => [
-    { label: 'Diajukan', value: list.value.length },
+    { label: 'Diajukan', value: list.value.filter((item) => item.status === 'diajukan').length },
     {
         label: 'Disetujui',
         value: list.value.filter((item) => /setuju|selesai|dibuat/i.test(item.status)).length,
@@ -50,10 +56,18 @@ async function load() {
     }
 }
 async function open() {
-    showForm.value = true
+    error.value = ''
     try {
-        employees.value = rows(payload(await api.get('/pegawai')))
-    } catch {}
+        employees.value = rows(payload(await api.get('/pegawai'))).map((employee) => ({
+            ...employee,
+            nama: employee.Nama || employee.nama,
+            nip: employee.NIP_Baru || employee.nip,
+            name: employee.Nama || employee.nama,
+        }))
+        showForm.value = true
+    } catch (requestError) {
+        error.value = errorMessage(requestError)
+    }
 }
 async function showDetail(id) {
     try {
@@ -63,12 +77,17 @@ async function showDetail(id) {
     }
 }
 async function submit() {
+    submitting.value = true
+    error.value = ''
     try {
         await api.post('/pengajuan-email', form.value)
         showForm.value = false
+        form.value = { nip: '', email_pribadi: '' }
         await load()
     } catch (e) {
         error.value = errorMessage(e)
+    } finally {
+        submitting.value = false
     }
 }
 async function action(id, type) {
@@ -93,78 +112,100 @@ onMounted(load)
         <ServiceHero
             eyebrow="Email resmi ASN"
             title="Ajukan email dinas dengan data pegawai yang terverifikasi"
-            description="Pilih data pegawai, lengkapi email pribadi, lalu pantau proses pengajuan sampai alamat resmi tersedia."
+            description="Pilih data pegawai BKD, lengkapi email pribadi pegawai tersebut, lalu pantau proses pengajuannya."
             :stats="stats"
             ><button v-if="!admin" class="btn-primary" @click="open">
-                Ajukan email resmi
+                Ajukan email ASN
             </button></ServiceHero
         >
         <AlertMessage :message="error" />
-        <form v-if="showForm" class="card mb-6" @submit.prevent="submit">
-            <h2 class="text-lg font-bold">Usulan baru</h2>
-            <div class="mt-4 grid gap-4 md:grid-cols-3">
+        <form v-if="showForm" class="section-panel" @submit.prevent="submit">
+            <div class="section-panel-header">
+                <p class="eyebrow">Pengajuan berdasarkan data BKD</p>
+                <h2 class="mt-1 text-xl font-bold text-[var(--ink)]">Ajukan email ASN</h2>
+            </div>
+            <div class="space-y-5 p-5 md:p-7">
+                <p class="text-sm leading-6 text-slate-600">
+                    Ajukan email untuk pegawai yang datanya sudah disampaikan kepada BKD. Anda bertindak sebagai pengaju, bukan pemilik email pribadi tersebut.
+                </p>
                 <label
                     ><span class="label">Pegawai</span
-                    ><select v-model="form.id_peg" class="input">
-                        <option value="">Pilih data pegawai</option>
+                    ><select v-model="form.nip" class="input" required>
+                        <option value="">-- Pilih pegawai dari data BKD --</option>
                         <option
                             v-for="employee in employees"
-                            :key="employee.id_peg || employee.id"
-                            :value="employee.id_peg || employee.id"
+                            :key="employee.NIP_Baru || employee.nip"
+                            :value="employee.NIP_Baru || employee.nip"
                         >
                             {{ employee.nama || employee.name }} — {{ employee.nip }}
                         </option>
                     </select></label
+                ><div v-if="selectedEmployee" class="border-2 border-[var(--line)] bg-[var(--paper)] p-4 text-sm">
+                    <strong>{{ selectedEmployee.nama }}</strong>
+                    <p class="mt-1 text-slate-600">
+                        NIP {{ selectedEmployee.nip }} - {{ selectedEmployee.Unit_Kerja || selectedEmployee.unit_kerja || '-' }}
+                    </p>
+                </div>
                 ><label
-                    ><span class="label">NIP</span><input v-model="form.nip" class="input" /></label
-                ><label
-                    ><span class="label">Email pribadi</span
+                    ><span class="label">Email pribadi pegawai</span
                     ><input v-model="form.email_pribadi" type="email" class="input" required
                 /></label>
             </div>
-            <button class="btn-primary mt-5">
-                Kirim usulan
-            </button>
+            <div class="flex flex-wrap gap-3 px-5 pb-5 md:px-7 md:pb-7">
+                <button class="btn-primary" :disabled="submitting">
+                    {{ submitting ? 'Mengajukan...' : 'Ajukan email ASN' }}
+                </button>
+                <button type="button" class="btn-secondary" @click="showForm = false">Batal</button>
+            </div>
         </form>
-        <div class="card grid gap-3 p-4 md:grid-cols-[1fr_220px]">
+        <section class="section-panel overflow-hidden">
+            <div class="section-panel-header">
+                <p class="eyebrow">Monitoring pengajuan</p>
+                <h2 class="mt-1 text-xl font-bold text-[var(--ink)]">Riwayat usulan email ASN</h2>
+            </div>
+        <div class="grid gap-3 border-b-2 border-[var(--line)] p-5 md:grid-cols-[220px_1fr] md:items-end">
             <input
                 v-model="search"
-                class="input"
+                class="input md:order-2 md:justify-self-end md:w-72"
                 placeholder="Cari nama, NIP, atau email…"
-            /><select v-model="statusFilter" class="input">
-                <option value="all">Semua status</option>
-                <option value="menunggu">Menunggu</option>
-                <option value="verifikasi">Verifikasi</option>
-                <option value="selesai">Selesai</option>
-                <option value="tolak">Ditolak</option>
+            /><select v-model="statusFilter" class="input md:order-1">
+                <option value="all">Filter status: semua</option>
+                <option value="diajukan">Diajukan</option>
+                <option value="disetujui">Disetujui</option>
+                <option value="ditolak">Ditolak</option>
             </select>
         </div>
         <LoadingState v-if="loading" />
-        <div v-else class="table-wrap">
+        <div v-else class="table-wrap border-0 shadow-none">
             <EmptyState v-if="!list.length" />
             <table v-else class="data-table">
                 <thead>
                     <tr>
-                        <th>Pegawai</th>
+                        <th>No.</th>
+                        <th>Nama</th>
+                        <th>NIP</th>
                         <th>Email pribadi</th>
                         <th>Email resmi</th>
                         <th>Status</th>
+                        <th>Tanggal diajukan</th>
                         <th>Tindakan</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="item in displayedList" :key="item.id">
+                    <tr v-for="(item, index) in displayedList" :key="item.id">
+                        <td>{{ index + 1 }}</td>
                         <td>
                             <strong>{{
-                                item.nama || item.nama_pegawai || item.nip || `Usulan #${item.id}`
+                                item.nama || item.nama_pegawai || `Usulan #${item.id}`
                             }}</strong>
-                            <p class="text-xs text-slate-400">{{ item.nip }}</p>
                         </td>
+                        <td>{{ item.nip || '-' }}</td>
                         <td>{{ item.email_pribadi }}</td>
                         <td>{{ item.email_resmi || '—' }}</td>
                         <td>
                             <StatusBadge :status="item.status" />
                         </td>
+                        <td>{{ item.created_at || '-' }}</td>
                         <td>
                             <div class="flex flex-wrap gap-2">
                                 <button
@@ -198,6 +239,7 @@ onMounted(load)
                 </tbody>
             </table>
         </div>
+        </section>
         <section v-if="detail" class="card">
             <div class="flex items-start justify-between gap-4">
                 <div>
@@ -212,6 +254,14 @@ onMounted(load)
                 <div>
                     <dt class="label">NIP</dt>
                     <dd>{{ detail.nip || '-' }}</dd>
+                </div>
+                <div>
+                    <dt class="label">Unit kerja</dt>
+                    <dd>{{ detail.unit_kerja || '-' }}</dd>
+                </div>
+                <div>
+                    <dt class="label">Jabatan</dt>
+                    <dd>{{ detail.jabatan || '-' }}</dd>
                 </div>
                 <div>
                     <dt class="label">Email pribadi</dt>
@@ -232,6 +282,10 @@ onMounted(load)
                 <div>
                     <dt class="label">Tanggal verifikasi</dt>
                     <dd>{{ detail.tanggal_verifikasi || '-' }}</dd>
+                </div>
+                <div>
+                    <dt class="label">Diverifikasi oleh</dt>
+                    <dd>{{ detail.diverifikasi_oleh || '-' }}</dd>
                 </div>
                 <div class="sm:col-span-2 lg:col-span-4">
                     <dt class="label">Catatan petugas</dt>

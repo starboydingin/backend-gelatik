@@ -43,7 +43,7 @@ class UsulanEmailController extends Controller
     {
         Gate::authorize('viewAny', UsulanEmail::class);
 
-        $query = UsulanEmail::query();
+        $query = UsulanEmail::query()->with('pegawaiBkd');
 
         // Admin/superadmin/BKD bisa melihat semua, user biasa hanya melihat ciptaannya sendiri.
         if (! $request->user()->hasAnyRole(['admin', 'superadmin', 'bkd'])) {
@@ -51,6 +51,7 @@ class UsulanEmailController extends Controller
         }
 
         $usulan = $query->latest()->paginate(10);
+        $usulan->getCollection()->transform(fn (UsulanEmail $item) => $this->present($item));
 
         return response()->json(['success' => true, 'data' => $usulan]);
     }
@@ -58,10 +59,10 @@ class UsulanEmailController extends Controller
     /** GET /api/pengajuan-email/{id} */
     public function show(Request $request, $id)
     {
-        $usulan = UsulanEmail::findOrFail($id);
+        $usulan = UsulanEmail::with('pegawaiBkd')->findOrFail($id);
         Gate::authorize('view', $usulan);
 
-        return response()->json(['success' => true, 'data' => $usulan]);
+        return response()->json(['success' => true, 'data' => $this->present($usulan)]);
     }
 
     /** PUT /api/pengajuan-email/{id} */
@@ -163,6 +164,20 @@ class UsulanEmailController extends Controller
             'success' => true,
             'message' => 'Usulan email berhasil ditolak.',
             'data' => $updatedUsulan,
+        ]);
+    }
+
+    /** Flatten the BKD employee data needed by the presentation history table. */
+    private function present(UsulanEmail $usulan): array
+    {
+        $pegawai = $usulan->pegawaiBkd;
+
+        return array_merge($usulan->toArray(), [
+            'nama' => $pegawai?->Nama,
+            'nama_pegawai' => $pegawai?->Nama,
+            'nip' => $pegawai?->NIP_Baru,
+            'unit_kerja' => $pegawai?->Unit_Kerja,
+            'jabatan' => $pegawai?->NJab,
         ]);
     }
 }
