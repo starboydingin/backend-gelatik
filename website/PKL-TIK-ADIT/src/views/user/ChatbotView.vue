@@ -54,9 +54,11 @@ function chatText(item) {
 }
 function scrollQuickQuestions(event) {
     const strip = event.currentTarget
-    if (strip.scrollWidth <= strip.clientWidth || event.deltaY === 0) return
+    const horizontalDelta = event.deltaX || event.deltaY
+    if (strip.scrollWidth <= strip.clientWidth || horizontalDelta === 0) return
 
-    strip.scrollLeft += event.deltaY
+    // A mouse wheel usually emits deltaY; Shift+wheel and trackpads emit deltaX.
+    strip.scrollLeft += horizontalDelta
     event.preventDefault()
 }
 function beginQuickQuestionDrag(event) {
