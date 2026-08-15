@@ -48,7 +48,7 @@ const services = [
                 <img
                     :src="siger"
                     alt=""
-                    class="brutal-siger pointer-events-none absolute right-0 top-8 z-0 hidden h-52 w-52 object-cover lg:block xl:-right-6 xl:h-64 xl:w-64"
+                    class="pointer-events-none absolute right-8 top-10 z-0 hidden h-32 w-32 object-contain lg:block xl:right-10 xl:top-12 xl:h-40 xl:w-40"
                 />
                 <div class="relative">
                     <span class="badge bg-[var(--gold)] text-black"
