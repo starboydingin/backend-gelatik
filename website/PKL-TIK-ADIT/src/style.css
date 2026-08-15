@@ -389,6 +389,67 @@
         color: #000000 !important;
     }
 
+    /* Tables use square, collapsed cells so global corner rounding cannot create white seams. */
+    .table-wrap {
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .table-wrap,
+    .data-table,
+    .data-table thead,
+    .data-table tbody,
+    .data-table tr,
+    .data-table th,
+    .data-table td {
+        border-radius: 0 !important;
+    }
+
+    .table-wrap {
+        border-radius: 6px !important;
+    }
+
+    .data-table {
+        border-collapse: collapse;
+        border-spacing: 0;
+        background: var(--paper);
+    }
+
+    .data-table tbody tr,
+    .data-table tbody tr:hover {
+        background: var(--paper) !important;
+        color: var(--ink) !important;
+        transform: none !important;
+    }
+
+    /* Table actions stay visually stable; they do not recolor or jump on hover. */
+    .data-table button,
+    .data-table a {
+        transition: none !important;
+    }
+
+    .data-table button:hover:not(:disabled),
+    .data-table a:hover:not(:disabled) {
+        transform: none !important;
+        box-shadow: var(--hard-shadow-small) !important;
+    }
+
+    .data-table .btn-primary:hover:not(:disabled) {
+        background: var(--emerald) !important;
+        color: #000000 !important;
+    }
+
+    .data-table .btn-secondary:hover:not(:disabled) {
+        border-color: transparent !important;
+        background: transparent !important;
+        color: var(--navy) !important;
+    }
+
+    .data-table .btn-danger:hover:not(:disabled) {
+        background: var(--danger) !important;
+        color: #000000 !important;
+    }
+
     .service-hero {
         border: 2px solid var(--line);
         border-left: 6px solid var(--teal);
