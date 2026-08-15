@@ -6,8 +6,8 @@ defineProps({
 })
 </script>
 <template>
-    <section
-        class="mb-6 flex flex-col gap-4 border-b-[3px] border-[var(--line)] border-l-[6px] border-l-[var(--teal)] pb-4 pl-4 sm:flex-row sm:items-end sm:justify-between"
+    <div
+        class="page-heading mb-6 flex flex-col gap-4 pb-4 pl-4 sm:flex-row sm:items-end sm:justify-between"
     >
         <div class="min-w-0">
             <p class="eyebrow">{{ eyebrow }}</p>
@@ -17,5 +17,17 @@ defineProps({
             </p>
         </div>
         <div class="shrink-0"><slot /></div>
-    </section>
+    </div>
 </template>
+
+<style scoped>
+/* A compact title divider: never a large framed panel. */
+.page-heading {
+    border: 0 !important;
+    border-bottom: 2px solid var(--line) !important;
+    border-left: 6px solid var(--teal) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+</style>
