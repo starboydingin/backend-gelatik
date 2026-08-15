@@ -45,11 +45,6 @@ const services = [
             <section
                 class="relative mx-auto grid max-w-7xl items-center gap-10 px-5 pb-20 pt-10 lg:grid-cols-2 lg:py-24"
             >
-                <img
-                    :src="siger"
-                    alt=""
-                    class="pointer-events-none absolute right-8 top-8 z-0 hidden h-44 w-44 object-contain lg:block xl:right-10 xl:top-10 xl:h-56 xl:w-56"
-                />
                 <div class="relative">
                     <span class="badge bg-[var(--gold)] text-black"
                         >Portal layanan digital terpadu</span
@@ -75,15 +70,22 @@ const services = [
                         ><span class="inline-flex items-center gap-2"><CheckIcon class="size-4 stroke-[3]" />Dukungan responsif</span>
                     </div>
                 </div>
-                <div
-                    class="relative z-10 w-full border-[4px] border-[var(--line)] border-l-[14px] border-l-[var(--teal)] bg-[var(--paper)] p-7 shadow-[9px_9px_0_var(--line)] md:p-9"
-                >
+                <div class="relative flex w-full flex-col items-end gap-5 lg:gap-6">
+                    <!-- In normal layout flow so this decorative mark never sits behind the process card. -->
+                    <img
+                        :src="siger"
+                        alt=""
+                        class="pointer-events-none hidden h-56 w-56 object-contain lg:block xl:h-64 xl:w-64"
+                    />
+                    <div
+                        class="relative z-10 w-full border-[4px] border-[var(--line)] border-l-[14px] border-l-[var(--teal)] bg-[var(--paper)] p-7 shadow-[9px_9px_0_var(--line)] md:p-9"
+                    >
                     <p class="eyebrow">Alur layanan</p>
                     <h2 class="mt-2 font-brand text-3xl font-black uppercase leading-none tracking-[-.07em]">
                         Satu akun untuk seluruh proses
                     </h2>
-                    <ol class="mt-7 divide-y-[3px] divide-[var(--line)]">
-                        <li
+                        <ol class="mt-7 divide-y-[3px] divide-[var(--line)]">
+                            <li
                             v-for="(step, index) in [
                                 [
                                     'Ajukan kebutuhan',
@@ -100,7 +102,7 @@ const services = [
                             ]"
                             :key="step[0]"
                             class="flex gap-4 py-5 first:pt-0 last:pb-0"
-                        >
+                            >
                             <span
                                 class="grid size-10 shrink-0 place-items-center border-2 border-[var(--line)] bg-[var(--gold)] text-sm font-black text-black"
                                 >{{ index + 1 }}</span
@@ -109,8 +111,9 @@ const services = [
                                 <h3 class="font-black uppercase">{{ step[0] }}</h3>
                                 <p class="mt-1 text-sm font-semibold leading-6">{{ step[1] }}</p>
                             </div>
-                        </li>
-                    </ol>
+                            </li>
+                        </ol>
+                    </div>
                 </div>
             </section>
             <section id="layanan" class="border-y-[2px] border-[var(--line)] bg-[var(--paper)] py-20">
