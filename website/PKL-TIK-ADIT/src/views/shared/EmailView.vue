@@ -128,9 +128,9 @@ onMounted(load)
                 <p class="text-sm leading-6 text-slate-600">
                     Ajukan email untuk pegawai yang datanya sudah disampaikan kepada BKD. Anda bertindak sebagai pengaju, bukan pemilik email pribadi tersebut.
                 </p>
-                <label
-                    ><span class="label">Pegawai</span
-                    ><select v-model="form.nip" class="input" required>
+                <label>
+                    <span class="label">Pegawai</span>
+                    <select v-model="form.nip" class="input" required>
                         <option value="">-- Pilih pegawai dari data BKD --</option>
                         <option
                             v-for="employee in employees"
@@ -139,17 +139,18 @@ onMounted(load)
                         >
                             {{ employee.nama || employee.name }} — {{ employee.nip }}
                         </option>
-                    </select></label
-                ><div v-if="selectedEmployee" class="border-2 border-[var(--line)] bg-[var(--paper)] p-4 text-sm">
+                    </select>
+                </label>
+                <div v-if="selectedEmployee" class="border-2 border-[var(--line)] bg-[var(--paper)] p-4 text-sm">
                     <strong>{{ selectedEmployee.nama }}</strong>
                     <p class="mt-1 text-slate-600">
                         NIP {{ selectedEmployee.nip }} - {{ selectedEmployee.Unit_Kerja || selectedEmployee.unit_kerja || '-' }}
                     </p>
                 </div>
-                ><label
-                    ><span class="label">Email pribadi pegawai</span
-                    ><input v-model="form.email_pribadi" type="email" class="input" required
-                /></label>
+                <label>
+                    <span class="label">Email pribadi pegawai</span>
+                    <input v-model="form.email_pribadi" type="email" class="input" required />
+                </label>
             </div>
             <div class="flex flex-wrap gap-3 px-5 pb-5 md:px-7 md:pb-7">
                 <button class="btn-primary" :disabled="submitting">
