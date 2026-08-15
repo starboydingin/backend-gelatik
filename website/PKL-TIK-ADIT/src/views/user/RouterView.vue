@@ -86,8 +86,8 @@ onMounted(load)
                 title="Data router tidak tersedia"
                 text="Pastikan OPD pada profil Anda telah terdaftar."
             />
-            <div v-else class="overflow-x-auto">
-                <table class="data-table">
+            <div v-else class="router-table-scroll">
+                <table class="data-table router-data-table">
                     <thead>
                         <tr>
                             <th>Identity router</th>
@@ -137,3 +137,21 @@ onMounted(load)
         </section>
     </div>
 </template>
+
+<style scoped>
+.router-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+}
+
+.router-table-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.router-data-table {
+    min-width: 48rem;
+}
+</style>

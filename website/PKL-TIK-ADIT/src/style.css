@@ -409,7 +409,20 @@
         border-radius: 6px !important;
     }
 
+    /* A table inside a service panel shares the panel frame. This prevents
+       nested borders/shadows from producing doubled black lines or white seams. */
+    .section-panel > .table-wrap {
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .section-panel > .table-wrap .data-table {
+        min-width: 46rem;
+    }
+
     .data-table {
+        width: 100%;
         border-collapse: collapse;
         border-spacing: 0;
         background: var(--paper);
