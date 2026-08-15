@@ -14,6 +14,13 @@ const messages = ref([]),
     error = ref(''),
     sending = ref(false),
     initialized = ref(false)
+const quickQuestionDrag = {
+    pointerId: null,
+    startX: 0,
+    startScrollLeft: 0,
+    moved: false,
+    suppressClickUntil: 0,
+}
 const quickQuestions = [
     'Bagaimana cara mengajukan peminjaman aset TIK?',
     'WiFi terhubung tetapi tidak ada internet. Apa yang harus dilakukan?',
@@ -51,6 +58,39 @@ function scrollQuickQuestions(event) {
 
     strip.scrollLeft += event.deltaY
     event.preventDefault()
+}
+function beginQuickQuestionDrag(event) {
+    if (event.pointerType !== 'mouse') return
+
+    const strip = event.currentTarget
+    quickQuestionDrag.pointerId = event.pointerId
+    quickQuestionDrag.startX = event.clientX
+    quickQuestionDrag.startScrollLeft = strip.scrollLeft
+    quickQuestionDrag.moved = false
+    strip.setPointerCapture(event.pointerId)
+}
+function moveQuickQuestionDrag(event) {
+    if (event.pointerId !== quickQuestionDrag.pointerId) return
+
+    const distance = event.clientX - quickQuestionDrag.startX
+    if (Math.abs(distance) > 3) quickQuestionDrag.moved = true
+    if (!quickQuestionDrag.moved) return
+
+    event.currentTarget.scrollLeft = quickQuestionDrag.startScrollLeft - distance
+    if (event.cancelable) event.preventDefault()
+}
+function endQuickQuestionDrag(event) {
+    if (event.pointerId !== quickQuestionDrag.pointerId) return
+
+    if (quickQuestionDrag.moved) quickQuestionDrag.suppressClickUntil = Date.now() + 160
+    quickQuestionDrag.pointerId = null
+}
+function scrollQuickQuestionsBy(event, direction) {
+    event.currentTarget.scrollBy({ left: direction * 220, behavior: 'smooth' })
+}
+function sendQuickQuestion(question) {
+    if (Date.now() < quickQuestionDrag.suppressClickUntil) return
+    send(question)
 }
 async function history() {
     if (!sessionId.value) return
@@ -198,13 +238,19 @@ onBeforeUnmount(() => {
                     aria-label="Pertanyaan cepat chatbot"
                     tabindex="0"
                     @wheel="scrollQuickQuestions"
+                    @pointerdown="beginQuickQuestionDrag"
+                    @pointermove="moveQuickQuestionDrag"
+                    @pointerup="endQuickQuestionDrag"
+                    @pointercancel="endQuickQuestionDrag"
+                    @keydown.left.prevent="scrollQuickQuestionsBy($event, -1)"
+                    @keydown.right.prevent="scrollQuickQuestionsBy($event, 1)"
                 >
                     <button
                         v-for="question in quickQuestions"
                         :key="question"
                         class="quick-question"
                         :disabled="sending"
-                        @click="send(question)"
+                        @click="sendQuickQuestion(question)"
                     >
                         {{ question }}
                     </button>
@@ -242,6 +288,9 @@ onBeforeUnmount(() => {
     scroll-snap-type: x proximity;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    cursor: grab;
+    user-select: none;
 }
 
 .quick-question-strip::-webkit-scrollbar {
@@ -263,6 +312,11 @@ onBeforeUnmount(() => {
     white-space: normal;
     box-shadow: 3px 3px 0 var(--line);
     transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+    user-select: none;
+}
+
+.quick-question-strip:active {
+    cursor: grabbing;
 }
 
 .quick-question:hover:not(:disabled),
