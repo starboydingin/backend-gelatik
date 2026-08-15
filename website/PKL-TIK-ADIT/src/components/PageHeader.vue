@@ -25,7 +25,7 @@ defineProps({
 .page-heading {
     border: 0 !important;
     border-bottom: 2px solid var(--line) !important;
-    border-left: 6px solid var(--teal) !important;
+    border-left: 6px solid var(--line) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     background: transparent !important;
