@@ -48,7 +48,7 @@ const services = [
                 <img
                     :src="siger"
                     alt=""
-                    class="brutal-siger pointer-events-none absolute -right-10 top-[-2rem] z-0 h-72 w-72 object-cover md:right-[12%] lg:-right-8 lg:top-8"
+                    class="brutal-siger pointer-events-none absolute right-0 top-8 z-0 hidden h-52 w-52 object-cover lg:block xl:-right-6 xl:h-64 xl:w-64"
                 />
                 <div class="relative">
                     <span class="badge bg-[var(--gold)] text-black"
@@ -76,7 +76,7 @@ const services = [
                     </div>
                 </div>
                 <div
-                    class="relative z-10 w-full border-[4px] border-[var(--line)] border-l-[14px] border-l-[var(--teal)] bg-[var(--paper)] p-7 shadow-[9px_9px_0_var(--line)] md:mt-16 md:p-9"
+                    class="relative z-10 w-full border-[4px] border-[var(--line)] border-l-[14px] border-l-[var(--teal)] bg-[var(--paper)] p-7 shadow-[9px_9px_0_var(--line)] md:p-9"
                 >
                     <p class="eyebrow">Alur layanan</p>
                     <h2 class="mt-2 font-brand text-3xl font-black uppercase leading-none tracking-[-.07em]">
