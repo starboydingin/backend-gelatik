@@ -49,7 +49,7 @@ const services = [
                 <img
                     :src="siger"
                     alt=""
-                    class="pointer-events-none absolute right-5 -top-[68px] z-0 hidden h-80 w-80 object-contain lg:block"
+                    class="pointer-events-none absolute right-5 -top-8 z-0 hidden h-[17rem] w-[17rem] object-contain lg:block"
                 />
                 <div class="relative">
                     <span class="badge bg-[var(--gold)] text-black"
