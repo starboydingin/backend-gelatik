@@ -13,6 +13,29 @@ const topics = ref([]),
     open = ref(null),
     loading = ref(true)
 const topicLabel = (topic) => topic.topik || topic.nama_topik || topic.name || 'Tanpa topik'
+const allowedFaqTags = new Set(['p', 'strong', 'b', 'em', 'i', 'ul', 'ol', 'li', 'br', 'h3', 'h4'])
+
+function sanitizeFaqDetail(value) {
+    const source = document.createElement('div')
+    const output = document.createElement('div')
+    source.innerHTML = value || ''
+
+    const appendNode = (node, parent) => {
+        if (node.nodeType === 3) {
+            parent.append(document.createTextNode(node.textContent || ''))
+            return
+        }
+        if (node.nodeType !== 1) return
+
+        const tag = node.tagName.toLowerCase()
+        const target = allowedFaqTags.has(tag) ? document.createElement(tag) : parent
+        for (const child of node.childNodes) appendNode(child, target)
+        if (target !== parent) parent.append(target)
+    }
+
+    for (const node of source.childNodes) appendNode(node, output)
+    return output.innerHTML
+}
 const filtered = computed(() =>
     faqs.value.filter((x) =>
         `${x.judul || ''} ${x.detail || ''}`.toLowerCase().includes(search.value.toLowerCase())
@@ -29,7 +52,7 @@ async function load() {
                     params: selected.value ? { topik_id: selected.value } : {},
                 }, 5 * 60_000)
             )
-        )
+        ).map((faq) => ({ ...faq, formatted_detail: sanitizeFaqDetail(faq.detail) }))
     } catch (e) {
         error.value = errorMessage(e)
     } finally {
@@ -70,23 +93,104 @@ onMounted(load)
             </button>
         </div>
     </section>
-    <div class="card divide-y divide-slate-100">
+    <div class="card overflow-hidden">
         <LoadingState v-if="loading" />
         <EmptyState v-else-if="!filtered.length" title="FAQ belum tersedia" />
-        <article v-for="faq in filtered" :key="faq.id">
+        <article v-for="faq in filtered" :key="faq.id" class="faq-item">
             <button
-                class="flex w-full items-center justify-between gap-4 py-4 text-left font-semibold text-slate-900"
+                type="button"
+                class="faq-trigger"
+                :aria-expanded="open === faq.id"
                 @click="open = open === faq.id ? null : faq.id"
             >
                 <span>{{ faq.judul }}</span
                 ><span>{{ open === faq.id ? '−' : '+' }}</span>
             </button>
-            <p
-                v-if="open === faq.id"
-                class="whitespace-pre-wrap pb-5 text-sm leading-7 text-slate-600"
-            >
-                {{ faq.detail }}
-            </p>
+            <Transition name="faq-answer">
+                <div v-if="open === faq.id" class="faq-answer">
+                    <div class="faq-answer-content" v-html="faq.formatted_detail"></div>
+                </div>
+            </Transition>
         </article>
     </div>
 </template>
+
+<style scoped>
+.faq-item + .faq-item {
+    border-top: 2px solid var(--line);
+}
+
+.faq-trigger {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    color: var(--ink);
+    font-weight: 700;
+    text-align: left;
+    transition: background-color 160ms ease-out, transform 160ms ease-out;
+}
+
+.faq-trigger:hover,
+.faq-trigger:focus-visible {
+    background: #f1f5f9;
+}
+
+.faq-trigger:active {
+    transform: translateY(1px);
+}
+
+.faq-answer {
+    max-height: 1400px;
+    overflow: hidden;
+}
+
+.faq-answer-content {
+    padding: 0 1.25rem 1.25rem;
+    color: #334155;
+    font-size: 0.9375rem;
+    line-height: 1.75;
+}
+
+.faq-answer-content :deep(p) {
+    margin: 0 0 0.875rem;
+}
+
+.faq-answer-content :deep(ul),
+.faq-answer-content :deep(ol) {
+    margin: 0 0 0.875rem 1.25rem;
+}
+
+.faq-answer-content :deep(ul) {
+    list-style: disc;
+}
+
+.faq-answer-content :deep(ol) {
+    list-style: decimal;
+}
+
+.faq-answer-content :deep(li + li) {
+    margin-top: 0.25rem;
+}
+
+.faq-answer-enter-active,
+.faq-answer-leave-active {
+    transition: max-height 240ms ease-out, opacity 180ms ease-out;
+}
+
+.faq-answer-enter-from,
+.faq-answer-leave-to {
+    max-height: 0;
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .faq-trigger,
+    .faq-answer-enter-active,
+    .faq-answer-leave-active {
+        transition: none;
+    }
+}
+</style>
