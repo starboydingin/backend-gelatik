@@ -129,7 +129,7 @@ const services = [
                             <p class="eyebrow">Layanan 0{{ index + 1 }}</p>
                             <h3 class="mt-2 font-brand text-2xl font-black uppercase leading-none tracking-[-.06em]">{{ service.title }}</h3>
                             <p class="mt-3 font-semibold leading-7">{{ service.text }}</p>
-                            <RouterLink to="/login" class="mt-6 inline-flex items-center gap-2 border-b-[3px] border-[var(--line)] pb-1 text-sm font-black uppercase hover:translate-x-1">
+                            <RouterLink to="/login" class="mt-6 inline-flex items-center gap-2 pb-1 text-sm font-black uppercase text-[var(--navy)] hover:translate-x-1">
                                 Buka layanan <ArrowRightIcon class="size-4 stroke-[3]" />
                             </RouterLink>
                         </article>

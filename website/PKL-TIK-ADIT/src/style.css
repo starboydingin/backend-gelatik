@@ -299,8 +299,18 @@
     }
 
     .btn-secondary {
-        background: var(--paper) !important;
-        color: var(--ink) !important;
+        border-color: transparent !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: var(--navy) !important;
+    }
+
+    .btn-secondary:hover:not(:disabled),
+    .btn-secondary:focus-visible:not(:disabled) {
+        background: var(--gold) !important;
+        color: #000000 !important;
+        transform: translate(1px, 1px);
+        box-shadow: none !important;
     }
 
     .btn-danger {
