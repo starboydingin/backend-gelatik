@@ -128,7 +128,7 @@ onMounted(load)
                 <p class="text-sm leading-6 text-slate-600">
                     Ajukan email untuk pegawai yang datanya sudah disampaikan kepada BKD. Anda bertindak sebagai pengaju, bukan pemilik email pribadi tersebut.
                 </p>
-                <label>
+                <label class="block">
                     <span class="label">Pegawai</span>
                     <select v-model="form.nip" class="input" required>
                         <option value="">-- Pilih pegawai dari data BKD --</option>
@@ -147,7 +147,7 @@ onMounted(load)
                         NIP {{ selectedEmployee.nip }} - {{ selectedEmployee.Unit_Kerja || selectedEmployee.unit_kerja || '-' }}
                     </p>
                 </div>
-                <label>
+                <label class="block">
                     <span class="label">Email pribadi pegawai</span>
                     <input v-model="form.email_pribadi" type="email" class="input" required />
                 </label>
