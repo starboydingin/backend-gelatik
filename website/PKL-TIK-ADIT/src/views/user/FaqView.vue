@@ -4,18 +4,23 @@ import { api, payload, rows, errorMessage } from '../../lib/api'
 import PageHeader from '../../components/PageHeader.vue'
 import AlertMessage from '../../components/AlertMessage.vue'
 import EmptyState from '../../components/EmptyState.vue'
+import LoadingState from '../../components/LoadingState.vue'
 const topics = ref([]),
     faqs = ref([]),
     selected = ref(''),
     search = ref(''),
     error = ref(''),
-    open = ref(null)
+    open = ref(null),
+    loading = ref(true)
+const topicLabel = (topic) => topic.topik || topic.nama_topik || topic.name || 'Tanpa topik'
 const filtered = computed(() =>
     faqs.value.filter((x) =>
         `${x.judul || ''} ${x.detail || ''}`.toLowerCase().includes(search.value.toLowerCase())
     )
 )
 async function load() {
+    loading.value = true
+    error.value = ''
     try {
         topics.value = rows(payload(await api.get('/topik')))
         faqs.value = rows(
@@ -27,6 +32,8 @@ async function load() {
         )
     } catch (e) {
         error.value = errorMessage(e)
+    } finally {
+        loading.value = false
     }
 }
 onMounted(load)
@@ -44,12 +51,28 @@ onMounted(load)
         >
             <option value="">Semua topik</option>
             <option v-for="topic in topics" :key="topic.id" :value="topic.id">
-                {{ topic.nama_topik || topic.name }}
+                {{ topicLabel(topic) }}
             </option>
         </select>
     </div>
+    <section class="mb-5 border-2 border-[var(--line)] p-4">
+        <p class="label">Topik FAQ tersedia</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+            <button
+                v-for="topic in topics"
+                :key="topic.id"
+                type="button"
+                class="btn-secondary min-h-9 px-3"
+                :class="selected === topic.id ? 'bg-[var(--teal)] text-white' : ''"
+                @click="selected = topic.id; load()"
+            >
+                {{ topicLabel(topic) }}
+            </button>
+        </div>
+    </section>
     <div class="card divide-y divide-slate-100">
-        <EmptyState v-if="!filtered.length" title="FAQ belum tersedia" />
+        <LoadingState v-if="loading" />
+        <EmptyState v-else-if="!filtered.length" title="FAQ belum tersedia" />
         <article v-for="faq in filtered" :key="faq.id">
             <button
                 class="flex w-full items-center justify-between gap-4 py-4 text-left font-semibold text-slate-900"

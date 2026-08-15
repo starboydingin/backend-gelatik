@@ -70,6 +70,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/konsul', [KonsultasiController::class, 'index']);
     Route::post('/konsul', [KonsultasiController::class, 'store']);
     Route::get('/konsul/{id}', [KonsultasiController::class, 'show']);
+    Route::put('/konsul/{id}', [KonsultasiController::class, 'update']);
     Route::delete('/konsul/{id}', [KonsultasiController::class, 'destroy']);
     Route::post('/konsul/{id}/response', [KonsultasiController::class, 'respond']);
     Route::post('/konsul/{id}/status', [KonsultasiController::class, 'updateStatus']);

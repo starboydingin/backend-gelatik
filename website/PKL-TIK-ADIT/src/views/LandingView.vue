@@ -32,7 +32,7 @@ const services = [
 </script>
 <template>
     <div class="min-h-screen overflow-hidden bg-[var(--paper)] text-[var(--ink)]">
-        <nav class="relative z-10 mx-auto flex max-w-7xl items-center justify-between border-b-[4px] border-[var(--line)] px-5 py-4">
+        <nav class="relative z-10 mx-auto flex max-w-7xl items-center justify-between border-b-[2px] border-[var(--line)] px-5 py-4">
             <BrandMark />
             <div class="flex gap-2">
                 <ThemeToggle /><RouterLink to="/login" class="btn-secondary">Masuk</RouterLink
@@ -43,7 +43,7 @@ const services = [
         </nav>
         <main>
             <section
-                class="relative mx-auto grid max-w-7xl items-center gap-10 px-5 pb-20 pt-10 lg:grid-cols-[1.15fr_.85fr] lg:py-24"
+                class="relative mx-auto grid max-w-7xl items-center gap-10 px-5 pb-20 pt-10 lg:grid-cols-2 lg:py-24"
             >
                 <img
                     :src="siger"
@@ -113,7 +113,7 @@ const services = [
                     </ol>
                 </div>
             </section>
-            <section id="layanan" class="border-y-[4px] border-[var(--line)] bg-[var(--paper)] py-20">
+            <section id="layanan" class="border-y-[2px] border-[var(--line)] bg-[var(--paper)] py-20">
                 <div class="mx-auto max-w-7xl px-5">
                     <p class="text-sm font-black uppercase tracking-widest text-[var(--teal)]">
                         Layanan utama
@@ -121,8 +121,8 @@ const services = [
                     <h2 class="mt-2 max-w-2xl font-brand text-4xl font-black uppercase leading-[.9] tracking-[-.08em]">
                         Semua kebutuhan TIK dalam satu pintu
                     </h2>
-                    <div class="mt-10 grid gap-6 md:grid-cols-[1.1fr_.85fr_1.05fr]">
-                        <article v-for="(service, index) in services" :key="service.title" class="card group" :class="index === 1 ? 'md:translate-y-8' : ''">
+                    <div class="mt-10 grid gap-6 md:grid-cols-3">
+                        <article v-for="(service, index) in services" :key="service.title" class="card group">
                             <div class="mb-5 grid h-28 w-28 place-items-center border-[3px] border-[var(--line)]" :class="service.accent">
                                 <component :is="service.icon" class="size-12 stroke-[2.5]" />
                             </div>
@@ -137,7 +137,7 @@ const services = [
                 </div>
             </section>
         </main>
-        <footer class="border-t-[4px] border-[var(--line)] bg-[var(--paper)]">
+        <footer class="border-t-[2px] border-[var(--line)] bg-[var(--paper)]">
             <div
                 class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-8 text-sm font-black uppercase"
             >

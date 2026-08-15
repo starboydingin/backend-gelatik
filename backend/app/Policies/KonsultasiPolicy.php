@@ -22,6 +22,11 @@ class KonsultasiPolicy
         return $this->isAdmin($user);
     }
 
+    public function update(User $user, Konsultasi $konsultasi): bool
+    {
+        return $this->isOwner($user, $konsultasi) && $konsultasi->status === 'Menunggu';
+    }
+
     public function updateStatus(User $user, Konsultasi $konsultasi): bool
     {
         return $this->isAdmin($user);

@@ -6,8 +6,7 @@ import './style.css'
 
 document.title = import.meta.env.VITE_APP_NAME || 'Gelatik'
 
-// Apply the saved theme before Vue mounts so the switch is a hard visual cut,
-// not a soft white-to-black flash during initial render.
+// Apply the saved theme before Vue mounts to prevent a light-theme flash.
 document.documentElement.dataset.theme =
     localStorage.getItem('gelatik_theme') === 'dark' ? 'dark' : 'light'
 

@@ -6,12 +6,16 @@ import AlertMessage from '../../components/AlertMessage.vue'
 import EmptyState from '../../components/EmptyState.vue'
 import LoadingState from '../../components/LoadingState.vue'
 import ServiceHero from '../../components/ServiceHero.vue'
+import StatusBadge from '../../components/StatusBadge.vue'
 const list = ref([]),
     error = ref(''),
     loading = ref(true),
     search = ref(''),
     type = ref('all'),
-    readStatus = ref('all')
+    readStatus = ref('all'),
+    detail = ref(null),
+    selectedNotification = ref(null),
+    detailLoading = ref(false)
 const filtered = computed(() =>
     list.value.filter((item) => {
         const content = `${item.judul || ''} ${item.message || ''}`.toLowerCase()
@@ -61,6 +65,27 @@ async function read(id) {
     await api.post(`/notifications/${id}/read`)
     await load()
 }
+function isConsultationNotification(item) {
+    return String(item.type || item.jenis || '').toLowerCase().includes('konsultasi') && item.item_id
+}
+function adminResponses(record) {
+    return (record.responses || []).filter(
+        (response) => Number(response.user_id) !== Number(record.user_id)
+    )
+}
+async function openDetail(item) {
+    selectedNotification.value = item
+    detail.value = null
+    detailLoading.value = true
+    try {
+        if (isConsultationNotification(item)) detail.value = payload(await api.get(`/konsul/${item.item_id}`))
+        await read(item.id)
+    } catch (requestError) {
+        error.value = errorMessage(requestError)
+    } finally {
+        detailLoading.value = false
+    }
+}
 async function all() {
     await api.post('/notifications/read-all')
     await load()
@@ -72,7 +97,7 @@ onMounted(load)
         <AlertMessage :message="error" /><ServiceHero
             eyebrow="Pusat notifikasi"
             title="Pantau setiap perkembangan layanan Anda"
-            description="Pembaruan konsultasi, peminjaman, email, dan layanan lain dikumpulkan agar tidak ada proses terlewat."
+            description="Daftar ini hanya memuat notifikasi yang ditujukan untuk akun yang sedang digunakan, termasuk balasan admin pada konsultasi Anda."
             :stats="stats"
         />
         <section class="section-panel">
@@ -104,7 +129,7 @@ onMounted(load)
                     v-for="item in filtered"
                     :key="item.id"
                     class="flex w-full items-start gap-4 p-5 text-left hover:bg-brand-50/40"
-                    @click="read(item.id)"
+                    @click="openDetail(item)"
                 >
                     <span
                         class="grid size-11 shrink-0 place-items-center rounded-xl bg-sky-50 text-sky-600"
@@ -130,6 +155,36 @@ onMounted(load)
                     >
                 </button>
             </div>
+        </section>
+        <section v-if="selectedNotification" class="card">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <p class="eyebrow">Detail notifikasi</p>
+                    <h2 class="mt-1 font-brand text-xl font-extrabold">{{ selectedNotification.judul || 'Informasi layanan' }}</h2>
+                </div>
+                <button class="btn-secondary min-h-9 px-3" @click="selectedNotification = null; detail = null">Tutup</button>
+            </div>
+            <p class="mt-4 whitespace-pre-wrap leading-7">{{ selectedNotification.message || '-' }}</p>
+            <LoadingState v-if="detailLoading" />
+            <template v-else-if="detail">
+                <div class="mt-5 border-t-2 border-[var(--line)] pt-5">
+                    <p class="label">Konsultasi Anda</p>
+                    <h3 class="mt-1 font-bold">{{ detail.judul || 'Konsultasi TIK' }}</h3>
+                    <p class="mt-3 whitespace-pre-wrap">{{ detail.deskripsi || detail.pesan || detail.pertanyaan || '-' }}</p>
+                    <div class="mt-4 flex items-center gap-3"><span class="label mb-0">Status</span><StatusBadge :status="detail.status" /></div>
+                </div>
+                <div class="mt-5 border-t-2 border-[var(--line)] pt-5">
+                    <p class="label">Balasan dari admin</p>
+                    <div class="mt-3 space-y-3">
+                        <article v-for="response in adminResponses(detail)" :key="response.id" class="border-2 border-[var(--line)] p-3">
+                            <strong>{{ response.user?.name || 'Admin' }}</strong>
+                            <p class="mt-1 whitespace-pre-wrap">{{ response.isi_respon || response.jawaban || response.pesan }}</p>
+                            <small class="mt-2 block text-slate-500">{{ response.created_at || '' }}</small>
+                        </article>
+                        <p v-if="!adminResponses(detail).length">Belum ada balasan admin yang dapat ditampilkan.</p>
+                    </div>
+                </div>
+            </template>
         </section>
     </div>
 </template>

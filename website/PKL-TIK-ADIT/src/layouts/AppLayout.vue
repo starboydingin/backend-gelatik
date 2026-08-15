@@ -102,6 +102,16 @@ const adminItems = [
     { label: 'Pengaturan', to: '/admin/pengaturan', icon: Cog6ToothIcon, group: 'Sistem' },
 ]
 const adminArea = computed(() => route.path.startsWith('/admin'))
+// Cached user views retain their loaded list/form state while a user moves
+// between services. The route key separates the user and admin workspaces.
+const cacheableViews = [
+    'UserDashboard',
+    'PeminjamanView',
+    'KonsultasiView',
+    'EmailView',
+    'NotificationsView',
+    'FaqView',
+]
 const items = computed(() => (adminArea.value ? adminItems : userItems))
 const mobileItems = computed(() =>
     adminArea.value
@@ -139,7 +149,13 @@ onBeforeUnmount(disconnectRealtime)
                 :admin-area="adminArea"
                 @menu="open = true"
         /></template>
-        <PageContainer><RouterView /></PageContainer>
+        <PageContainer>
+            <RouterView v-slot="{ Component }">
+                <KeepAlive :include="cacheableViews">
+                    <component :is="Component" :key="route.fullPath" />
+                </KeepAlive>
+            </RouterView>
+        </PageContainer>
         <template #mobile-navigation
             ><MobileBottomNav :items="mobileItems" :active-path="route.path"
         /></template>

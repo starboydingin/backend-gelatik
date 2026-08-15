@@ -101,8 +101,8 @@
 }
 
 /*
- * Gelatik neo-brutalist token system. White/black are deliberately absolute:
- * the contrast and visible construction are part of the interface itself.
+ * Soft neo-brutalism: formal public-service structure with restrained borders
+ * and short hard shadows, rather than aggressive experimental geometry.
  */
 :root {
     color-scheme: light;
@@ -114,13 +114,13 @@
     --navy: #1e3a8a;
     --gold: #f59e0b;
     --danger: #dc2626;
-    --hard-shadow: 5px 5px 0 #000000;
-    --hard-shadow-small: 3px 3px 0 #000000;
+    --hard-shadow: 2px 2px 0 #000000;
+    --hard-shadow-small: 2px 2px 0 #000000;
 }
 
 :root[data-theme='dark'] {
     color-scheme: dark;
-    --paper: #000000;
+    --paper: #0a0a0a;
     --ink: #ffffff;
     --line: #ffffff;
     --teal: #2dd4bf;
@@ -128,8 +128,8 @@
     --navy: #3b82f6;
     --gold: #fbbf24;
     --danger: #f87171;
-    --hard-shadow: 5px 5px 0 #ffffff;
-    --hard-shadow-small: 3px 3px 0 #ffffff;
+    --hard-shadow: 2px 2px 0 #ffffff;
+    --hard-shadow-small: 2px 2px 0 #ffffff;
 }
 
 @layer base {
@@ -140,7 +140,7 @@
     }
 
     * {
-        border-radius: 0 !important;
+        border-radius: 6px !important;
     }
 
     /* A spinner is a glyph, not a structural card/control. */
@@ -153,9 +153,9 @@
     input,
     select,
     textarea {
-        transition-property: transform, box-shadow, border-width;
-        transition-duration: 100ms;
-        transition-timing-function: linear;
+        transition-property: background-color, color, border-color, transform, box-shadow;
+        transition-duration: 180ms;
+        transition-timing-function: ease-out;
     }
 
     button:focus-visible,
@@ -219,10 +219,27 @@
     box-shadow: var(--hard-shadow) !important;
 }
 
+/* Legacy utility classes from the first, harsher pass are normalized here so
+ * every existing view follows the formal soft-brutalist scale. */
+:root [class*='border-[3px]'],
+:root [class*='border-[4px]'],
+:root [class*='border-b-[3px]'],
+:root [class*='border-b-[4px]'] {
+    border-width: 2px !important;
+}
+
+:root [class*='border-l-[14px]'] {
+    border-left-width: 6px !important;
+}
+
+:root [class*='shadow-['] {
+    box-shadow: var(--hard-shadow) !important;
+}
+
 :root .transition,
 :root .transition-transform {
-    transition-duration: 100ms !important;
-    transition-timing-function: linear !important;
+    transition-duration: 180ms !important;
+    transition-timing-function: ease-out !important;
 }
 
 :root[data-theme='dark'] .bg-white,
@@ -254,26 +271,25 @@
 }
 
 @layer components {
-    /* Hard offset shadows emulate a printed card lifted from the page. */
+    /* Short, unblurred shadows retain structure without looking experimental. */
     .btn {
         min-height: 2.75rem;
-        border: 3px solid var(--line);
+        border: 2px solid var(--line);
         background: var(--paper);
         box-shadow: var(--hard-shadow-small);
         color: var(--ink);
-        font-weight: 900;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
+        font-weight: 800;
+        letter-spacing: 0.03em;
     }
 
     .btn:hover:not(:disabled),
     .btn:focus-visible:not(:disabled) {
-        transform: translate(3px, 3px);
+        transform: translate(1px, 1px);
         box-shadow: none;
     }
 
     .btn:active:not(:disabled) {
-        transform: translate(5px, 5px);
+        transform: translate(2px, 2px);
         box-shadow: none;
     }
 
@@ -292,24 +308,24 @@
         color: #000000 !important;
     }
 
-    /* Structural cards use thick outlines, square corners and zero blur. */
+    /* Cards are selectively framed for formal, scannable service data. */
     .card {
-        border: 3px solid var(--line);
+        border: 2px solid var(--line);
         background: var(--paper) !important;
         box-shadow: var(--hard-shadow);
     }
 
     .card:hover {
-        transform: translate(2px, 2px);
-        box-shadow: 3px 3px 0 var(--line);
+        transform: translate(1px, 1px);
+        box-shadow: 1px 1px 0 var(--line);
     }
 
     .input {
         min-height: 2.9rem;
-        border: 3px solid var(--line);
+        border: 2px solid var(--line);
         background: var(--paper) !important;
         color: var(--ink) !important;
-        font-weight: 700;
+        font-weight: 600;
     }
 
     .input::placeholder {
@@ -320,36 +336,36 @@
     .input:hover,
     .input:focus {
         border-color: var(--teal);
-        box-shadow: 3px 3px 0 var(--teal);
+        box-shadow: 2px 2px 0 var(--teal);
     }
 
     .label,
     .eyebrow {
         color: var(--ink) !important;
         font-family: Montserrat, Inter, sans-serif;
-        font-weight: 900;
-        letter-spacing: 0.12em;
+        font-weight: 800;
+        letter-spacing: 0.08em;
     }
 
     .badge {
         border: 2px solid var(--line);
-        font-weight: 900;
+        font-weight: 800;
         letter-spacing: 0.05em;
         text-transform: uppercase;
     }
 
     .table-wrap,
     .section-panel {
-        border: 3px solid var(--line);
+        border: 2px solid var(--line);
         background: var(--paper) !important;
         box-shadow: var(--hard-shadow);
     }
 
     .data-table th {
-        border-bottom: 3px solid var(--line);
+        border-bottom: 2px solid var(--line);
         background: var(--gold) !important;
         color: #000000 !important;
-        font-weight: 900;
+        font-weight: 800;
     }
 
     .data-table td,
@@ -364,14 +380,14 @@
     }
 
     .service-hero {
-        border: 4px solid var(--line);
-        border-left: 14px solid var(--teal);
+        border: 2px solid var(--line);
+        border-left: 6px solid var(--teal);
         background: var(--paper) !important;
-        box-shadow: 8px 8px 0 var(--line);
+        box-shadow: 3px 3px 0 var(--line);
     }
 
     .section-panel-header {
-        border-bottom: 3px solid var(--line);
+        border-bottom: 2px solid var(--line);
         background: var(--gold) !important;
         color: #000000;
     }
@@ -388,25 +404,25 @@
         width: 2.75rem;
         height: 2.75rem;
         place-items: center;
-        border: 3px solid var(--line);
+        border: 2px solid var(--line);
         background: var(--paper);
         color: var(--ink);
         box-shadow: var(--hard-shadow-small);
     }
 
     .brutal-icon-button:hover {
-        transform: translate(3px, 3px);
+        transform: translate(1px, 1px);
         box-shadow: none;
     }
 
     .brutal-siger {
-        border: 4px solid var(--line);
+        border: 2px solid var(--line);
         clip-path: polygon(0 0, 100% 0, 86% 100%, 0 82%);
     }
 
     /* The app-wide divider stays deliberate and visible at every breakpoint. */
     .brutal-divider {
         border-color: var(--line);
-        border-width: 0 0 3px;
+        border-width: 0 0 2px;
     }
 }

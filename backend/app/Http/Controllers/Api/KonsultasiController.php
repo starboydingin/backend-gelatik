@@ -60,6 +60,39 @@ class KonsultasiController extends Controller
         return response()->json(['success' => true, 'data' => $konsultasi]);
     }
 
+    /** PUT /api/konsul/{id} */
+    public function update(Request $request, $id)
+    {
+        $konsultasi = Konsultasi::findOrFail($id);
+        Gate::authorize('update', $konsultasi);
+
+        $validated = $request->validate([
+            'topik_id' => 'sometimes|required|exists:master_topik,id',
+            'judul' => 'sometimes|required|string|max:255',
+            'deskripsi' => 'sometimes|required|string',
+        ]);
+
+        $update = [];
+        if (array_key_exists('topik_id', $validated)) {
+            $update['faq_id'] = $validated['topik_id'];
+        }
+        if (array_key_exists('judul', $validated)) {
+            $update['judul'] = $validated['judul'];
+        }
+        if (array_key_exists('deskripsi', $validated)) {
+            $update['pesan'] = $validated['deskripsi'];
+        }
+        $update['updated_by'] = $request->user()->id;
+
+        $konsultasi->update($update);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Konsultasi berhasil diperbarui.',
+            'data' => $konsultasi->fresh(['user', 'topik', 'responses.user']),
+        ]);
+    }
+
     /** POST /api/konsul/{id}/response */
     public function respond(TambahResponKonsultasiRequest $request, $id)
     {

@@ -84,6 +84,20 @@ async function load() {
         loading.value = false
     }
 }
+async function loadAssets() {
+    assets.value = rows(payload(await api.get('/items')))
+}
+function assetName(itemId) {
+    const asset = assets.value.find((entry) => String(entry.id) === String(itemId))
+    return asset?.nama || asset?.nama_item || asset?.name || `Aset #${itemId}`
+}
+function normalizeLoanItems(entries = []) {
+    return entries.map((entry) => ({
+        item_id: entry.item_id || entry.master_item_id || entry.master_item?.id,
+        quantity: entry.quantity || entry.jumlah || 1,
+        master_item: entry.master_item,
+    }))
+}
 async function openForm() {
     editingId.value = null
     form.value = {
@@ -93,10 +107,12 @@ async function openForm() {
         instansi_pic: auth.user?.nama_opd || '',
         kontak_pic: auth.user?.no_hp || '',
         nomor_identitas: form.value.jenis_identitas === 'NIP' ? auth.user?.nip || '' : '',
+        items: [],
+        dokumen_pendukung: null,
     }
     showForm.value = true
     try {
-        assets.value = rows(payload(await api.get('/items')))
+        await loadAssets()
     } catch {}
 }
 function identityChanged() {
@@ -113,24 +129,24 @@ function setDocument(event) {
     form.value.dokumen_pendukung = file
 }
 async function edit(item) {
-    editingId.value = item.id
-    form.value = {
-        ...form.value,
-        ...Object.fromEntries(
-            Object.keys(form.value)
-                .filter((key) => key !== 'items' && key !== 'dokumen_pendukung')
-                .map((key) => [key, item[key] ?? form.value[key]])
-        ),
-        dokumen_pendukung: null,
-        items: (item.pinjam_items || []).map((entry) => ({
-            item_id: entry.item_id || entry.master_item_id,
-            quantity: entry.quantity || entry.jumlah || 1,
-        })),
-    }
-    showForm.value = true
     try {
-        assets.value = rows(payload(await api.get('/items')))
-    } catch {}
+        const record = payload(await api.get(`/pinjam/${item.id}`))
+        editingId.value = record.id
+        form.value = {
+            ...form.value,
+            ...Object.fromEntries(
+                Object.keys(form.value)
+                    .filter((key) => key !== 'items' && key !== 'dokumen_pendukung')
+                    .map((key) => [key, record[key] ?? form.value[key]])
+            ),
+            dokumen_pendukung: null,
+            items: normalizeLoanItems(record.pinjam_items),
+        }
+        showForm.value = true
+        await loadAssets()
+    } catch (requestError) {
+        error.value = errorMessage(requestError)
+    }
 }
 async function showDetail(id) {
     try {
@@ -139,10 +155,42 @@ async function showDetail(id) {
         error.value = errorMessage(requestError)
     }
 }
-function addAsset() {
+async function addAsset() {
     if (!draft.value.item_id) return
-    form.value.items.push({ ...draft.value })
-    draft.value = { item_id: '', quantity: 1 }
+    const nextItem = { ...draft.value }
+    try {
+        if (editingId.value) {
+            const updated = payload(await api.post(`/pinjam/${editingId.value}`, { items: [nextItem] }))
+            form.value.items = normalizeLoanItems(updated.pinjam_items)
+            await load()
+        } else {
+            const existing = form.value.items.find(
+                (entry) => String(entry.item_id) === String(nextItem.item_id)
+            )
+            if (existing) existing.quantity += Number(nextItem.quantity)
+            else form.value.items.push(nextItem)
+        }
+        draft.value = { item_id: '', quantity: 1 }
+    } catch (requestError) {
+        error.value = errorMessage(requestError)
+    }
+}
+async function removeAsset(index) {
+    const entry = form.value.items[index]
+    if (!entry) return
+    try {
+        if (editingId.value) {
+            const updated = payload(
+                await api.delete(`/pinjam/${editingId.value}/item/${entry.item_id}`)
+            )
+            form.value.items = normalizeLoanItems(updated.pinjam_items)
+            await load()
+        } else {
+            form.value.items.splice(index, 1)
+        }
+    } catch (requestError) {
+        error.value = errorMessage(requestError)
+    }
 }
 async function submit() {
     error.value = ''
@@ -150,6 +198,7 @@ async function submit() {
         if (editingId.value) {
             const updateData = { ...form.value }
             delete updateData.dokumen_pendukung
+            delete updateData.items
             await api.put(`/pinjam/${editingId.value}`, updateData)
             success.value = 'Pengajuan berhasil diperbarui.'
             editingId.value = null
@@ -280,7 +329,7 @@ onMounted(load)
                             <option value="menit">Menit</option>
                         </select>
                     </div></label
-                ><label class="md:col-span-2"
+                ><label v-if="!editingId" class="md:col-span-2"
                     ><span class="label">Keterangan</span
                     ><textarea v-model="form.keterangan" class="input min-h-24"></textarea></label
                 ><label class="md:col-span-2"
@@ -290,8 +339,36 @@ onMounted(load)
                         class="input"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                         @change="setDocument"
-                /></label>
+                /></label
+                ><p v-if="editingId" class="md:col-span-2 border-2 border-[var(--line)] p-3 text-sm">
+                    Dokumen pendukung tidak dapat diubah setelah pengajuan dikirim.
+                </p>
             </div>
+            <section class="mt-6 border-t-2 border-[var(--line)] pt-5">
+                <div class="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                        <p class="eyebrow">Daftar aset</p>
+                        <h3 class="mt-1 font-brand text-lg font-extrabold">Aset dalam pengajuan</h3>
+                    </div>
+                    <p class="text-sm font-medium text-slate-600">
+                        {{ editingId ? 'Perubahan aset langsung disimpan.' : 'Tambahkan minimal satu aset.' }}
+                    </p>
+                </div>
+                <div v-if="form.items.length" class="mt-4 divide-y-2 divide-[var(--line)] border-2 border-[var(--line)]">
+                    <div v-for="(asset, i) in form.items" :key="`${asset.item_id}-${i}`" class="flex flex-wrap items-center justify-between gap-3 p-3">
+                        <div>
+                            <strong>{{ asset.master_item?.nama || assetName(asset.item_id) }}</strong>
+                            <p class="mt-1 text-sm text-slate-600">Jumlah: {{ asset.quantity }}</p>
+                        </div>
+                        <button type="button" class="btn-danger min-h-9 px-3" @click="removeAsset(i)">
+                            Hapus aset
+                        </button>
+                    </div>
+                </div>
+                <p v-else class="mt-4 border-2 border-dashed border-[var(--line)] p-3 text-sm font-medium">
+                    Belum ada aset yang dipilih.
+                </p>
+            </section>
             <div class="mt-4 flex flex-wrap items-end gap-3">
                 <label class="min-w-60 flex-1"
                     ><span class="label">Aset</span
@@ -310,17 +387,6 @@ onMounted(load)
                         min="1"
                         class="input" /></label
                 ><button type="button" class="btn-secondary" @click="addAsset">Tambah</button>
-            </div>
-            <div class="mt-3 flex flex-wrap gap-2">
-                <span
-                    v-for="(asset, i) in form.items"
-                    :key="i"
-                    class="badge bg-brand-50 text-brand-700"
-                    >ID {{ asset.item_id }} × {{ asset.quantity }}
-                    <button type="button" class="ml-2" @click="form.items.splice(i, 1)">
-                        ×
-                    </button></span
-                >
             </div>
             <button class="btn-primary mt-5" :disabled="!form.items.length">
                 {{ editingId ? 'Simpan perubahan' : 'Kirim pengajuan' }}
@@ -381,7 +447,7 @@ onMounted(load)
                                     Detail
                                 </button>
                                 <button
-                                    v-if="!admin"
+                                    v-if="!admin && String(item.status).toLowerCase() === 'menunggu'"
                                     class="btn-secondary min-h-9 px-3"
                                     @click="edit(item)"
                                 >
@@ -434,6 +500,20 @@ onMounted(load)
                 <div class="sm:col-span-2 lg:col-span-4">
                     <dt class="label">Keperluan</dt>
                     <dd class="whitespace-pre-wrap">{{ detail.keterangan || '-' }}</dd>
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4">
+                    <dt class="label">Aset yang diajukan</dt>
+                    <dd class="mt-2 divide-y-2 divide-[var(--line)] border-2 border-[var(--line)]">
+                        <div
+                            v-for="entry in detail.pinjam_items || []"
+                            :key="entry.id || entry.item_id"
+                            class="flex items-center justify-between gap-3 p-3"
+                        >
+                            <span>{{ entry.master_item?.nama || entry.master_item?.nama_item || `Aset #${entry.item_id}` }}</span>
+                            <strong>Jumlah {{ entry.quantity || entry.jumlah || 1 }}</strong>
+                        </div>
+                        <p v-if="!(detail.pinjam_items || []).length" class="p-3">Data aset belum tersedia.</p>
+                    </dd>
                 </div>
             </dl>
         </section>

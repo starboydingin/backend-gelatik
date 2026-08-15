@@ -21,7 +21,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <!-- Root data-theme makes the palette snap; it never fades between modes. -->
+    <!-- Root data-theme changes tokens; CSS keeps the formal color shift brief and subtle. -->
     <button
         class="brutal-icon-button"
         type="button"

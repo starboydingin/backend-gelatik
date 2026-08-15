@@ -16,7 +16,6 @@ const route = useRoute(),
     search = ref(''),
     statusFilter = ref('all'),
     showForm = ref(false),
-    editingId = ref(null),
     detail = ref(null),
     form = ref({ id_peg: '', email_pribadi: '', nip: '' })
 const displayedList = computed(() =>
@@ -51,19 +50,6 @@ async function load() {
     }
 }
 async function open() {
-    editingId.value = null
-    showForm.value = true
-    try {
-        employees.value = rows(payload(await api.get('/pegawai')))
-    } catch {}
-}
-async function edit(item) {
-    editingId.value = item.id
-    form.value = {
-        id_peg: item.id_peg || item.id_peg_bkd || '',
-        email_pribadi: item.email_pribadi || '',
-        nip: item.nip || '',
-    }
     showForm.value = true
     try {
         employees.value = rows(payload(await api.get('/pegawai')))
@@ -78,9 +64,7 @@ async function showDetail(id) {
 }
 async function submit() {
     try {
-        if (editingId.value) await api.put(`/pengajuan-email/${editingId.value}`, form.value)
-        else await api.post('/pengajuan-email', form.value)
-        editingId.value = null
+        await api.post('/pengajuan-email', form.value)
         showForm.value = false
         await load()
     } catch (e) {
@@ -117,7 +101,7 @@ onMounted(load)
         >
         <AlertMessage :message="error" />
         <form v-if="showForm" class="card mb-6" @submit.prevent="submit">
-            <h2 class="text-lg font-bold">{{ editingId ? 'Perbarui usulan' : 'Usulan baru' }}</h2>
+            <h2 class="text-lg font-bold">Usulan baru</h2>
             <div class="mt-4 grid gap-4 md:grid-cols-3">
                 <label
                     ><span class="label">Pegawai</span
@@ -139,7 +123,7 @@ onMounted(load)
                 /></label>
             </div>
             <button class="btn-primary mt-5">
-                {{ editingId ? 'Simpan perubahan' : 'Kirim usulan' }}
+                Kirim usulan
             </button>
         </form>
         <div class="card grid gap-3 p-4 md:grid-cols-[1fr_220px]">
@@ -188,13 +172,6 @@ onMounted(load)
                                     @click="showDetail(item.id)"
                                 >
                                     Detail
-                                </button>
-                                <button
-                                    v-if="!admin"
-                                    class="btn-secondary min-h-9 px-3"
-                                    @click="edit(item)"
-                                >
-                                    Edit
                                 </button>
                                 <button
                                     v-if="admin"
@@ -247,6 +224,18 @@ onMounted(load)
                 <div>
                     <dt class="label">Status</dt>
                     <dd><StatusBadge :status="detail.status" /></dd>
+                </div>
+                <div>
+                    <dt class="label">Tanggal pengajuan</dt>
+                    <dd>{{ detail.created_at || '-' }}</dd>
+                </div>
+                <div>
+                    <dt class="label">Tanggal verifikasi</dt>
+                    <dd>{{ detail.tanggal_verifikasi || '-' }}</dd>
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4">
+                    <dt class="label">Catatan petugas</dt>
+                    <dd class="whitespace-pre-wrap">{{ detail.catatan || '-' }}</dd>
                 </div>
             </dl>
         </section>

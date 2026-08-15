@@ -7,6 +7,7 @@ use App\Events\KonsultasiResponseCreated;
 use App\Events\KonsultasiStatusChanged;
 use App\Models\Konsultasi;
 use App\Models\KonsultasiResponse;
+use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -61,6 +62,20 @@ class KonsultasiService
         $isAdmin = (int) $pembalas->id !== (int) $konsultasi->user_id;
         if ($isAdmin && in_array($konsultasi->status, ['Menunggu'])) {
             $konsultasi->update(['status' => 'Diproses', 'updated_by' => $pembalas->id]);
+        }
+
+        // This durable, user-scoped record powers the notification inbox. It is
+        // written in the business action, not a queued listener, so retries do
+        // not create duplicate "admin replied" notifications.
+        if ($pembalas->hasAnyRole(['admin', 'superadmin'])) {
+            Notification::create([
+                'user_id' => $konsultasi->user_id,
+                'judul' => 'Balasan baru dari admin',
+                'message' => 'Admin membalas konsultasi: ' . $konsultasi->judul,
+                'type' => 'konsultasi_response',
+                'item_id' => $konsultasi->id,
+                'read' => false,
+            ]);
         }
 
         // Dispatch Event untuk notifikasi
