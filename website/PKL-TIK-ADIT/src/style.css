@@ -472,13 +472,13 @@
     /* Email-monitoring carries many fields. Fixed compact columns keep the
        actions reachable, while the wrapper still scrolls on narrow devices. */
     .email-proposal-table {
-        min-width: 69rem !important;
+        min-width: 61rem !important;
         table-layout: fixed;
     }
 
     .email-proposal-table th,
     .email-proposal-table td {
-        padding: 0.7rem 0.75rem;
+        padding: 0.65rem 0.7rem;
         vertical-align: middle;
     }
 

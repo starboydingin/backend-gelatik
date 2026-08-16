@@ -195,13 +195,13 @@ onMounted(load)
             <table v-else class="data-table email-proposal-table">
                 <colgroup>
                     <col class="w-12" />
+                    <col class="w-36" />
                     <col class="w-40" />
-                    <col class="w-40" />
-                    <col class="w-56" />
-                    <col class="w-52" />
+                    <col class="w-44" />
+                    <col class="w-44" />
                     <col class="w-28" />
                     <col class="w-36" />
-                    <col class="w-72" />
+                    <col class="w-24" />
                 </colgroup>
                 <thead>
                     <tr>
@@ -230,34 +230,10 @@ onMounted(load)
                             <StatusBadge :status="item.status" />
                         </td>
                         <td class="whitespace-nowrap">{{ formatSubmittedAt(item.created_at) }}</td>
-                        <td>
-                            <div class="flex flex-nowrap gap-1.5">
-                                <button
-                                    class="btn-secondary min-h-9 px-3"
-                                    @click="showDetail(item.id)"
-                                >
-                                    Detail
-                                </button>
-                                <button
-                                    v-if="admin"
-                                    class="btn-secondary min-h-9 px-3"
-                                    @click="action(item.id, 'verifikasi')"
-                                >
-                                    Verifikasi</button
-                                ><button
-                                    v-if="admin"
-                                    class="btn-primary min-h-9 px-3"
-                                    @click="action(item.id, 'buat-email-resmi')"
-                                >
-                                    Buat email</button
-                                ><button
-                                    v-if="admin"
-                                    class="btn-danger min-h-9 px-3"
-                                    @click="action(item.id, 'tolak-email')"
-                                >
-                                    Tolak
-                                </button>
-                            </div>
+                        <td class="whitespace-nowrap">
+                            <button class="btn-secondary min-h-9 px-3" @click="showDetail(item.id)">
+                                {{ admin ? 'Kelola' : 'Detail' }}
+                            </button>
                         </td>
                     </tr>
                 </tbody>
@@ -272,7 +248,30 @@ onMounted(load)
                         {{ detail.nama || detail.nama_pegawai || `Usulan #${detail.id}` }}
                     </h2>
                 </div>
-                <button class="btn-secondary min-h-9 px-3" @click="detail = null">Tutup</button>
+                <div class="flex flex-wrap justify-end gap-2">
+                    <button
+                        v-if="admin"
+                        class="btn-secondary min-h-9 px-3"
+                        @click="action(detail.id, 'verifikasi')"
+                    >
+                        Verifikasi
+                    </button>
+                    <button
+                        v-if="admin"
+                        class="btn-primary min-h-9 px-3"
+                        @click="action(detail.id, 'buat-email-resmi')"
+                    >
+                        Buat email
+                    </button>
+                    <button
+                        v-if="admin"
+                        class="btn-danger min-h-9 px-3"
+                        @click="action(detail.id, 'tolak-email')"
+                    >
+                        Tolak
+                    </button>
+                    <button class="btn-secondary min-h-9 px-3" @click="detail = null">Tutup</button>
+                </div>
             </div>
             <dl class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
