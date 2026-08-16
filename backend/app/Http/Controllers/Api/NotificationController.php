@@ -15,12 +15,15 @@ class NotificationController extends Controller
     {
         $userId = $request->user()->id;
 
-        // Personal notifications use their own read flag. Broadcast notices
-        // use a per-user read receipt so one user cannot change it for all.
+        // Regular users only see notifications created for their own account.
+        // Admins may additionally see the admin broadcast stream (user_id=0).
+        $isAdmin = $request->user()->hasAnyRole(['admin', 'superadmin']);
         $notifications = Notification::query()
-            ->where(function ($q) use ($userId) {
-                $q->where('user_id', $userId)
-                  ->orWhere('user_id', 0);
+            ->where(function ($q) use ($userId, $isAdmin) {
+                $q->where('user_id', $userId);
+                if ($isAdmin) {
+                    $q->orWhere('user_id', 0);
+                }
             })
             ->orderBy('id', 'desc')
             ->paginate((int) min($request->integer('per_page', 15), 50));
@@ -45,9 +48,10 @@ class NotificationController extends Controller
     {
         $notification = Notification::findOrFail($id);
         $userId = $request->user()->id;
-        abort_unless(in_array((int) $notification->user_id, [$userId, 0], true), 403);
+        $isAdmin = $request->user()->hasAnyRole(['admin', 'superadmin']);
+        abort_unless((int) $notification->user_id === $userId || ($isAdmin && (int) $notification->user_id === 0), 403);
 
-        if ((int) $notification->user_id === 0) {
+        if ($isAdmin && (int) $notification->user_id === 0) {
             NotificationRead::updateOrCreate(
                 ['notification_id' => $notification->id, 'user_id' => $userId],
                 ['read_at' => now()]
@@ -63,13 +67,16 @@ class NotificationController extends Controller
     public function markAllAsRead(Request $request)
     {
         $userId = $request->user()->id;
+        $isAdmin = $request->user()->hasAnyRole(['admin', 'superadmin']);
         Notification::where('user_id', $userId)->where('read', false)->update(['read' => true]);
-        $broadcastIds = Notification::where('user_id', 0)->pluck('id');
-        foreach ($broadcastIds as $notificationId) {
-            NotificationRead::updateOrCreate(
-                ['notification_id' => $notificationId, 'user_id' => $userId],
-                ['read_at' => now()]
-            );
+        if ($isAdmin) {
+            $broadcastIds = Notification::where('user_id', 0)->pluck('id');
+            foreach ($broadcastIds as $notificationId) {
+                NotificationRead::updateOrCreate(
+                    ['notification_id' => $notificationId, 'user_id' => $userId],
+                    ['read_at' => now()]
+                );
+            }
         }
 
         return response()->json(['success' => true, 'message' => 'Semua notifikasi ditandai telah dibaca.']);

@@ -15,7 +15,7 @@ const groups = computed(() => [...new Set(props.items.map((item) => item.group))
 
 <template>
     <aside
-        class="brutal-sidebar fixed inset-y-0 left-0 z-40 flex w-[286px] flex-col border-r-[4px] border-[var(--line)] text-[var(--ink)] transition-transform lg:sticky lg:top-0 lg:h-screen"
+        class="brutal-sidebar fixed inset-y-0 left-0 z-40 flex w-[286px] flex-col border-r-[2px] border-[var(--line)] text-[var(--ink)] transition-transform lg:sticky lg:top-0 lg:h-screen"
         :class="open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
     >
         <div class="app-sidebar-brand flex h-[76px] items-center border-b-[3px] border-[var(--line)] px-5">
