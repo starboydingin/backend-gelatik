@@ -225,14 +225,6 @@ async function submit() {
         error.value = errorMessage(e)
     }
 }
-async function status(id, value) {
-    try {
-        await api.post(`/pinjam/${id}/status`, { status: value })
-        await load()
-    } catch (e) {
-        error.value = errorMessage(e)
-    }
-}
 async function remove(id) {
     if (!confirm('Hapus pengajuan ini?')) return
     try {
@@ -439,7 +431,15 @@ onMounted(load)
                             <StatusBadge :status="item.status" />
                         </td>
                         <td>
-                            <div class="flex flex-wrap gap-2">
+                            <div v-if="admin" class="flex">
+                                <RouterLink
+                                    class="btn-secondary min-h-9 px-3"
+                                    :to="`/admin/peminjaman/${item.id}/kelola`"
+                                >
+                                    Kelola
+                                </RouterLink>
+                            </div>
+                            <div v-else class="flex flex-wrap gap-2">
                                 <button
                                     class="btn-secondary min-h-9 px-3"
                                     @click="showDetail(item.id)"
@@ -453,17 +453,7 @@ onMounted(load)
                                 >
                                     Edit
                                 </button>
-                                <select
-                                    v-if="admin"
-                                    class="input min-h-9 w-32 py-1"
-                                    :value="item.status"
-                                    @change="status(item.id, $event.target.value)"
-                                >
-                                    <option>Menunggu</option>
-                                    <option>Proses</option>
-                                    <option>Selesai</option>
-                                    <option>Ditolak</option></select
-                                ><button class="btn-danger min-h-9 px-3" @click="remove(item.id)">
+                                <button class="btn-danger min-h-9 px-3" @click="remove(item.id)">
                                     Hapus
                                 </button>
                             </div>

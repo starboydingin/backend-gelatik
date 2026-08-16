@@ -49,6 +49,10 @@ const routes = [
             { path: '', redirect: '/admin/dashboard' },
             { path: 'dashboard', component: () => import('../views/admin/AdminDashboard.vue') },
             { path: 'peminjaman', component: () => import('../views/shared/PeminjamanView.vue') },
+            {
+                path: 'peminjaman/:id/kelola',
+                component: () => import('../views/admin/LoanManagementView.vue'),
+            },
             { path: 'konsultasi', component: () => import('../views/shared/KonsultasiView.vue') },
             { path: 'email-resmi', component: () => import('../views/shared/EmailView.vue') },
             { path: 'pengguna', component: () => import('../views/admin/UsersView.vue') },

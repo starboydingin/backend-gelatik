@@ -127,6 +127,17 @@ class PinjamService
             'updated_by' => $admin ? $admin->id : null,
         ];
 
+        // Catatan petugas is the administrator's confirmation context. Keep it
+        // for every valid status transition, not only for a rejected request.
+        if (filled($catatan)) {
+            $updateData['catatan_petugas'] = $catatan;
+        }
+
+        // Catatan petugas is the administrator's confirmation context. Keep it
+        // for every valid status transition, not only for a rejected request.
+        if (filled($catatan)) {
+        }
+
         if ($statusBaru === 'Selesai') {
             if ($buktiPengembalian) {
                 $path = $buktiPengembalian->store('bukti_pengembalian', 'public');
@@ -139,7 +150,6 @@ class PinjamService
             if (empty($catatan)) {
                 throw ValidationException::withMessages(['catatan' => 'Catatan alasan penolakan wajib diisi.']);
             }
-            $updateData['catatan_petugas'] = $catatan;
         }
 
         $pinjam->update($updateData);
