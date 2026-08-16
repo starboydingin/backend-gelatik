@@ -122,7 +122,7 @@ onMounted(load)
                     <p class="eyebrow">Tindakan petugas</p>
                     <h2 class="mt-1 text-xl font-bold text-[var(--ink)]">Konfirmasi peminjaman</h2>
                 </header>
-                <form class="space-y-5 p-5" @submit.prevent="saveConfirmation">
+                <form class="space-y-6 p-5 md:p-6" @submit.prevent="saveConfirmation">
                     <p class="text-sm leading-6 text-slate-600">Admin tidak dapat mengubah formulir atau aset yang diajukan pengguna.</p>
                     <label>
                         <span class="label">Status berikutnya</span>
@@ -136,7 +136,7 @@ onMounted(load)
                         <textarea v-model="confirmation.catatan" class="input min-h-32" :disabled="!canConfirm" placeholder="Tulis catatan konfirmasi untuk pemohon."></textarea>
                     </label>
                     <p v-if="!canConfirm" class="border-2 border-[var(--line)] bg-slate-50 p-3 text-sm">Pengajuan berstatus {{ loan.status }} dan tidak memiliki transisi lanjutan.</p>
-                    <button class="btn-primary w-full" :disabled="saving || !canConfirm">
+                    <button class="btn-primary mt-1 w-full" :disabled="saving || !canConfirm">
                         {{ saving ? 'Menyimpan...' : 'Simpan konfirmasi' }}
                     </button>
                 </form>
