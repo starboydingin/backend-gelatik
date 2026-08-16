@@ -61,7 +61,7 @@ onMounted(load)
             <button class="btn-primary mt-4">Simpan peran</button>
         </form>
         <div class="space-y-3">
-            <article v-for="role in list" :key="role.id" class="card">
+            <article v-for="role in list.filter((role) => role.name !== 'superadmin')" :key="role.id" class="card">
                 <div class="flex justify-between">
                     <div>
                         <h2 class="font-bold capitalize">{{ role.name }}</h2>

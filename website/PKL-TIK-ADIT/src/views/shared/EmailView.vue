@@ -45,6 +45,19 @@ const stats = computed(() => [
     },
     { label: 'Ditolak', value: list.value.filter((item) => /tolak/i.test(item.status)).length },
 ])
+function formatSubmittedAt(value) {
+    if (!value) return '-'
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return value
+
+    return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(parsed)
+}
 async function load() {
     loading.value = true
     try {
@@ -179,7 +192,17 @@ onMounted(load)
         <LoadingState v-if="loading" />
         <div v-else class="table-wrap border-0 shadow-none">
             <EmptyState v-if="!list.length" />
-            <table v-else class="data-table">
+            <table v-else class="data-table email-proposal-table">
+                <colgroup>
+                    <col class="w-12" />
+                    <col class="w-40" />
+                    <col class="w-40" />
+                    <col class="w-56" />
+                    <col class="w-52" />
+                    <col class="w-28" />
+                    <col class="w-36" />
+                    <col class="w-72" />
+                </colgroup>
                 <thead>
                     <tr>
                         <th>No.</th>
@@ -195,20 +218,20 @@ onMounted(load)
                 <tbody>
                     <tr v-for="(item, index) in displayedList" :key="item.id">
                         <td>{{ index + 1 }}</td>
-                        <td>
+                        <td class="font-semibold">
                             <strong>{{
                                 item.nama || item.nama_pegawai || `Usulan #${item.id}`
                             }}</strong>
                         </td>
-                        <td>{{ item.nip || '-' }}</td>
-                        <td>{{ item.email_pribadi }}</td>
+                        <td class="whitespace-nowrap">{{ item.nip || '-' }}</td>
+                        <td class="truncate" :title="item.email_pribadi">{{ item.email_pribadi }}</td>
                         <td>{{ item.email_resmi || '—' }}</td>
                         <td>
                             <StatusBadge :status="item.status" />
                         </td>
-                        <td>{{ item.created_at || '-' }}</td>
+                        <td class="whitespace-nowrap">{{ formatSubmittedAt(item.created_at) }}</td>
                         <td>
-                            <div class="flex flex-wrap gap-2">
+                            <div class="flex flex-nowrap gap-1.5">
                                 <button
                                     class="btn-secondary min-h-9 px-3"
                                     @click="showDetail(item.id)"

@@ -469,6 +469,28 @@
         color: #000000 !important;
     }
 
+    /* Email-monitoring carries many fields. Fixed compact columns keep the
+       actions reachable, while the wrapper still scrolls on narrow devices. */
+    .email-proposal-table {
+        min-width: 69rem !important;
+        table-layout: fixed;
+    }
+
+    .email-proposal-table th,
+    .email-proposal-table td {
+        padding: 0.7rem 0.75rem;
+        vertical-align: middle;
+    }
+
+    .email-proposal-table .btn-primary,
+    .email-proposal-table .btn-secondary,
+    .email-proposal-table .btn-danger {
+        min-height: 2.25rem;
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+
     .service-hero {
         border: 2px solid var(--line);
         border-left: 6px solid var(--teal);

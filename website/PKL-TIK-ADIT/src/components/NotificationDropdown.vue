@@ -21,6 +21,20 @@ async function markRead(item) {
     if (!item.read && !item.read_at) await api.post(`/notifications/${item.id}/read`)
     item.read = true
 }
+async function toggleOpen() {
+    open.value = !open.value
+    if (!open.value || !unread.value) return
+
+    try {
+        await api.post('/notifications/read-all')
+        items.value.forEach((item) => {
+            item.read = true
+            item.read_at = item.read_at || new Date().toISOString()
+        })
+    } catch (requestError) {
+        error.value = errorMessage(requestError)
+    }
+}
 function realtimeRefresh() {
     load()
 }
@@ -37,7 +51,7 @@ onUnmounted(() => window.removeEventListener('gelatik:notification', realtimeRef
             class="brutal-icon-button relative"
             aria-label="Buka notifikasi"
             :aria-expanded="open"
-            @click="open = !open"
+            @click="toggleOpen"
         >
             <BellIcon class="size-5" />
             <span

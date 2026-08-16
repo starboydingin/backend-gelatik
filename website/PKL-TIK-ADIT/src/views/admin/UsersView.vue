@@ -9,6 +9,9 @@ const auth = useAuthStore()
 const list = ref([]),
     search = ref(''),
     error = ref('')
+function hasRole(item, name) {
+    return (item.roles || []).some((role) => (role.name || role) === name)
+}
 async function load() {
     try {
         list.value = rows(
@@ -60,7 +63,7 @@ onMounted(load)
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="item in list" :key="item.id">
+                <tr v-for="item in list.filter((user) => !hasRole(user, 'superadmin'))" :key="item.id">
                     <td>
                         <strong>{{ item.name }}</strong>
                         <p class="text-xs text-slate-400">{{ item.email }}</p>
