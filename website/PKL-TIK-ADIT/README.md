@@ -65,6 +65,39 @@ Login user dan admin menggunakan halaman yang sama di `/login`. Backend membaca 
 
 ## Membuat akun admin melalui Postman
 
+### Bootstrap akun presentasi lokal (tanpa akun lama)
+
+Untuk demo/testing lokal, endpoint berikut dapat membuat akun `superadmin` atau `admin` baru tanpa mengubah akun lama. Endpoint hanya terdaftar saat `APP_ENV=local` atau `testing` dan memerlukan key lokal.
+
+1. Tambahkan sendiri key acak pada `backend/.env` (file ini tidak di-commit):
+
+```env
+LOCAL_PROVISION_KEY=buat-key-acak-panjang-sendiri
+```
+
+2. Jalankan `php artisan optimize:clear`, lalu di Postman kirim `POST http://127.0.0.1:8000/api/dev/provision-account` dengan header:
+
+```text
+Accept: application/json
+Content-Type: application/json
+X-Local-Provision-Key: nilai-LOCAL_PROVISION_KEY-Anda
+```
+
+3. Buat superadmin presentasi memakai JSON berikut:
+
+```json
+{
+  "name": "Superadmin Presentasi",
+  "email": "superadmin.demo@example.test",
+  "username": "superadmin.demo",
+  "password": "PasswordDemo123!",
+  "nama_opd": "Diskominfotik",
+  "role": "superadmin"
+}
+```
+
+Ulangi request dengan email/username berbeda dan `"role": "admin"` untuk akun admin presentasi. Kedua akun login melalui `POST /api/login` atau halaman `/login` yang sama. Endpoint ini tidak tersedia ketika production.
+
 Pembuatan admin tidak tersedia pada registrasi publik. Hanya akun `superadmin` yang dapat membuatnya.
 
 1. Login sebagai superadmin melalui `POST http://127.0.0.1:8000/api/login`.

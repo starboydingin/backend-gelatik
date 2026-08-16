@@ -52,4 +52,8 @@ return [
         ],
     ],
 
+    'local_provision' => [
+        'key' => env('LOCAL_PROVISION_KEY'),
+    ],
+
 ];

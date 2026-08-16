@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\KonsultasiController;
 use App\Http\Controllers\Api\KritikSaranController;
 use App\Http\Controllers\Api\LaporanController;
+use App\Http\Controllers\Api\LocalProvisioningController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OpdController;
 use App\Http\Controllers\Api\PegawaiController;
@@ -36,6 +37,13 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,1');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
+
+// Development/test only: bootstrap separate presentation accounts without
+// touching existing users. This route is never registered in production.
+if (app()->environment('local', 'testing')) {
+    Route::post('/dev/provision-account', [LocalProvisioningController::class, 'store'])
+        ->middleware('throttle:3,1');
+}
 
 // OPD List
 Route::get('/opd', [OpdController::class, 'index']);
