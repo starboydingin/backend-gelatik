@@ -44,7 +44,7 @@ const initials = computed(() => (String(route.meta?.initials || '') || '').trim(
 
 <template>
     <header
-        class="brutal-header sticky top-0 z-20 flex min-h-[76px] items-center gap-4 border-b-[3px] border-[var(--line)] px-4 md:px-7"
+        class="app-top-header brutal-header sticky top-0 z-20 flex min-h-[76px] items-center gap-4 border-b-[3px] border-[var(--line)] px-4 md:px-7"
     >
         <button
             class="brutal-icon-button shrink-0 lg:hidden"

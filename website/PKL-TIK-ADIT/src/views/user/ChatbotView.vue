@@ -32,11 +32,15 @@ const quickQuestions = [
 function appendStarterIfDue() {
     const lastLeftAt = Number(sessionStorage.getItem(visitKey) || 0)
     if (lastLeftAt && Date.now() - lastLeftAt < starterResetAfter) return
+    // Keep one greeting per open/resume cycle. Keep-alive can invoke both
+    // mounted and activated hooks during the first render.
+    if (messages.value.some((item) => item.localStarter && Date.now() - (item.createdAt || 0) < 1000)) return
     sessionStorage.removeItem(visitKey)
     messages.value.push({
         id: `starter-${Date.now()}`,
         role: 'assistant',
         localStarter: true,
+        createdAt: Date.now(),
         message:
             'Halo, saya Asisten Konsultasi TIK Gelatik. Ada yang bisa saya bantu hari ini? Pilih salah satu pertanyaan cepat di bawah atau tulis pertanyaan Anda sendiri.',
     })
@@ -66,6 +70,9 @@ function scrollQuickQuestions(event) {
 }
 function beginQuickQuestionDrag(event) {
     if (event.pointerType !== 'mouse') return
+    // A button click must remain a click; only the empty strip surface starts
+    // the drag interaction.
+    if (event.target.closest('button')) return
 
     const strip = event.currentTarget
     quickQuestionDrag.pointerId = event.pointerId
@@ -95,7 +102,7 @@ function scrollQuickQuestionsBy(event, direction) {
 }
 function sendQuickQuestion(question) {
     if (Date.now() < quickQuestionDrag.suppressClickUntil) return
-    send(question)
+    void send(question)
 }
 async function history() {
     if (!sessionId.value) return
@@ -259,9 +266,10 @@ onBeforeUnmount(() => {
                     <button
                         v-for="question in quickQuestions"
                         :key="question"
+                        type="button"
                         class="quick-question"
                         :disabled="sending"
-                        @click="sendQuickQuestion(question)"
+                        @click.stop.prevent="sendQuickQuestion(question)"
                     >
                         {{ question }}
                     </button>
