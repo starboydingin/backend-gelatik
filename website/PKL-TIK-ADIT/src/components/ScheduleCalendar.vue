@@ -39,21 +39,21 @@ function move(n) {
 watch(cursor, range, { immediate: true })
 </script>
 <template>
-    <section class="card">
-        <div class="mb-4 flex items-center justify-between">
+    <section class="calendar-card card">
+        <div class="calendar-toolbar mb-5 flex items-center justify-between gap-4">
             <div>
                 <p class="text-xs font-bold uppercase tracking-widest text-brand-600">
                     Agenda layanan
                 </p>
                 <h2 class="mt-1 font-bold capitalize text-slate-950">{{ title }}</h2>
             </div>
-            <div class="flex gap-2">
+            <div class="calendar-nav flex shrink-0 gap-1">
                 <button class="btn-secondary min-h-9 px-3" @click="move(-1)">‹</button
                 ><button class="btn-secondary min-h-9 px-3" @click="move(1)">›</button>
             </div>
         </div>
         <div
-            class="grid grid-cols-7 border-b border-slate-100 pb-2 text-center text-xs font-semibold text-slate-400"
+            class="calendar-weekdays grid grid-cols-7 border-b-2 border-[var(--line)] pb-3 text-center text-xs font-bold text-[var(--ink)]"
         >
             <span v-for="day in days" :key="day">{{ day }}</span>
         </div>
@@ -61,14 +61,14 @@ watch(cursor, range, { immediate: true })
             <div
                 v-for="cell in cells"
                 :key="cell.key"
-                class="min-h-12 rounded-xl p-1 text-center text-xs"
+                class="calendar-cell min-h-14 p-1.5 text-center text-xs sm:min-h-16"
                 :class="[
                     cell.current ? 'text-slate-700' : 'text-slate-300',
                     cell.events.length ? 'bg-emerald-50' : '',
                 ]"
             >
                 <span
-                    class="grid size-6 place-items-center rounded-lg"
+                    class="calendar-date grid size-7 place-items-center"
                     :class="cell.today ? 'bg-brand-600 text-white' : 'mx-auto'"
                     >{{ cell.date.getDate() }}</span
                 ><span
@@ -80,7 +80,7 @@ watch(cursor, range, { immediate: true })
             </div>
             <div
                 v-if="loading"
-                class="absolute inset-0 grid place-items-center rounded-xl bg-white/80"
+                class="absolute inset-0 grid place-items-center bg-white/80"
             >
                 <span
                     class="size-7 animate-spin rounded-full border-4 border-brand-100 border-t-brand-600"
@@ -89,3 +89,57 @@ watch(cursor, range, { immediate: true })
         </div>
     </section>
 </template>
+
+<style scoped>
+.calendar-card {
+    overflow: hidden;
+}
+
+.calendar-toolbar h2 {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+}
+
+.calendar-nav :deep(.btn-secondary) {
+    min-height: 2.25rem;
+    min-width: 2.25rem;
+    border-color: transparent;
+    background: transparent;
+    padding-inline: 0.5rem;
+    color: var(--navy);
+    font-size: 1.5rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.calendar-nav :deep(.btn-secondary:hover),
+.calendar-nav :deep(.btn-secondary:focus-visible) {
+    border-color: var(--line);
+    background: var(--gold);
+    color: #000;
+}
+
+.calendar-cell {
+    min-width: 0;
+}
+
+.calendar-date {
+    margin-inline: auto;
+    border-radius: 4px !important;
+    font-weight: 700;
+}
+
+@media (max-width: 480px) {
+    .calendar-card {
+        padding: 1rem;
+    }
+
+    .calendar-cell {
+        min-height: 3.25rem;
+        padding-inline: 0.125rem;
+    }
+
+    .calendar-weekdays {
+        font-size: 0.65rem;
+    }
+}
+</style>
