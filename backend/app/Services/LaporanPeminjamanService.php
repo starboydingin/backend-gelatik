@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Pinjam;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class LaporanPeminjamanService
@@ -41,12 +42,12 @@ class LaporanPeminjamanService
         // 2. Aggregate status
         $statusCounts = (clone $query)->select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
-            ->pluck('total', 'status');
+            ->get()
+            ->mapWithKeys(fn ($row) => [Str::lower($row->status) => (int) $row->total]);
 
         $totalPerStatus = [
             'menunggu' => $statusCounts->get('menunggu', 0),
-            'disetujui' => $statusCounts->get('disetujui', 0),
-            'dipinjam' => $statusCounts->get('dipinjam', 0),
+            'proses' => $statusCounts->get('proses', 0),
             'selesai' => $statusCounts->get('selesai', 0),
             'ditolak' => $statusCounts->get('ditolak', 0),
         ];
@@ -74,13 +75,15 @@ class LaporanPeminjamanService
                 $breakdown[$dateKey] = [
                     'waktu' => $dateKey,
                     'menunggu' => 0,
-                    'disetujui' => 0,
-                    'dipinjam' => 0,
+                    'proses' => 0,
                     'selesai' => 0,
                     'ditolak' => 0,
                 ];
             }
-            $breakdown[$dateKey][$data->status] = $data->total;
+            $status = Str::lower($data->status);
+            if (array_key_exists($status, $breakdown[$dateKey])) {
+                $breakdown[$dateKey][$status] = (int) $data->total;
+            }
         }
 
         // 4. Most Popular Items
