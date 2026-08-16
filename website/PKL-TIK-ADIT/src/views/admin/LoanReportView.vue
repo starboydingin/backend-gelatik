@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api, payload, errorMessage } from '../../lib/api'
 import PageHeader from '../../components/PageHeader.vue'
 import AlertMessage from '../../components/AlertMessage.vue'
@@ -8,6 +8,8 @@ const filter = ref('bulanan'),
     data = ref(null),
     error = ref(''),
     loading = ref(false)
+let refreshTimer = null
+let requestSequence = 0
 const statusMeta = [
     { key: 'menunggu', label: 'Menunggu', tone: 'bg-gold' },
     { key: 'proses', label: 'Diproses', tone: 'bg-navy text-white' },
@@ -31,27 +33,44 @@ function displayDate(value) {
     return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(parsed)
 }
 async function load() {
+    const requestId = ++requestSequence
     loading.value = true
     error.value = ''
     try {
-        data.value = payload(
+        const response = payload(
             await api.get('/laporan/peminjaman', {
                 params: { filter: filter.value, tanggal: date.value },
             })
         )
-    } catch (e) {
-        error.value = errorMessage(e)
+        if (requestId === requestSequence) data.value = response
+    } catch (requestError) {
+        if (requestId === requestSequence) error.value = errorMessage(requestError)
     } finally {
-        loading.value = false
+        if (requestId === requestSequence) loading.value = false
     }
 }
+function scheduleLoad() {
+    window.clearTimeout(refreshTimer)
+    refreshTimer = window.setTimeout(load, 180)
+}
+watch(filter, (nextFilter) => {
+    const now = new Date()
+    date.value = nextFilter === 'harian'
+        ? now.toISOString().slice(0, 10)
+        : nextFilter === 'bulanan'
+          ? now.toISOString().slice(0, 7)
+          : String(now.getFullYear())
+})
+watch(date, scheduleLoad)
+onMounted(load)
+onBeforeUnmount(() => window.clearTimeout(refreshTimer))
 </script>
 <template>
     <PageHeader
         title="Laporan peminjaman"
         description="Ringkasan peminjaman berdasarkan periode yang dipilih."
     />
-    <form class="card flex flex-wrap items-end gap-3" @submit.prevent="load">
+    <section class="card flex flex-wrap items-end gap-3">
         <label
             ><span class="label">Jenis periode</span
             ><select v-model="filter" class="input">
@@ -66,10 +85,9 @@ async function load() {
                 :type="filter === 'harian' ? 'date' : filter === 'bulanan' ? 'month' : 'number'"
                 class="input"
                 :min="filter === 'tahunan' ? '2000' : undefined" /></label
-        ><button class="btn-primary" :disabled="loading">
-            {{ loading ? 'Memuat…' : 'Tampilkan' }}
-        </button>
-    </form>
+        ><p v-if="loading" class="mb-2 text-sm text-slate-500" aria-live="polite">Memuat laporan…</p>
+        <p v-else class="mb-2 text-sm text-slate-500">Laporan diperbarui otomatis.</p>
+    </section>
     <AlertMessage :message="error" />
     <section v-if="data" class="report-panel card mt-6">
         <header class="flex flex-col gap-2 border-b-2 border-[var(--line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
