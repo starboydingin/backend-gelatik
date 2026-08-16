@@ -122,21 +122,21 @@ onMounted(load)
                     <p class="eyebrow">Tindakan petugas</p>
                     <h2 class="mt-1 text-xl font-bold text-[var(--ink)]">Konfirmasi peminjaman</h2>
                 </header>
-                <form class="space-y-8 p-5 md:p-6" @submit.prevent="saveConfirmation">
+                <form class="space-y-6 p-5 md:p-6" @submit.prevent="saveConfirmation">
                     <p class="pb-1 text-sm leading-6 text-slate-600">Admin tidak dapat mengubah formulir atau aset yang diajukan pengguna.</p>
                     <label class="block">
-                        <span class="label !mb-3">Status berikutnya</span>
+                        <span class="label !mb-2">Status berikutnya</span>
                         <select v-model="confirmation.status" class="input" :disabled="!canConfirm" required>
                             <option value="" disabled>Pilih status</option>
                             <option v-for="status in nextStatuses" :key="status" :value="status">{{ status }}</option>
                         </select>
                     </label>
                     <label class="block">
-                        <span class="label !mb-3">Catatan petugas</span>
+                        <span class="label !mb-2">Catatan petugas</span>
                         <textarea v-model="confirmation.catatan" class="input min-h-32" :disabled="!canConfirm" placeholder="Tulis catatan konfirmasi untuk pemohon."></textarea>
                     </label>
                     <p v-if="!canConfirm" class="border-2 border-[var(--line)] bg-slate-50 p-3 text-sm">Pengajuan berstatus {{ loan.status }} dan tidak memiliki transisi lanjutan.</p>
-                    <button class="btn-primary mt-2 w-full" :disabled="saving || !canConfirm">
+                    <button class="btn-primary mt-1 w-full" :disabled="saving || !canConfirm">
                         {{ saving ? 'Menyimpan...' : 'Simpan konfirmasi' }}
                     </button>
                 </form>
