@@ -19,6 +19,7 @@ import '../../../konsultasi/presentation/screens/konsultasi_detail_screen.dart';
 import '../../../konsultasi/presentation/screens/konsultasi_list_screen.dart';
 import '../../../konsultasi/models/konsultasi_model.dart';
 import '../../../kritik_saran/presentation/screens/kritik_saran_screen.dart';
+import '../../../notifications/presentation/screens/notifications_screen.dart';
 import '../../../peminjaman/presentation/screens/ajukan_peminjaman_screen.dart';
 import '../../../peminjaman/presentation/screens/peminjaman_detail_screen.dart';
 import '../../../peminjaman/presentation/screens/peminjaman_list_screen.dart';
@@ -26,6 +27,7 @@ import '../../../peminjaman/models/pinjam_model.dart';
 import '../../../profil/presentation/screens/profil_screen.dart';
 import '../../models/home_dashboard_model.dart';
 import '../../providers/home_provider.dart';
+import '../../repositories/announcement_repository.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -58,14 +60,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(homeProvider);
     final data = state.data;
+    final announcement = ref
+        .watch(activeAnnouncementsProvider)
+        .valueOrNull
+        ?.firstOrNull;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final horizontalPadding = screenWidth >= 960
         ? (screenWidth - 920) / 2
         : 20.0;
     return Scaffold(
-      appBar: const GelatikPageHeader(
+      appBar: GelatikPageHeader(
         title: 'Beranda',
-        actions: [ThemeToggleButton(), SizedBox(width: 8)],
+        actions: [
+          IconButton(
+            tooltip: 'Notifikasi',
+            onPressed: () => _open(const NotificationsScreen()),
+            icon: const Icon(Icons.notifications_none_rounded),
+          ),
+          const ThemeToggleButton(),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -82,6 +96,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               112,
             ),
             children: [
+              if (announcement != null) ...[
+                _AnnouncementBanner(announcement: announcement),
+                const SizedBox(height: 14),
+              ],
               _ServiceBanner(data: data),
               const SizedBox(height: 24),
               if (state.status == HomeLoadStatus.error)
@@ -141,6 +159,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
+}
+
+class _AnnouncementBanner extends StatelessWidget {
+  final Announcement announcement;
+  const _AnnouncementBanner({required this.announcement});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFF3C7),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.cardStroke(context), width: 1.5),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.campaign_outlined, color: AppColors.accentGold(context)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Pengumuman terbaru',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                announcement.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.primaryTeal(context),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (announcement.content.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  announcement.content,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ServiceBanner extends StatelessWidget {

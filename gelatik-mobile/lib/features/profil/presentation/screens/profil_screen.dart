@@ -7,11 +7,15 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
+import '../../../auth/presentation/screens/forgot_password_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../internet/presentation/screens/self_assessment_screen.dart';
+import '../../../notifications/presentation/screens/notifications_screen.dart';
 import '../../../peminjaman/presentation/screens/ajukan_peminjaman_screen.dart';
 import '../../providers/wa_notification_provider.dart';
+import 'edit_profil_screen.dart';
 import 'notifikasi_whatsapp_screen.dart';
+import '../../../rating/presentation/screens/rating_screen.dart';
 
 /// ProfilScreen — Modul M-J Profil Pengguna Gelatik Mobile
 class ProfilScreen extends ConsumerWidget {
@@ -305,8 +309,22 @@ class ProfilScreen extends ConsumerWidget {
                     context: context,
                     icon: Icons.person_outline_rounded,
                     iconColor: primaryTeal,
+                    title: 'Edit Profil',
+                    subtitle: 'Perbarui nama, kontak, email, dan OPD',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const EditProfilScreen(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.badge_outlined,
+                    iconColor: primaryTeal,
                     title: 'Informasi Akun',
-                    subtitle: 'Detail profil & data NIP/OPD',
+                    subtitle: 'Lihat detail NIP dan akun',
                     onTap: () => _showInformasiAkunModal(context, user),
                   ),
                   const SizedBox(height: 10),
@@ -316,17 +334,12 @@ class ProfilScreen extends ConsumerWidget {
                     icon: Icons.lock_outline_rounded,
                     iconColor: accentNavy,
                     title: 'Ganti Password',
-                    subtitle: 'Ubah kata sandi akun',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Fitur ganti password akan segera hadir.',
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
+                    subtitle: 'Kirim tautan pengaturan ulang password',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ForgotPasswordScreen(),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 10),
 
@@ -347,6 +360,32 @@ class ProfilScreen extends ConsumerWidget {
                         ),
                       );
                     },
+                  ),
+                  const SizedBox(height: 10),
+
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.notifications_outlined,
+                    iconColor: accentNavy,
+                    title: 'Notifikasi',
+                    subtitle: 'Pembaruan status dan respons layanan',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationsScreen(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.star_outline_rounded,
+                    iconColor: accentGold,
+                    title: 'Rating Layanan',
+                    subtitle: 'Beri penilaian untuk layanan Gelatik',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const RatingScreen()),
+                    ),
                   ),
                   const SizedBox(height: 10),
 
@@ -436,9 +475,7 @@ class ProfilScreen extends ConsumerWidget {
             Navigator.of(context).popUntil((route) => route.isFirst);
           } else if (index == 1) {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => const AjukanPeminjamanScreen(),
-              ),
+              MaterialPageRoute(builder: (_) => const AjukanPeminjamanScreen()),
             );
           } else if (index == 2) {
             // Already in ProfilScreen

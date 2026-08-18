@@ -110,6 +110,78 @@ class AuthRepository {
     }
   }
 
+  /// PATCH /api/me
+  Future<Map<String, dynamic>> updateProfile({
+    required String name,
+    required String email,
+    required String noHp,
+    required String namaOpd,
+  }) async {
+    try {
+      final response = await apiClient.dio.patch(
+        '/me',
+        data: {
+          'name': name,
+          'email': email,
+          'no_hp': noHp,
+          'nama_opd': namaOpd,
+        },
+      );
+      final data = response.data;
+      if (data is Map<String, dynamic> && data['data'] is Map) {
+        return Map<String, dynamic>.from(data['data'] as Map);
+      }
+      throw ApiException(message: 'Format respons profil tidak valid.');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// POST /api/forgot-password
+  Future<String> requestPasswordReset(String email) async {
+    try {
+      final response = await apiClient.dio.post(
+        '/forgot-password',
+        data: {'email': email},
+      );
+      final data = response.data;
+      if (data is Map && data['success'] == true) {
+        return data['message']?.toString() ??
+            'Jika alamat email terdaftar, tautan reset telah dikirim.';
+      }
+      throw ApiException(message: 'Permintaan reset kata sandi gagal.');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// POST /api/reset-password
+  Future<String> resetPassword({
+    required String email,
+    required String token,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      final response = await apiClient.dio.post(
+        '/reset-password',
+        data: {
+          'email': email,
+          'token': token,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+        },
+      );
+      final data = response.data;
+      if (data is Map && data['success'] == true) {
+        return data['message']?.toString() ?? 'Kata sandi berhasil diperbarui.';
+      }
+      throw ApiException(message: 'Reset kata sandi gagal.');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   /// POST /api/logout
   Future<void> logout() async {
     try {

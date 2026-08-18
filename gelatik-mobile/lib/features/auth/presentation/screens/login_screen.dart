@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
+import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 import '../../../../core/widgets/app_button.dart';
@@ -341,6 +342,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       ),
                                     );
                                   },
+                                ),
+                                const SizedBox(height: 4),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const ForgotPasswordScreen(),
+                                      ),
+                                    );
+                                  },
+                                  child: const Text('Lupa password?'),
                                 ),
                               ],
                             ),

@@ -22,6 +22,7 @@ const error = ref('')
 const notice = ref('')
 const currentRows = computed(() => data.value[selected.value] || [])
 const currentLabel = computed(() => catalogs.find((item) => item.key === selected.value)?.label)
+const loadedCatalogs = new Set()
 
 function blankForm() {
     if (selected.value === 'items')
@@ -37,21 +38,26 @@ function resetForm() {
     editingId.value = null
     form.value = blankForm()
 }
-function selectCatalog(key) {
+async function selectCatalog(key) {
     selected.value = key
     notice.value = ''
     resetForm()
+    await loadCatalog(key)
 }
-async function load() {
+async function loadCatalog(key = selected.value, force = false) {
+    if (loadedCatalogs.has(key) && !force) return
     loading.value = true
     error.value = ''
     try {
-        const responses = await Promise.all(
-            catalogs.map((catalog) => api.get(`/admin/${catalog.key}`))
-        )
-        catalogs.forEach((catalog, index) => {
-            data.value[catalog.key] = rows(payload(responses[index]))
-        })
+        data.value[key] = rows(payload(await api.get(`/admin/${key}`)))
+        loadedCatalogs.add(key)
+
+        // FAQ needs a topic list for its form, but it does not need the other
+        // master-data endpoints. Load that single dependency only when needed.
+        if (key === 'faq' && !loadedCatalogs.has('topik')) {
+            data.value.topik = rows(payload(await api.get('/admin/topik')))
+            loadedCatalogs.add('topik')
+        }
     } catch (e) {
         error.value = errorMessage(e)
     } finally {
@@ -80,7 +86,7 @@ async function save() {
         if (editingId.value) await api.put(`${endpoint}/${editingId.value}`, requestBody())
         else await api.post(endpoint, requestBody())
         notice.value = `${currentLabel.value} berhasil disimpan.`
-        await load()
+        await loadCatalog(selected.value, true)
         resetForm()
     } catch (e) {
         error.value = errorMessage(e)
@@ -95,7 +101,7 @@ async function remove(item) {
     if (!confirm(`Hapus ${displayName(item)}?`)) return
     try {
         await api.delete(`/admin/${selected.value}/${item.id}`)
-        await load()
+        await loadCatalog(selected.value, true)
         if (editingId.value === item.id) resetForm()
     } catch (e) {
         error.value = errorMessage(e)
@@ -103,7 +109,7 @@ async function remove(item) {
 }
 onMounted(async () => {
     resetForm()
-    await load()
+    await loadCatalog()
 })
 </script>
 <template>

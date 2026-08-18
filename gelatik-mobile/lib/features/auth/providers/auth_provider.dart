@@ -320,6 +320,42 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> updateProfile({
+    required String name,
+    required String email,
+    required String noHp,
+    required String namaOpd,
+  }) async {
+    final repo = authRepository;
+    if (repo == null || state.isLoading) return false;
+    state = state.copyWith(isLoading: true, clearErrors: true);
+    try {
+      final user = UserModel.fromJson(
+        await repo.updateProfile(
+          name: name,
+          email: email,
+          noHp: noHp,
+          namaOpd: namaOpd,
+        ),
+      );
+      state = state.copyWith(
+        isLoading: false,
+        currentUser: user,
+        clearErrors: true,
+      );
+      return true;
+    } on ApiException catch (error) {
+      state = state.copyWith(isLoading: false, errorMessage: error.message);
+      return false;
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Profil tidak dapat diperbarui.',
+      );
+      return false;
+    }
+  }
+
   Map<String, String> _normalizeValidationErrors(Map<String, dynamic>? errors) {
     if (errors == null) return const {};
 

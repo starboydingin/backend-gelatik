@@ -11,6 +11,7 @@ import 'package:gelatik/features/auth/models/user_model.dart';
 import 'package:gelatik/features/home/models/home_dashboard_model.dart';
 import 'package:gelatik/features/home/presentation/screens/home_screen.dart';
 import 'package:gelatik/features/home/providers/home_provider.dart';
+import 'package:gelatik/features/home/repositories/announcement_repository.dart';
 import 'package:gelatik/features/info_alat/models/master_item_model.dart';
 import 'package:gelatik/features/info_alat/presentation/screens/info_alat_screen.dart';
 import 'package:gelatik/features/info_alat/repositories/master_item_repository.dart';
@@ -384,6 +385,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            activeAnnouncementsProvider.overrideWith((ref) async => const []),
             homeProvider.overrideWith(
               (ref) => HomeNotifier.preview(
                 _dashboard(items: null, borrowings: null, consultations: null),
@@ -402,6 +404,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            activeAnnouncementsProvider.overrideWith((ref) async => const []),
             homeProvider.overrideWith(
               (ref) => HomeNotifier.preview(_dashboard()),
             ),
@@ -426,6 +429,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            activeAnnouncementsProvider.overrideWith((ref) async => const []),
             homeProvider.overrideWith(
               (ref) => HomeNotifier.preview(_dashboard(role: 'admin')),
             ),
@@ -441,6 +445,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            activeAnnouncementsProvider.overrideWith((ref) async => const []),
             homeProvider.overrideWith(
               (ref) => HomeNotifier.preview(
                 _dashboard(
@@ -472,6 +477,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            activeAnnouncementsProvider.overrideWith((ref) async => const []),
             homeProvider.overrideWith(
               (ref) => HomeNotifier.preview(
                 _dashboard(items: null),
@@ -521,6 +527,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            activeAnnouncementsProvider.overrideWith((ref) async => const []),
             masterItemRepositoryProvider.overrideWithValue(items),
             peminjamanRepositoryProvider.overrideWithValue(borrow),
             konsultasiRepositoryProvider.overrideWithValue(consult),
@@ -548,6 +555,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            activeAnnouncementsProvider.overrideWith((ref) async => const []),
             masterItemRepositoryProvider.overrideWithValue(items),
             peminjamanRepositoryProvider.overrideWithValue(borrow),
             konsultasiRepositoryProvider.overrideWithValue(consult),
@@ -593,6 +601,7 @@ Future<void> _pumpNavigationHome(WidgetTester tester) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        activeAnnouncementsProvider.overrideWith((ref) async => const []),
         masterItemRepositoryProvider.overrideWithValue(
           _FakeMasterRepository(() async => const [_item]),
         ),

@@ -9,7 +9,10 @@ export const api = axios.create({
 // Per-tab cache for GET requests. It makes returning to a page immediate while
 // keeping every account isolated and avoiding persistent sensitive data.
 const readCache = new Map()
-const defaultReadTtl = 20_000
+// Read data is safe to retain briefly: every successful mutation clears this
+// cache, while a longer TTL prevents the same page from repeatedly competing
+// for the local Laravel worker during normal navigation.
+const defaultReadTtl = 90_000
 const cacheKey = (url, config = {}) =>
     JSON.stringify([url, config.params || {}, sessionStorage.getItem('gelatik_token') || ''])
 const rawGet = api.get.bind(api)
