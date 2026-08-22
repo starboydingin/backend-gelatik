@@ -7,8 +7,9 @@ import AlertMessage from '../../components/AlertMessage.vue'
 import ServiceHero from '../../components/ServiceHero.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
 import ScheduleCalendar from '../../components/ScheduleCalendar.vue'
-import DashboardLineChart from '../../components/DashboardLineChart.vue'
+import DashboardBarChart from '../../components/DashboardBarChart.vue'
 import DashboardPieCharts from '../../components/DashboardPieCharts.vue'
+import DashboardRatingCard from '../../components/DashboardRatingCard.vue'
 import {
     UsersIcon,
     ChatBubbleLeftRightIcon,
@@ -163,7 +164,7 @@ onMounted(async () => {
                         <h2 class="mt-1 font-bold text-navy">Aktivitas layanan</h2>
                     </div>
                     <div class="p-4 sm:p-5">
-                        <DashboardLineChart :items="data.dashboard?.activity_series || []" />
+                        <DashboardBarChart :items="data.dashboard?.activity_series || []" />
                     </div>
                 </section>
                 <section class="section-panel">
@@ -171,21 +172,7 @@ onMounted(async () => {
                         <p class="eyebrow">Kualitas layanan</p>
                         <h2 class="mt-1 font-bold text-navy">Rating pengguna</h2>
                     </div>
-                    <div class="p-5">
-                        <p class="text-4xl font-bold text-navy">
-                            {{ data.dashboard?.rating_statistik?.rata_rata ?? 0 }}<span class="text-base text-slate-500">/5</span>
-                        </p>
-                        <dl class="mt-5 space-y-2 text-sm">
-                            <div
-                                v-for="score in [5, 4, 3, 2, 1]"
-                                :key="score"
-                                class="flex justify-between"
-                            >
-                                <dt>{{ score }} bintang</dt>
-                                <dd class="font-bold">{{ data.dashboard?.rating_statistik?.distribusi?.[score] ?? 0 }}</dd>
-                            </div>
-                        </dl>
-                    </div>
+                    <DashboardRatingCard :statistics="data.dashboard?.rating_statistik || {}" />
                 </section>
             </div>
             <div class="grid gap-5 xl:grid-cols-[.7fr_1.3fr]">
