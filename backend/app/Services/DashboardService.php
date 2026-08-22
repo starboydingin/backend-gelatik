@@ -9,6 +9,7 @@ use App\Models\PinjamItem;
 use App\Models\Rating;
 use App\Models\User;
 use App\Models\UsulanEmail;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -120,36 +121,7 @@ class DashboardService
         $this->fillActivitySeries($activity, Konsultasi::where('user_id', $userId), 'konsultasi');
         $this->fillActivitySeries($activity, UsulanEmail::where('created_by', $userId), 'usulan_email');
 
-        // Statistik pada dua panel insight bersifat agregat agar pengguna dapat
-        // melihat tren layanan, tanpa menerima detail atau identitas pengguna lain.
-        $serviceActivity = collect(range(29, 0))->mapWithKeys(
-            fn (int $days): array => [now()->subDays($days)->toDateString() => [
-                'tanggal' => now()->subDays($days)->toDateString(),
-                'peminjaman' => 0,
-                'konsultasi' => 0,
-                'usulan_email' => 0,
-            ]],
-        );
-        $this->fillActivitySeries($serviceActivity, Pinjam::query(), 'peminjaman');
-        $this->fillActivitySeries($serviceActivity, Konsultasi::query(), 'konsultasi');
-        $this->fillActivitySeries($serviceActivity, UsulanEmail::query(), 'usulan_email');
-
-        $topicStats = Konsultasi::query()
-            ->leftJoin('master_topik as t', 't.id', '=', 'tr_konsultasi.faq_id')
-            ->selectRaw("COALESCE(t.topik, 'Tanpa topik') as label, COUNT(*) as total")
-            ->groupBy('t.topik')
-            ->orderByDesc('total_peminjaman')
-            ->limit(8)
-            ->get();
-
-        $assetStats = PinjamItem::query()
-            ->join('tr_permintaan_pinjam as p', 'p.id', '=', 'pinjam_item.pinjam_id')
-            ->join('master_item as i', 'i.id', '=', 'pinjam_item.item_id')
-            ->selectRaw('i.nama as nama_item, SUM(pinjam_item.quantity) as total_peminjaman')
-            ->groupBy('i.nama')
-            ->orderByDesc('total_peminjaman')
-            ->limit(8)
-            ->get();
+        $serviceInsights = $this->getServiceInsights();
 
         return [
             'summary' => [
@@ -159,10 +131,10 @@ class DashboardService
                 'notifikasi_belum_dibaca' => Notification::where('user_id', $userId)->where('read', false)->count(),
             ],
             'activity_series' => $activity->values(),
-            'service_activity_series' => $serviceActivity->values(),
-            'service_rating_statistics' => $this->ratingService->getStatistik(),
-            'consultation_topics' => $topicStats,
-            'asset_usage' => $assetStats,
+            'service_activity_series' => $serviceInsights['activity_series'],
+            'service_rating_statistics' => $serviceInsights['rating_statistics'],
+            'consultation_topics' => $serviceInsights['consultation_topics'],
+            'asset_usage' => $serviceInsights['asset_usage'],
             'rating' => Rating::where('user_id', $userId)->latest()->first(),
             'recent' => [
                 'peminjaman' => Pinjam::query()
@@ -185,6 +157,51 @@ class DashboardService
                     ->get(),
             ],
         ];
+    }
+
+    /**
+     * Statistik anonim lintas pengguna untuk dashboard. Cache singkat ini
+     * menghindari agregasi yang sama dieksekusi untuk setiap akun yang membuka
+     * dashboard, tanpa menyimpan data pribadi pengguna.
+     */
+    private function getServiceInsights(): array
+    {
+        return Cache::remember('dashboard:service-insights', now()->addSeconds(60), function (): array {
+            $activity = collect(range(29, 0))->mapWithKeys(
+                fn (int $days): array => [now()->subDays($days)->toDateString() => [
+                    'tanggal' => now()->subDays($days)->toDateString(),
+                    'peminjaman' => 0,
+                    'konsultasi' => 0,
+                    'usulan_email' => 0,
+                ]],
+            );
+            $this->fillActivitySeries($activity, Pinjam::query(), 'peminjaman');
+            $this->fillActivitySeries($activity, Konsultasi::query(), 'konsultasi');
+            $this->fillActivitySeries($activity, UsulanEmail::query(), 'usulan_email');
+
+            $topics = Konsultasi::query()
+                ->leftJoin('master_topik as t', 't.id', '=', 'tr_konsultasi.faq_id')
+                ->selectRaw("COALESCE(t.topik, 'Tanpa topik') as label, COUNT(*) as total")
+                ->groupBy('t.topik')
+                ->orderByDesc('total')
+                ->limit(8)
+                ->get();
+
+            $assets = PinjamItem::query()
+                ->join('master_item as i', 'i.id', '=', 'pinjam_item.item_id')
+                ->selectRaw('i.nama as nama_item, SUM(pinjam_item.quantity) as total_peminjaman')
+                ->groupBy('i.nama')
+                ->orderByDesc('total_peminjaman')
+                ->limit(8)
+                ->get();
+
+            return [
+                'activity_series' => $activity->values(),
+                'consultation_topics' => $topics,
+                'asset_usage' => $assets,
+                'rating_statistics' => $this->ratingService->getStatistik(),
+            ];
+        });
     }
 
     private function fillActivitySeries($activity, $query, string $key): void

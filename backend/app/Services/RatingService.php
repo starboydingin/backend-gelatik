@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Rating;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -25,10 +26,13 @@ class RatingService
             ]);
         }
 
-        return Rating::create([
+        $rating = Rating::create([
             'user_id' => $user->id,
             'rating'  => $nilai,
         ]);
+        Cache::forget('dashboard:service-insights');
+
+        return $rating;
     }
 
     /**
@@ -48,6 +52,7 @@ class RatingService
         }
 
         $rating->update(['rating' => $nilaiBaru]);
+        Cache::forget('dashboard:service-insights');
 
         return $rating;
     }
