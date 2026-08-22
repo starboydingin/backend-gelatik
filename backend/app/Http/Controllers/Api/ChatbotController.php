@@ -22,7 +22,7 @@ class ChatbotController extends Controller
     public function message(Request $request)
     {
         $request->validate([
-            'message' => 'required|string',
+            'message' => 'required|string|max:1200',
             'session_id' => 'nullable|string',
         ]);
 

@@ -6,6 +6,7 @@ use App\Models\ChatbotConversation;
 use App\Models\ChatbotMessage;
 use App\Models\Faq;
 use App\Models\Konsultasi;
+use App\Models\MasterTopik;
 use App\Models\Pinjam;
 use App\Models\User;
 use App\Models\UsulanEmail;
@@ -16,6 +17,10 @@ use Illuminate\Support\Str;
 
 class ChatbotService
 {
+    public function __construct(private KonsultasiService $konsultasiService)
+    {
+    }
+
     private const SCOPE_REFUSAL = 'Maaf, saya hanya dapat membantu pertanyaan seputar konsultasi dan layanan TIK Gelatik, seperti WiFi/internet, email dinas, peminjaman aset, konsultasi, hosting, subdomain, TTE, atau status layanan. Silakan tuliskan pertanyaan terkait layanan TIK yang ingin Anda tanyakan.';
 
     private const QUICK_FAQ_INTENTS = [
@@ -64,14 +69,42 @@ class ChatbotService
             ]);
         }
 
-        ChatbotMessage::create([
+        $userMessage = ChatbotMessage::create([
             'conversation_id' => $conversation->id,
             'role' => 'user',
             'content' => $message,
             'provider_used' => 'gemini',
         ]);
 
-        $scope = $this->classifyQuestionScope($message);
+        $unresolved = $this->isUnresolvedFollowUp($message);
+        if ($unresolved) {
+            $conversation->increment('unresolved_count');
+            $conversation->refresh();
+
+            if ($conversation->unresolved_count >= 2 && ! $conversation->escalated_konsultasi_id) {
+                $escalation = $this->escalateConversation($conversation, $user);
+                if ($escalation) {
+                    $reply = 'Masalah Anda belum terselesaikan setelah beberapa langkah. Saya telah meneruskannya sebagai konsultasi TIK agar dapat ditangani petugas. Nomor konsultasi: #'.$escalation->id.'. Anda dapat memantau statusnya pada menu Konsultasi.';
+                    ChatbotMessage::create([
+                        'conversation_id' => $conversation->id,
+                        'role' => 'assistant',
+                        'content' => $reply,
+                        'provider_used' => 'gemini',
+                    ]);
+
+                    return [
+                        'success' => true,
+                        'session_id' => $sessionId,
+                        'reply' => $reply,
+                        'provider' => 'escalation',
+                        'escalated' => true,
+                        'konsultasi_id' => $escalation->id,
+                    ];
+                }
+            }
+        }
+
+        $scope = $unresolved ? 'allowed' : $this->classifyQuestionScope($message);
         if ($scope !== 'allowed') {
             $reply = match ($scope) {
                 'welcome' => 'Halo! Saya siap membantu konsultasi layanan TIK Gelatik. Anda dapat menanyakan WiFi/internet, email dinas, peminjaman aset, konsultasi, hosting, subdomain, TTE, atau status pengajuan.',
@@ -95,6 +128,13 @@ class ChatbotService
             ];
         }
 
+        $followUpContext = $unresolved
+            ? $this->buildFollowUpContext($conversation, $userMessage->id)
+            : '';
+        $contextualQuestion = $followUpContext !== ''
+            ? $followUpContext."\nPesan tindak lanjut pengguna: ".$message
+            : $message;
+
         $officialFaqReply = $this->buildQuickFaqAnswer($message);
         if ($officialFaqReply !== null) {
             ChatbotMessage::create([
@@ -114,8 +154,8 @@ class ChatbotService
             ];
         }
 
-        $userContext = $this->buildContext($user, $message);
-        $faqContext = $this->buildFaqContext($message);
+        $userContext = $this->buildContext($user, $contextualQuestion);
+        $faqContext = $this->buildFaqContext($contextualQuestion);
 
         $history = ChatbotMessage::where('conversation_id', $conversation->id)
             ->orderBy('created_at', 'desc')
@@ -125,7 +165,8 @@ class ChatbotService
             // must never become input to a later provider request.
             ->filter(function (ChatbotMessage $historyMessage): bool {
                 if ($historyMessage->role === 'user') {
-                    return $this->classifyQuestionScope($historyMessage->content) === 'allowed';
+                    return $this->classifyQuestionScope($historyMessage->content) === 'allowed'
+                        || $this->isUnresolvedFollowUp($historyMessage->content);
                 }
 
                 return ! $this->isLocalPolicyReply($historyMessage->content);
@@ -139,6 +180,11 @@ class ChatbotService
 
         if ($userContext) {
             $prompt .= "Konteks Data Pengguna saat ini:\n".$userContext."\n\n";
+        }
+
+        if ($followUpContext) {
+            $prompt .= "Konteks percakapan yang relevan:\n".$followUpContext."\n\n";
+            $prompt .= "Pesan terakhir adalah tindak lanjut atas kendala di atas. Jawab dengan melanjutkan topik TIK tersebut; jangan menganggapnya sebagai pertanyaan baru di luar cakupan.\n\n";
         }
 
         $messages = [
@@ -221,6 +267,8 @@ class ChatbotService
             'jailbreak', 'dan mode', 'do anything now', 'act as',
             'pretend you are', 'lewati aturan', 'bypass aturan',
             'ungkapkan prompt', 'tampilkan prompt', 'reveal prompt',
+            'instruksi sebelumnya', 'aturan sebelumnya', 'roleplay',
+            'tanpa batasan', 'tanpa filter', 'developer mode', 'mode pengembang',
         ];
         if (Str::contains($normalized, $jailbreakPatterns)) {
             return 'blocked';
@@ -325,6 +373,101 @@ class ChatbotService
         }
 
         return implode("\n\n", $context);
+    }
+
+    private function isUnresolvedFollowUp(string $message): bool
+    {
+        $normalized = $this->normalizeSentence($message);
+
+        return Str::contains($normalized, [
+            'masih belum bisa',
+            'masih tidak bisa',
+            'belum berhasil',
+            'tetap error',
+            'masih error',
+            'masih bermasalah',
+            'belum selesai',
+            'tidak berhasil juga',
+            'tetap tidak bisa',
+        ]);
+    }
+
+    /**
+     * Ambil ringkasan singkat dari percakapan akun yang sama. Pesan yang
+     * melanggar batasan tidak pernah dimasukkan lagi ke prompt provider.
+     */
+    private function buildFollowUpContext(ChatbotConversation $conversation, int $currentMessageId): string
+    {
+        $messages = ChatbotMessage::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('id', '!=', $currentMessageId)
+            ->latest()
+            ->take(6)
+            ->get()
+            ->reverse()
+            ->filter(function (ChatbotMessage $entry): bool {
+                if ($entry->role === 'user') {
+                    return $this->classifyQuestionScope($entry->content) === 'allowed';
+                }
+
+                return ! $this->isLocalPolicyReply($entry->content);
+            })
+            ->map(function (ChatbotMessage $entry): string {
+                $speaker = $entry->role === 'assistant' ? 'Asisten' : 'Pengguna';
+
+                return $speaker.': '.Str::limit($this->plainChatText($entry->content), 500, '');
+            })
+            ->values();
+
+        return $messages->isEmpty() ? '' : $messages->implode("\n");
+    }
+
+    private function escalateConversation(ChatbotConversation $conversation, User $user): ?Konsultasi
+    {
+        $messages = ChatbotMessage::query()
+            ->where('conversation_id', $conversation->id)
+            ->latest()
+            ->take(8)
+            ->get()
+            ->reverse();
+
+        $userMessages = $messages
+            ->where('role', 'user')
+            ->pluck('content')
+            ->map(fn (string $content): string => Str::limit($this->plainChatText($content), 350))
+            ->values();
+
+        $context = $userMessages->implode("\n- ");
+        $topik = $this->resolveEscalationTopic($context);
+        if (! $topik) {
+            Log::warning('Chatbot escalation skipped because no active consultation topic exists.');
+
+            return null;
+        }
+
+        $konsultasi = $this->konsultasiService->buatKonsultasi($user, [
+            'topik_id' => $topik->id,
+            'judul' => 'Eskalasi chatbot: '.Str::limit($userMessages->first() ?: 'Kendala layanan TIK', 120, ''),
+            'deskripsi' => "Dibuat otomatis setelah pengguna dua kali menyatakan kendala belum selesai.\n\nRingkasan pesan pengguna:\n- ".Str::limit($context, 1400),
+        ]);
+
+        $conversation->update(['escalated_konsultasi_id' => $konsultasi->id]);
+
+        return $konsultasi;
+    }
+
+    private function resolveEscalationTopic(string $context): ?MasterTopik
+    {
+        $terms = $this->faqSearchTerms($context);
+        $topics = MasterTopik::aktif()->get();
+
+        return $topics
+            ->sortByDesc(function (MasterTopik $topic) use ($terms): int {
+                $name = Str::lower($topic->topik);
+
+                return collect($terms)->sum(fn (string $term): int => Str::contains($name, $term) ? 1 : 0);
+            })
+            ->first();
     }
 
     /**

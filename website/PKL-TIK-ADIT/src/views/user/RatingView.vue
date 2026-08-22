@@ -11,6 +11,10 @@ const rating = ref(null),
     message = ref(''),
     saving = ref(false)
 const value = computed(() => hover.value || selected.value)
+const hasExistingRating = computed(() => {
+    const score = Number(rating.value?.rating ?? rating.value?.nilai)
+    return Number.isInteger(score) && score >= 1 && score <= 5
+})
 const labels = [
     'Belum memilih',
     'Sangat kurang',
@@ -21,8 +25,10 @@ const labels = [
 ]
 onMounted(async () => {
     try {
-        rating.value = payload(await api.get('/rating'))
-        selected.value = rating.value?.rating || rating.value?.nilai || 0
+        const savedRating = payload(await api.get('/rating', { cache: false }))
+        const score = Number(savedRating?.rating ?? savedRating?.nilai)
+        rating.value = Number.isInteger(score) && score >= 1 && score <= 5 ? savedRating : null
+        selected.value = rating.value ? score : 0
     } catch (requestError) {
         error.value = errorMessage(requestError)
     }
@@ -32,8 +38,17 @@ async function submit() {
     saving.value = true
     error.value = ''
     try {
-        const endpoint = rating.value ? '/rating/update' : '/rating'
-        rating.value = payload(await api.post(endpoint, { rating: selected.value }))
+        const endpoint = hasExistingRating.value ? '/rating/update' : '/rating'
+        try {
+            rating.value = payload(await api.post(endpoint, { rating: selected.value }))
+        } catch (requestError) {
+            const detail = String(requestError.response?.data?.message || requestError.response?.data?.errors?.rating?.[0] || '')
+            if (endpoint === '/rating/update' && /belum pernah/i.test(detail)) {
+                rating.value = payload(await api.post('/rating', { rating: selected.value }))
+            } else {
+                throw requestError
+            }
+        }
         message.value = 'Rating berhasil disimpan.'
     } catch (requestError) {
         error.value = errorMessage(requestError)
@@ -82,7 +97,7 @@ async function submit() {
                 <div class="mt-7 flex justify-center gap-3">
                     <RouterLink to="/app/umpan-balik" class="btn-secondary">Batal</RouterLink
                     ><button class="btn-primary" :disabled="!selected || saving" @click="submit">
-                        {{ saving ? 'Menyimpan…' : rating ? 'Perbarui rating' : 'Kirim rating' }}
+                        {{ saving ? 'Menyimpan…' : hasExistingRating ? 'Perbarui rating' : 'Beri rating' }}
                     </button>
                 </div>
             </div>
