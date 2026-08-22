@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router'
 import { Bars3Icon } from '@heroicons/vue/24/outline'
 import NotificationDropdown from './NotificationDropdown.vue'
 import GelatikLogo from './GelatikLogo.vue'
-import ThemeToggle from './ThemeToggle.vue'
 
 defineProps({ user: Object, subtitle: String, adminArea: Boolean })
 defineEmits(['menu'])
@@ -59,7 +58,6 @@ const initials = computed(() => (String(route.meta?.initials || '') || '').trim(
             <p class="eyebrow truncate">{{ current[0] }}</p>
             <h1 class="truncate font-brand text-xl font-black uppercase tracking-[-.04em]">{{ current[1] }}</h1>
         </div>
-        <ThemeToggle />
         <NotificationDropdown :admin-area="adminArea" />
         <div class="hidden min-w-0 items-center gap-3 sm:flex">
             <span

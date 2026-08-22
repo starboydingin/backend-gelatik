@@ -1,6 +1,5 @@
 <script setup>
 import GelatikLogo from './GelatikLogo.vue'
-import ThemeToggle from './ThemeToggle.vue'
 defineProps({ title: String, subtitle: String, wide: Boolean })
 </script>
 
@@ -12,7 +11,7 @@ defineProps({ title: String, subtitle: String, wide: Boolean })
                 <RouterLink to="/">Beranda</RouterLink
                 ><RouterLink to="/#layanan">Layanan</RouterLink
                 ><RouterLink to="/app/faq">FAQ</RouterLink>
-            </nav><div class="ml-auto md:ml-5"><ThemeToggle /></div>
+            </nav>
         </header>
         <main class="grid min-h-[calc(100vh-8.5rem)] place-items-center px-5 py-10">
             <section

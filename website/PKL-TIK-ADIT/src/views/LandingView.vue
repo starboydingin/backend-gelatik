@@ -1,6 +1,5 @@
 <script setup>
 import BrandMark from '../components/BrandMark.vue'
-import ThemeToggle from '../components/ThemeToggle.vue'
 import siger from '../assets/images/siger.png'
 import {
     ArrowRightIcon,
@@ -35,7 +34,7 @@ const services = [
         <nav class="relative z-10 mx-auto flex max-w-7xl items-center justify-between border-b-[2px] border-[var(--line)] px-5 py-4">
             <BrandMark />
             <div class="flex gap-2">
-                <ThemeToggle /><RouterLink to="/login" class="btn-secondary">Masuk</RouterLink
+                <RouterLink to="/login" class="btn-secondary">Masuk</RouterLink
                 ><RouterLink to="/register" class="btn-primary hidden sm:inline-flex"
                     >Buat akun</RouterLink
                 >
