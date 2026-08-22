@@ -6,6 +6,9 @@ import AlertMessage from '../../components/AlertMessage.vue'
 import LoadingState from '../../components/LoadingState.vue'
 import ScheduleCalendar from '../../components/ScheduleCalendar.vue'
 import ServiceHero from '../../components/ServiceHero.vue'
+import StatusBadge from '../../components/StatusBadge.vue'
+import DashboardBarChart from '../../components/DashboardBarChart.vue'
+import DashboardRatingCard from '../../components/DashboardRatingCard.vue'
 import {
     BriefcaseIcon,
     ChatBubbleLeftRightIcon,
@@ -50,6 +53,34 @@ const cards = [
         tone: 'bg-emerald-50 text-emerald-600',
     },
 ]
+const recentGroups = [
+    { label: 'Konsultasi terbaru', key: 'konsultasi', to: '/app/konsultasi' },
+    { label: 'Peminjaman terbaru', key: 'peminjaman', to: '/app/peminjaman' },
+    { label: 'Usulan email terbaru', key: 'usulan_email', to: '/app/email-resmi' },
+]
+function formatDate(value) {
+    if (!value) return 'Tanggal belum tersedia'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return 'Tanggal belum tersedia'
+    return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    }).format(date)
+}
+function recentTitle(item, type) {
+    if (type === 'konsultasi') return item.judul || item.topik?.topik || `Konsultasi #${item.id}`
+    if (type === 'peminjaman') return item.keterangan || `Peminjaman #${item.id}`
+    return item.pegawai_bkd?.Nama || item.email_resmi || item.email_pribadi || `Usulan #${item.id}`
+}
+function recentMeta(item, type) {
+    if (type === 'konsultasi') return item.topik?.topik || 'Konsultasi TIK'
+    if (type === 'peminjaman') {
+        const assets = (item.items || []).map((asset) => asset.nama).filter(Boolean)
+        return assets.length ? assets.join(', ') : 'Pengajuan peminjaman aset'
+    }
+    return item.pegawai_bkd?.NIP_Baru || item.email_pribadi || 'Pengajuan email ASN'
+}
 async function calendar(range) {
     calendarLoading.value = true
     try {
@@ -117,7 +148,7 @@ onMounted(async () => {
                         /></span>
                         <div class="min-w-0">
                             <p class="text-3xl font-bold text-navy">
-                                {{ data[card.key] ?? data.statistik?.[card.key] ?? 0 }}
+                                {{ data.summary?.[card.key] ?? 0 }}
                             </p>
                             <p class="truncate text-sm font-semibold text-slate-500">
                                 {{ card.label }}
@@ -129,6 +160,95 @@ onMounted(async () => {
                     </RouterLink>
                 </div>
             </section>
+            <section>
+                <div class="mb-3">
+                    <p class="eyebrow">Aktivitas akun</p>
+                    <h2 class="mt-1 text-xl font-bold text-navy">Pengajuan terbaru Anda</h2>
+                </div>
+                <div class="grid gap-5 xl:grid-cols-3">
+                    <section
+                        v-for="group in recentGroups"
+                        :key="group.key"
+                        class="section-panel"
+                    >
+                        <div class="section-panel-header flex items-center justify-between gap-3">
+                            <h3 class="font-bold text-navy">{{ group.label }}</h3>
+                            <RouterLink :to="group.to" class="text-xs font-bold text-brand-700">
+                                Lihat semua
+                            </RouterLink>
+                        </div>
+                        <div class="divide-y divide-[var(--color-border)] px-5">
+                            <article
+                                v-for="item in data.recent?.[group.key] || []"
+                                :key="item.id"
+                                class="flex items-center gap-3 py-4"
+                            >
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm font-semibold text-navy">
+                                        {{ recentTitle(item, group.key) }}
+                                    </p>
+                                    <p class="mt-1 truncate text-xs text-slate-500">
+                                        {{ recentMeta(item, group.key) }} ·
+                                        {{ formatDate(item.created_at) }}
+                                    </p>
+                                </div>
+                                <StatusBadge :status="item.status" />
+                            </article>
+                            <p
+                                v-if="!data.recent?.[group.key]?.length"
+                                class="py-10 text-center text-sm text-slate-400"
+                            >
+                                Belum ada data pada akun ini.
+                            </p>
+                        </div>
+                    </section>
+                </div>
+            </section>
+            <div class="grid gap-5 xl:grid-cols-2">
+                <section class="section-panel">
+                    <div class="section-panel-header">
+                        <p class="eyebrow">Konsultasi Anda</p>
+                        <h2 class="mt-1 font-bold">Topik yang paling sering diajukan</h2>
+                    </div>
+                    <div class="space-y-4 p-5" aria-label="Statistik topik konsultasi">
+                        <div v-for="item in data.consultation_topics || []" :key="item.label">
+                            <div class="mb-1 flex justify-between gap-3 text-sm"><span>{{ item.label }}</span><strong>{{ item.total }}</strong></div>
+                            <div class="h-2 overflow-hidden rounded-full bg-slate-100"><span class="block h-full rounded-full bg-[var(--color-accent)]" :style="{ width: `${Math.min(100, Number(item.total) * 12)}%` }" /></div>
+                        </div>
+                        <p v-if="!data.consultation_topics?.length" class="text-sm text-[var(--color-text-muted)]">Belum ada statistik konsultasi.</p>
+                    </div>
+                </section>
+                <section class="section-panel">
+                    <div class="section-panel-header">
+                        <p class="eyebrow">Penggunaan aset</p>
+                        <h2 class="mt-1 font-bold">Aset yang pernah dipinjam</h2>
+                    </div>
+                    <div class="divide-y divide-[var(--color-border)] px-5">
+                        <div v-for="item in data.asset_usage || []" :key="item.label" class="flex items-center justify-between gap-4 py-4">
+                            <span class="text-sm font-semibold">{{ item.label }}</span><span class="badge bg-blue-50 text-blue-800">{{ item.total }} unit</span>
+                        </div>
+                        <p v-if="!data.asset_usage?.length" class="py-8 text-center text-sm text-[var(--color-text-muted)]">Belum ada riwayat aset.</p>
+                    </div>
+                </section>
+            </div>
+            <div class="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
+                <section class="section-panel">
+                    <div class="section-panel-header">
+                        <p class="eyebrow">30 hari terakhir</p>
+                        <h2 class="mt-1 font-bold text-navy">Aktivitas layanan</h2>
+                    </div>
+                    <div class="p-4 sm:p-5">
+                        <DashboardBarChart :items="data.service_activity_series || []" />
+                    </div>
+                </section>
+                <section class="section-panel">
+                    <div class="section-panel-header">
+                        <p class="eyebrow">Kualitas layanan</p>
+                        <h2 class="mt-1 font-bold text-navy">Rating pengguna</h2>
+                    </div>
+                    <DashboardRatingCard :statistics="data.service_rating_statistics || {}" />
+                </section>
+            </div>
             <div class="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
                 <ScheduleCalendar
                     :events="events"
