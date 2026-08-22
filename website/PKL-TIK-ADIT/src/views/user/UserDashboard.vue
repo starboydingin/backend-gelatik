@@ -9,6 +9,7 @@ import ServiceHero from '../../components/ServiceHero.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
 import DashboardBarChart from '../../components/DashboardBarChart.vue'
 import DashboardRatingCard from '../../components/DashboardRatingCard.vue'
+import DashboardPieCharts from '../../components/DashboardPieCharts.vue'
 import {
     BriefcaseIcon,
     ChatBubbleLeftRightIcon,
@@ -204,33 +205,18 @@ onMounted(async () => {
                     </section>
                 </div>
             </section>
-            <div class="grid gap-5 xl:grid-cols-2">
-                <section class="section-panel">
-                    <div class="section-panel-header">
-                        <p class="eyebrow">Konsultasi Anda</p>
-                        <h2 class="mt-1 font-bold">Topik yang paling sering diajukan</h2>
-                    </div>
-                    <div class="space-y-4 p-5" aria-label="Statistik topik konsultasi">
-                        <div v-for="item in data.consultation_topics || []" :key="item.label">
-                            <div class="mb-1 flex justify-between gap-3 text-sm"><span>{{ item.label }}</span><strong>{{ item.total }}</strong></div>
-                            <div class="h-2 overflow-hidden rounded-full bg-slate-100"><span class="block h-full rounded-full bg-[var(--color-accent)]" :style="{ width: `${Math.min(100, Number(item.total) * 12)}%` }" /></div>
-                        </div>
-                        <p v-if="!data.consultation_topics?.length" class="text-sm text-[var(--color-text-muted)]">Belum ada statistik konsultasi.</p>
-                    </div>
-                </section>
-                <section class="section-panel">
-                    <div class="section-panel-header">
-                        <p class="eyebrow">Penggunaan aset</p>
-                        <h2 class="mt-1 font-bold">Aset yang pernah dipinjam</h2>
-                    </div>
-                    <div class="divide-y divide-[var(--color-border)] px-5">
-                        <div v-for="item in data.asset_usage || []" :key="item.label" class="flex items-center justify-between gap-4 py-4">
-                            <span class="text-sm font-semibold">{{ item.label }}</span><span class="badge bg-blue-50 text-blue-800">{{ item.total }} unit</span>
-                        </div>
-                        <p v-if="!data.asset_usage?.length" class="py-8 text-center text-sm text-[var(--color-text-muted)]">Belum ada riwayat aset.</p>
-                    </div>
-                </section>
-            </div>
+            <section class="section-panel">
+                <div class="section-panel-header">
+                    <p class="eyebrow">Permintaan terbanyak</p>
+                    <h2 class="mt-1 font-bold text-navy">Topik dan aset</h2>
+                </div>
+                <div class="p-4 sm:p-5">
+                    <DashboardPieCharts
+                        :topics="data.consultation_topics || []"
+                        :assets="data.asset_usage || []"
+                    />
+                </div>
+            </section>
             <div class="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
                 <section class="section-panel">
                     <div class="section-panel-header">

@@ -136,20 +136,18 @@ class DashboardService
 
         $topicStats = Konsultasi::query()
             ->leftJoin('master_topik as t', 't.id', '=', 'tr_konsultasi.faq_id')
-            ->where('tr_konsultasi.user_id', $userId)
             ->selectRaw("COALESCE(t.topik, 'Tanpa topik') as label, COUNT(*) as total")
             ->groupBy('t.topik')
-            ->orderByDesc('total')
+            ->orderByDesc('total_peminjaman')
             ->limit(8)
             ->get();
 
         $assetStats = PinjamItem::query()
             ->join('tr_permintaan_pinjam as p', 'p.id', '=', 'pinjam_item.pinjam_id')
             ->join('master_item as i', 'i.id', '=', 'pinjam_item.item_id')
-            ->where('p.user_id', $userId)
-            ->selectRaw('i.nama as label, SUM(pinjam_item.quantity) as total')
+            ->selectRaw('i.nama as nama_item, SUM(pinjam_item.quantity) as total_peminjaman')
             ->groupBy('i.nama')
-            ->orderByDesc('total')
+            ->orderByDesc('total_peminjaman')
             ->limit(8)
             ->get();
 
