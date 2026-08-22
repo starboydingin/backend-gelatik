@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -27,6 +29,7 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen>
   DateTime? _inactiveSince;
   int? _starterPromptAnchor;
   bool _showStarterPrompts = false;
+  Timer? _idleResetTimer;
 
   @override
   void initState() {
@@ -40,6 +43,7 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen>
       _visitSessionKey,
       DateTime.now(),
     );
+    _scheduleIdleReset();
   }
 
   void _onInputChanged() => setState(() {});
@@ -47,12 +51,25 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen>
   @override
   void dispose() {
     _visitTracker.markLeft(_visitSessionKey, DateTime.now());
+    _idleResetTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _messageController
       ..removeListener(_onInputChanged)
       ..dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scheduleIdleReset() {
+    _idleResetTimer?.cancel();
+    _idleResetTimer = Timer(ChatbotVisitTracker.promptResetAfter, () {
+      if (!mounted) return;
+      setState(() {
+        _showStarterPrompts = true;
+        _starterPromptAnchor = ref.read(chatbotProvider).messages.length;
+      });
+      _scrollToBottom();
+    });
   }
 
   @override
@@ -76,6 +93,7 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen>
           });
           _scrollToBottom();
         }
+        _scheduleIdleReset();
         return;
     }
   }
@@ -98,6 +116,7 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen>
     if (_showStarterPrompts && _starterPromptAnchor == null) {
       setState(() => _starterPromptAnchor = state.messages.length);
     }
+    _scheduleIdleReset();
     _messageController.clear();
     FocusScope.of(context).unfocus();
     await ref.read(chatbotProvider.notifier).sendMessage(text);

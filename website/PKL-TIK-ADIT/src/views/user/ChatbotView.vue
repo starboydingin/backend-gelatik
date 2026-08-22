@@ -360,3 +360,25 @@ onBeforeUnmount(() => {
     }
 }
 </style>
+let inactivityTimer = null
+let lastChatActivityAt = Date.now()
+function resetInactivityTimer() {
+    lastChatActivityAt = Date.now()
+    if (inactivityTimer) window.clearTimeout(inactivityTimer)
+    inactivityTimer = window.setTimeout(() => {
+        // This is a visual session reset only. The API conversation and its
+        // history remain intact, while the next reply starts a fresh context.
+        if (Date.now() - lastChatActivityAt < starterResetAfter) return
+        messages.value.push({
+            id: `starter-idle-${Date.now()}`,
+            role: 'assistant',
+            localStarter: true,
+            createdAt: Date.now(),
+            message:
+                'Halo, saya Asisten Konsultasi TIK Gelatik. Ada yang bisa saya bantu hari ini? Pilih salah satu pertanyaan cepat di bawah atau tulis pertanyaan Anda sendiri.',
+        })
+    }, starterResetAfter)
+}
+    resetInactivityTimer()
+    resetInactivityTimer()
+    if (inactivityTimer) window.clearTimeout(inactivityTimer)
