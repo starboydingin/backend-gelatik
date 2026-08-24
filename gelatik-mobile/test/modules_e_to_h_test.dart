@@ -251,7 +251,7 @@ void main() {
     );
 
     testWidgets(
-      '6. KritikSaranScreen form submit shows confirmation dialog and closes',
+      '6. KritikSaranScreen form submit offers the rating flow',
       (tester) async {
         await tester.pumpWidget(
           ProviderScope(
@@ -283,7 +283,7 @@ void main() {
 
         // Verify Success Dialog is rendered
         expect(find.text('Terima Kasih!'), findsOneWidget);
-        expect(find.text('Tutup & Kembali'), findsOneWidget);
+        expect(find.text('Lanjut Beri Rating'), findsOneWidget);
       },
     );
 

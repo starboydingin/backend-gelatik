@@ -65,6 +65,14 @@ class ChatbotController extends Controller
         ]);
     }
 
+    public function latestConversation(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->chatbotService->latestConversation($request->user()),
+        ]);
+    }
+
     /**
      * DELETE /api/chatbot/history
      * Hapus riwayat percakapan chatbot (F-BOT)

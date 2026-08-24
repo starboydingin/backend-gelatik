@@ -12,10 +12,17 @@ const notificationEvents = [
     'pinjam.status_changed',
     'usulan_email.created',
     'usulan_email.status_changed',
+    'chatbot.conversation.created',
+    'chatbot.conversation.updated',
+    'chatbot.conversation.deleted',
+    'chatbot.message.created',
 ]
 
 function notify(payload) {
     window.dispatchEvent(new CustomEvent('gelatik:notification', { detail: payload }))
+    if (String(payload?.type || '').startsWith('chatbot.')) {
+        window.dispatchEvent(new CustomEvent('gelatik:chatbot', { detail: payload }))
+    }
 }
 
 /**

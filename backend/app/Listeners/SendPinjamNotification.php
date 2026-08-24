@@ -12,6 +12,13 @@ use Illuminate\Support\Facades\Log;
 
 class SendPinjamNotification implements ShouldQueue
 {
+    public int $tries = 3;
+
+    public function backoff(): array
+    {
+        return [10, 30, 90];
+    }
+
     /**
      * Create the event listener.
      */
@@ -26,6 +33,7 @@ class SendPinjamNotification implements ShouldQueue
     public function handle(PinjamStatusChanged $event): void
     {
         $nodeService = new NodeServiceClient();
+        $deliveryFailure = null;
         
         // Socket.IO and the browser inbox are written synchronously by
         // PinjamService. This queued listener only handles external push.
@@ -63,6 +71,7 @@ class SendPinjamNotification implements ShouldQueue
             }
         } catch (\Exception $e) {
             Log::error('SendPinjamNotification WA Error: ' . $e->getMessage());
+            $deliveryFailure = $e;
         }
 
         // 2. FCM Push Notification (topic-based)
@@ -79,6 +88,11 @@ class SendPinjamNotification implements ShouldQueue
             );
         } catch (\Exception $e) {
             Log::error('SendPinjamNotification FCM Error: ' . $e->getMessage());
+            $deliveryFailure ??= $e;
+        }
+
+        if ($deliveryFailure) {
+            throw $deliveryFailure;
         }
     }
 }

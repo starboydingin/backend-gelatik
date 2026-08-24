@@ -10,6 +10,13 @@ use Illuminate\Support\Facades\Log;
 
 class SendKonsultasiStatusNotification implements ShouldQueue
 {
+    public int $tries = 3;
+
+    public function backoff(): array
+    {
+        return [10, 30, 90];
+    }
+
     public function handle(KonsultasiStatusChanged $event): void
     {
         $nodeService = new NodeServiceClient();
@@ -42,6 +49,7 @@ class SendKonsultasiStatusNotification implements ShouldQueue
             // Queue failures are logged and retried; changing consultation
             // status must never fail merely because WhatsApp is unavailable.
             Log::error('SendKonsultasiStatusNotification WA Error: '.$exception->getMessage());
+            throw $exception;
         }
     }
 }

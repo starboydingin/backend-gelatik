@@ -21,7 +21,10 @@ class FaqController extends Controller
     public function index(Request $request)
     {
         $topikId = $request->topik_id ? (int) $request->topik_id : null;
-        $faqs = $this->faqService->getFaqByTopik($topikId);
+        $faqs = $this->faqService->getFaqByTopik(
+            $topikId,
+            $request->string('search')->trim()->value() ?: null,
+        );
 
         return response()->json(['success' => true, 'data' => $faqs]);
     }

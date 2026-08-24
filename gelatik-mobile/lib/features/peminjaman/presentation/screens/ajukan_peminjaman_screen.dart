@@ -154,7 +154,7 @@ class _AjukanPeminjamanScreenState
       context: context,
       initialDate: _tanggalMulai.isBefore(today) ? today : _tanggalMulai,
       firstDate: today,
-      lastDate: today.add(const Duration(days: 1)),
+      lastDate: DateTime(9999, 12, 31),
     );
     if (picked != null) {
       setState(() {

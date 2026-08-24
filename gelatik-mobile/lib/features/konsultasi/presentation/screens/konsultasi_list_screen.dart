@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/empty_state.dart';
@@ -9,7 +10,7 @@ import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 import '../../providers/konsultasi_provider.dart';
-import 'buat_konsultasi_screen.dart';
+import 'konsultasi_discovery_screen.dart';
 import 'konsultasi_detail_screen.dart';
 
 class KonsultasiListScreen extends ConsumerStatefulWidget {
@@ -51,7 +52,7 @@ class _KonsultasiListScreenState extends ConsumerState<KonsultasiListScreen> {
             : () async {
                 await Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const BuatKonsultasiScreen(),
+                    builder: (_) => const KonsultasiDiscoveryScreen(),
                   ),
                 );
               },
@@ -139,7 +140,7 @@ class _KonsultasiListScreenState extends ConsumerState<KonsultasiListScreen> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    '${item.createdAt.day}/${item.createdAt.month}/${item.createdAt.year}',
+                    GelatikDateFormatter.date(item.createdAt),
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.mutedText(context),

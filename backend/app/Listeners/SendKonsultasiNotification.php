@@ -14,6 +14,13 @@ use Illuminate\Support\Str;
 
 class SendKonsultasiNotification implements ShouldQueue
 {
+    public int $tries = 3;
+
+    public function backoff(): array
+    {
+        return [10, 30, 90];
+    }
+
     /**
      * Create the event listener.
      */
@@ -28,6 +35,7 @@ class SendKonsultasiNotification implements ShouldQueue
     public function handle(KonsultasiResponseCreated $event): void
     {
         $nodeService = new NodeServiceClient();
+        $deliveryFailure = null;
         
         // 1. Broadcast via Socket.io (F-RT)
         $targetIsAdmin = (int) $event->response->user_id === (int) $event->konsultasi->user_id;
@@ -74,6 +82,7 @@ class SendKonsultasiNotification implements ShouldQueue
             }
         } catch (\Exception $e) {
             Log::error('SendKonsultasiNotification WA Error: ' . $e->getMessage());
+            $deliveryFailure = $e;
         }
 
         // 3. FCM Push Notification (topic-based)
@@ -104,6 +113,11 @@ class SendKonsultasiNotification implements ShouldQueue
             }
         } catch (\Exception $e) {
             Log::error('SendKonsultasiNotification FCM Error: ' . $e->getMessage());
+            $deliveryFailure ??= $e;
+        }
+
+        if ($deliveryFailure) {
+            throw $deliveryFailure;
         }
     }
 }

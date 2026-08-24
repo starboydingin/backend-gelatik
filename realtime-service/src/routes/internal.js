@@ -48,15 +48,13 @@ router.post('/broadcast', (req, res) => {
 });
 
 router.post('/wa/send', async (req, res) => {
-    const { nomor_wa, message, reference } = req.body || {};
+    const { nomor_wa, message, reference, delivery_key: deliveryKey } = req.body || {};
 
     if (!nomor_wa || !message) {
         return res.status(400).json({ error: 'nomor_wa and message are required' });
     }
 
-    res.json({ success: true, message: 'WhatsApp message queued' });
-
-    const result = await sendWhatsAppMessage(nomor_wa, message);
+    const result = await sendWhatsAppMessage(nomor_wa, message, deliveryKey);
     try {
         await axios.post(`${process.env.LARAVEL_BASE_URL}/api/internal/wa/webhook-delivery-status`, {
             status: result.status,
@@ -68,6 +66,12 @@ router.post('/wa/send', async (req, res) => {
     } catch (err) {
         console.error('Failed to send webhook status to Laravel:', err.message);
     }
+
+    if (result.status !== 'delivered') {
+        return res.status(503).json({ success: false, error: 'WhatsApp delivery failed' });
+    }
+
+    return res.json({ success: true, status: result.status, delivery_key: deliveryKey });
 });
 
 module.exports = router;

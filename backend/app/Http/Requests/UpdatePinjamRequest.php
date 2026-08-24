@@ -46,8 +46,8 @@ class UpdatePinjamRequest extends FormRequest
             } catch (\Throwable) {
                 return;
             }
-            if ($startDate->lt($today) || $startDate->gt($today->copy()->addDay())) {
-                $validator->errors()->add('tanggal_mulai', 'Tanggal mulai hanya dapat dipilih untuk hari ini atau besok.');
+            if ($startDate->lt($today)) {
+                $validator->errors()->add('tanggal_mulai', 'Tanggal mulai tidak boleh berada di masa lalu.');
             }
 
             if ($startDate->isSameDay($today) && $this->filled('jam_mulai')) {

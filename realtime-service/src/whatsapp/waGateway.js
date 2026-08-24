@@ -47,21 +47,30 @@ const initWhatsApp = async () => {
     });
 };
 
-const sendWhatsAppMessage = async (nomorWa, message) => {
+const normalizeIndonesianNumber = (nomorWa) => {
+    const digits = String(nomorWa || '').replace(/\D/g, '');
+    let normalized = digits;
+
+    if (normalized.startsWith('0')) normalized = `62${normalized.slice(1)}`;
+    else if (normalized.startsWith('8')) normalized = `62${normalized}`;
+
+    if (!/^628\d{8,12}$/.test(normalized)) {
+        throw new Error('Format nomor WhatsApp Indonesia tidak valid');
+    }
+
+    return normalized;
+};
+
+const sendWhatsAppMessage = async (nomorWa, message, deliveryKey = undefined) => {
     if (!isConnected || !sock) {
         return { status: 'failed', error: 'WhatsApp is not connected' };
     }
 
     try {
-        // Format nomor Indonesia dari 08... ke 628...
-        let formattedNumber = nomorWa;
-        if (formattedNumber.startsWith('0')) {
-            formattedNumber = '62' + formattedNumber.substring(1);
-        }
-        // Tambahkan @s.whatsapp.net
+        const formattedNumber = normalizeIndonesianNumber(nomorWa);
         const jid = `${formattedNumber}@s.whatsapp.net`;
 
-        await sock.sendMessage(jid, { text: message });
+        await sock.sendMessage(jid, { text: message }, deliveryKey ? { messageId: deliveryKey } : undefined);
         return { status: 'delivered' };
     } catch (error) {
         console.error('Failed to send WA message:', error);
@@ -76,5 +85,6 @@ const getWhatsAppStatus = () => {
 module.exports = {
     initWhatsApp,
     sendWhatsAppMessage,
-    getWhatsAppStatus
+    getWhatsAppStatus,
+    normalizeIndonesianNumber,
 };

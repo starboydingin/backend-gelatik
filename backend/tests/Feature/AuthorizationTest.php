@@ -13,6 +13,7 @@ use App\Services\DashboardService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Passport\Passport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -113,6 +114,10 @@ class AuthorizationTest extends TestCase
             $table->id();
             $table->unsignedBigInteger('user_id')->index();
             $table->string('session_id');
+            $table->unsignedTinyInteger('unresolved_count')->default(0);
+            $table->string('escalation_context', 40)->nullable();
+            $table->boolean('consultation_offer_pending')->default(false);
+            $table->unsignedBigInteger('escalated_konsultasi_id')->nullable();
             $table->timestamps();
         });
         Schema::create('chatbot_messages', function (Blueprint $table): void {
@@ -144,6 +149,10 @@ class AuthorizationTest extends TestCase
             $table->id();
             $table->unsignedBigInteger('user_id')->index();
             $table->string('session_id');
+            $table->unsignedTinyInteger('unresolved_count')->default(0);
+            $table->string('escalation_context', 40)->nullable();
+            $table->boolean('consultation_offer_pending')->default(false);
+            $table->unsignedBigInteger('escalated_konsultasi_id')->nullable();
             $table->timestamps();
         });
         Schema::create('chatbot_messages', function (Blueprint $table): void {
@@ -197,9 +206,10 @@ class AuthorizationTest extends TestCase
 
         $this->assertTrue($response['success']);
         Http::assertSent(function ($request): bool {
-            $prompt = $request->data()['system_instruction']['parts'][0]['text'];
+            $prompt = data_get($request->data(), 'system_instruction.parts.0.text');
 
-            return str_contains($prompt, 'Konteks FAQ Resmi')
+            return is_string($prompt)
+                && str_contains($prompt, 'Konteks FAQ Resmi')
                 && str_contains($prompt, 'Cara reset password WiFi')
                 && str_contains($prompt, 'Hubungi helpdesk untuk verifikasi identitas')
                 && ! str_contains($prompt, 'FAQ ini tidak boleh dikirim.');
@@ -212,6 +222,10 @@ class AuthorizationTest extends TestCase
             $table->id();
             $table->unsignedBigInteger('user_id')->index();
             $table->string('session_id');
+            $table->unsignedTinyInteger('unresolved_count')->default(0);
+            $table->string('escalation_context', 40)->nullable();
+            $table->boolean('consultation_offer_pending')->default(false);
+            $table->unsignedBigInteger('escalated_konsultasi_id')->nullable();
             $table->timestamps();
         });
         Schema::create('chatbot_messages', function (Blueprint $table): void {
@@ -279,13 +293,15 @@ class AuthorizationTest extends TestCase
         }
     }
 
-    public function test_chatbot_escalates_repeated_unresolved_issue_to_user_consultation(): void
+    public function test_chatbot_offers_consultation_after_repeated_unresolved_issue(): void
     {
         Schema::create('chatbot_conversations', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('user_id')->index();
             $table->string('session_id');
             $table->unsignedTinyInteger('unresolved_count')->default(0);
+            $table->string('escalation_context', 40)->nullable();
+            $table->boolean('consultation_offer_pending')->default(false);
             $table->unsignedBigInteger('escalated_konsultasi_id')->nullable();
             $table->timestamps();
         });
@@ -321,11 +337,11 @@ class AuthorizationTest extends TestCase
         $result = $service->sendMessage($this->userA, 'Tetap tidak bisa', $first['session_id']);
 
         $this->assertTrue($result['success']);
-        $this->assertTrue($result['escalated']);
-        $this->assertDatabaseHas('tr_konsultasi', [
-            'id' => $result['konsultasi_id'],
+        $this->assertStringContainsString('konsultasi', strtolower($result['reply']));
+        $this->assertDatabaseHas('chatbot_conversations', [
             'user_id' => $this->userA->id,
-            'status' => 'Menunggu',
+            'session_id' => $first['session_id'],
+            'consultation_offer_pending' => true,
         ]);
     }
 
@@ -411,7 +427,7 @@ class AuthorizationTest extends TestCase
         ]);
     }
 
-    public function test_pinjam_start_date_is_limited_to_today_or_tomorrow(): void
+    public function test_pinjam_rejects_past_dates_and_accepts_today_and_future_dates(): void
     {
         $this->actingAsApi($this->userA);
         $payload = [
@@ -422,7 +438,6 @@ class AuthorizationTest extends TestCase
             'nomor_identitas' => '198804122014031002',
             'alamat_peminjam' => 'Bandar Lampung',
             'jenis_durasi' => 'harian',
-            'jam_mulai' => '08:00',
             'durasi_peminjaman' => 1,
             'items' => [['item_id' => 501, 'quantity' => 1]],
         ];
@@ -431,9 +446,44 @@ class AuthorizationTest extends TestCase
             'tanggal_mulai' => now()->subDay()->toDateString(),
         ])->assertUnprocessable()->assertJsonValidationErrors('tanggal_mulai');
 
-        $this->postJson('/api/pinjam', $payload + [
-            'tanggal_mulai' => now()->addDays(2)->toDateString(),
-        ])->assertUnprocessable()->assertJsonValidationErrors('tanggal_mulai');
+        foreach ([0, 1, 2, 7, 30, 65] as $days) {
+            $this->postJson('/api/pinjam', $payload + [
+                'tanggal_mulai' => now()->addDays($days)->toDateString(),
+            ])->assertCreated();
+        }
+    }
+
+    public function test_attachment_access_is_scoped_to_owner_and_privileged_roles(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('dokumen_peminjaman/surat.pdf', '%PDF test');
+        Pinjam::whereKey(101)->update(['url_dokumen' => 'dokumen_peminjaman/surat.pdf']);
+
+        $this->actingAsApi($this->userA);
+        $this->get('/api/pinjam/101/attachment/document')->assertOk();
+        $this->get('/api/pinjam/102/attachment/document')->assertForbidden();
+        $this->get('/api/pinjam/999999/attachment/document')->assertNotFound();
+
+        $this->actingAsApi($this->admin);
+        $this->get('/api/pinjam/101/attachment/document')->assertOk();
+
+        $this->actingAsApi($this->superadmin);
+        $this->get('/api/pinjam/101/attachment/document')->assertOk();
+
+        Pinjam::whereKey(101)->update(['url_dokumen' => 'dokumen_peminjaman/missing.pdf']);
+        $this->get('/api/pinjam/101/attachment/document')->assertNotFound();
+    }
+
+    public function test_konsultasi_cannot_be_deleted_after_processing_started(): void
+    {
+        $this->actingAsApi($this->userA);
+        Konsultasi::whereKey(201)->update(['status' => 'Diproses']);
+
+        $this->deleteJson('/api/konsul/201')
+            ->assertStatus(409)
+            ->assertJsonPath('success', false);
+
+        $this->assertDatabaseHas('tr_konsultasi', ['id' => 201, 'deleted_at' => null]);
     }
 
     public function test_konsultasi_detail_and_list_enforce_ownership(): void

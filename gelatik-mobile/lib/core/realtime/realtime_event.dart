@@ -6,6 +6,10 @@ class RealtimeEvent {
     'konsultasi.responded',
     'konsultasi.status_changed',
     'usulan_email.status_changed',
+    'chatbot.conversation.created',
+    'chatbot.conversation.updated',
+    'chatbot.conversation.deleted',
+    'chatbot.message.created',
   };
 
   final String eventId;
@@ -16,6 +20,9 @@ class RealtimeEvent {
   final int? responseId;
   final DateTime createdAt;
   final String? message;
+  final String? sessionId;
+  final int? messageId;
+  final String? role;
 
   const RealtimeEvent({
     required this.eventId,
@@ -26,6 +33,9 @@ class RealtimeEvent {
     this.oldStatus,
     this.responseId,
     this.message,
+    this.sessionId,
+    this.messageId,
+    this.role,
   });
 
   static RealtimeEvent? tryParse(String eventName, dynamic raw) {
@@ -48,7 +58,8 @@ class RealtimeEvent {
       return null;
     }
 
-    const requiresStatus = true;
+    final isChatbotEvent = eventName.startsWith('chatbot.');
+    final requiresStatus = !isChatbotEvent;
     final status = _optionalText(json['status']);
     if (requiresStatus && status == null) return null;
 
@@ -69,6 +80,9 @@ class RealtimeEvent {
       responseId: responseId,
       createdAt: createdAt,
       message: _optionalText(json['message']),
+      sessionId: _optionalText(json['session_id']),
+      messageId: _positiveInt(json['message_id']),
+      role: _optionalText(json['role']),
     );
   }
 

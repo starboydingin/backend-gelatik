@@ -8,6 +8,9 @@ import LoadingState from '../../components/LoadingState.vue'
 import ServiceHero from '../../components/ServiceHero.vue'
 import StatusSummary from '../../components/StatusSummary.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import SummaryModal from '../../components/SummaryModal.vue'
+import PaginationControls from '../../components/PaginationControls.vue'
+import { formatDateTime } from '../../lib/date'
 const route = useRoute(),
     admin = computed(() => route.path.startsWith('/admin')),
     list = ref([]),
@@ -19,9 +22,9 @@ const route = useRoute(),
     showForm = ref(false),
     form = ref({ judul: '', topik_id: '', deskripsi: '', file: null }),
     editingId = ref(null),
-    detail = ref(null),
-    reply = ref({}),
-    expanded = ref(null)
+    summary = ref(null),
+    page = ref(1),
+    pagination = ref({ current_page: 1, last_page: 1, total: 0 })
 const topicLabel = (topic) => topic.topik || topic.nama_topik || topic.name || 'Tanpa topik'
 const statusItems = computed(() => [
     {
@@ -61,12 +64,22 @@ const displayedList = computed(() =>
 async function load() {
     loading.value = true
     try {
-        list.value = rows(payload(await api.get('/konsul')))
+        const data = payload(await api.get('/konsul', { params: { page: page.value }, cache: false }))
+        list.value = rows(data)
+        pagination.value = {
+            current_page: Number(data?.current_page || 1),
+            last_page: Number(data?.last_page || 1),
+            total: Number(data?.total ?? list.value.length),
+        }
     } catch (e) {
         error.value = errorMessage(e)
     } finally {
         loading.value = false
     }
+}
+async function changePage(nextPage) {
+    page.value = nextPage
+    await load()
 }
 async function loadTopics() {
     topics.value = rows(payload(await api.get('/topik')))
@@ -97,12 +110,8 @@ async function edit(item) {
         error.value = errorMessage(requestError)
     }
 }
-async function showDetail(id) {
-    try {
-        detail.value = payload(await api.get(`/konsul/${id}`))
-    } catch (requestError) {
-        error.value = errorMessage(requestError)
-    }
+function showSummary(item) {
+    summary.value = item
 }
 async function submit() {
     try {
@@ -125,23 +134,6 @@ async function submit() {
         await api.post('/konsul', body)
         showForm.value = false
         form.value = { judul: '', topik_id: '', deskripsi: '', file: null }
-        await load()
-    } catch (e) {
-        error.value = errorMessage(e)
-    }
-}
-async function respond(id) {
-    try {
-        await api.post(`/konsul/${id}/response`, { isi_respon: reply.value[id] })
-        reply.value[id] = ''
-        await load()
-    } catch (e) {
-        error.value = errorMessage(e)
-    }
-}
-async function status(id, value) {
-    try {
-        await api.post(`/konsul/${id}/status`, { status: value })
         await load()
     } catch (e) {
         error.value = errorMessage(e)
@@ -233,113 +225,19 @@ onMounted(load)
             </select>
         </div>
         <LoadingState v-if="loading" />
-        <div v-else class="space-y-3">
+        <div v-else>
             <EmptyState v-if="!list.length" />
-            <article v-for="item in displayedList" :key="item.id" class="card">
-                <div class="flex w-full flex-wrap items-start justify-between gap-4 text-left">
-                    <div>
-                        <div class="flex flex-wrap items-center gap-2">
-                            <h2 class="font-bold text-slate-950">
-                                {{
-                                    item.judul || topicLabel(item.topik || {}) || `Konsultasi #${item.id}`
-                                }}
-                            </h2>
-                            <StatusBadge :status="item.status" />
-                        </div>
-                        <p class="mt-1 text-sm text-slate-500">
-                            {{ item.user?.name }} · {{ item.created_at }}
-                        </p>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button class="btn-secondary min-h-9 px-3" @click="showDetail(item.id)">Detail</button>
-                        <button
-                            v-if="!admin && String(item.status).toLowerCase() === 'menunggu'"
-                            class="btn-secondary min-h-9 px-3"
-                            @click="edit(item)"
-                        >
-                            Edit
-                        </button>
-                        <button
-                            class="btn-secondary min-h-9 px-3"
-                            @click="expanded = expanded === item.id ? null : item.id"
-                        >
-                            {{ expanded === item.id ? 'Tutup ringkasan' : 'Ringkasan' }}
-                        </button>
-                    </div>
-                </div>
-                <div v-if="expanded === item.id" class="mt-5 border-t border-slate-100 pt-5">
-                    <p class="whitespace-pre-wrap text-sm leading-7">
-                        {{
-                            item.deskripsi ||
-                            item.keterangan ||
-                            item.isi_konsultasi ||
-                            item.pertanyaan
-                        }}
-                    </p>
-                    <div class="mt-4 space-y-2">
-                        <div
-                            v-for="response in item.responses || []"
-                            :key="response.id"
-                            class="rounded-xl bg-slate-50 p-3 text-sm"
-                        >
-                            <strong>{{ response.user?.name || 'Petugas' }}</strong>
-                            <p class="mt-1">{{ response.isi_respon || response.jawaban }}</p>
-                        </div>
-                    </div>
-                    <div v-if="admin" class="mt-4 flex gap-2">
-                        <input
-                            v-model="reply[item.id]"
-                            class="input"
-                            placeholder="Tulis tanggapan…"
-                        /><button
-                            class="btn-primary"
-                            :disabled="!reply[item.id]"
-                            @click="respond(item.id)"
-                        >
-                            Kirim
-                        </button>
-                    </div>
-                    <div class="mt-3 flex flex-wrap gap-2">
-                        <select
-                            v-if="admin"
-                            class="input w-40"
-                            :value="item.status"
-                            @change="status(item.id, $event.target.value)"
-                        >
-                            <option>Diproses</option>
-                            <option>Ditolak</option>
-                            <option>Selesai</option></select
-                        ><button class="btn-danger" @click="remove(item.id)">Hapus</button>
-                    </div>
-                </div>
-            </article>
-        </div>
-        <section v-if="detail" class="card">
-            <div class="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <p class="eyebrow">Detail konsultasi</p>
-                    <h2 class="mt-1 font-brand text-xl font-extrabold">{{ detail.judul || 'Konsultasi TIK' }}</h2>
-                </div>
-                <button class="btn-secondary min-h-9 px-3" @click="detail = null">Tutup</button>
+            <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <article v-for="item in displayedList" :key="item.id" class="card flex min-h-64 flex-col">
+                    <div class="flex items-start justify-between gap-3"><p class="eyebrow">Konsultasi #{{ item.id }}</p><StatusBadge :status="item.status" /></div>
+                    <h2 class="mt-3 line-clamp-2 text-lg font-bold">{{ item.judul || topicLabel(item.topik || {}) }}</h2>
+                    <p class="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{{ item.pesan || item.deskripsi || item.pertanyaan || '-' }}</p>
+                    <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt class="label">Pemohon</dt><dd>{{ item.user?.name || '-' }}</dd></div><div><dt class="label">Diajukan</dt><dd>{{ formatDateTime(item.created_at) }}</dd></div></dl>
+                    <div class="mt-auto flex flex-wrap gap-2 pt-5"><button class="btn-secondary min-h-9 px-3" @click="showSummary(item)">Ringkasan</button><RouterLink class="btn-secondary min-h-9 px-3" :to="`${admin ? '/admin' : '/app'}/konsultasi/${item.id}`">Detail</RouterLink><button v-if="!admin && String(item.status).toLowerCase() === 'menunggu'" class="btn-secondary min-h-9 px-3" @click="edit(item)">Edit</button><button v-if="!admin && String(item.status).toLowerCase() === 'menunggu'" class="btn-danger min-h-9 px-3" @click="remove(item.id)">Hapus</button></div>
+                </article>
             </div>
-            <dl class="mt-5 grid gap-4 sm:grid-cols-2">
-                <div><dt class="label">Topik</dt><dd>{{ topicLabel(detail.topik || {}) }}</dd></div>
-                <div><dt class="label">Status</dt><dd><StatusBadge :status="detail.status" /></dd></div>
-                <div class="sm:col-span-2">
-                    <dt class="label">Permintaan Anda</dt>
-                    <dd class="whitespace-pre-wrap">{{ detail.deskripsi || detail.pesan || detail.pertanyaan || '-' }}</dd>
-                </div>
-                <div class="sm:col-span-2">
-                    <dt class="label">Tanggapan petugas</dt>
-                    <dd class="mt-2 space-y-3">
-                        <article v-for="response in detail.responses || []" :key="response.id" class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
-                            <strong>{{ response.user?.name || 'Petugas' }}</strong>
-                            <p class="mt-1 whitespace-pre-wrap">{{ response.isi_respon || response.jawaban || response.pesan }}</p>
-                        </article>
-                        <p v-if="!(detail.responses || []).length">Belum ada tanggapan dari petugas.</p>
-                    </dd>
-                </div>
-            </dl>
-        </section>
+            <PaginationControls :current-page="pagination.current_page" :last-page="pagination.last_page" :total="pagination.total" @change="changePage" />
+        </div>
+        <SummaryModal :open="Boolean(summary)" :title="summary?.judul || `Konsultasi #${summary?.id}`" @close="summary = null"><dl v-if="summary" class="grid gap-4 sm:grid-cols-2"><div><dt class="label">Status</dt><dd><StatusBadge :status="summary.status" /></dd></div><div><dt class="label">Topik</dt><dd>{{ topicLabel(summary.topik || {}) }}</dd></div><div class="sm:col-span-2"><dt class="label">Keterangan</dt><dd class="line-clamp-5 whitespace-pre-wrap">{{ summary.pesan || summary.deskripsi || '-' }}</dd></div><div class="sm:col-span-2"><dt class="label">Balasan</dt><dd>{{ summary.responses?.length || 0 }} tanggapan</dd></div></dl></SummaryModal>
     </div>
 </template>

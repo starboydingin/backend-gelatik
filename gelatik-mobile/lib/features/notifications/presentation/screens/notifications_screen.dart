@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
+import '../../../email/presentation/screens/usulan_email_detail_screen.dart';
+import '../../../email/repositories/email_repository.dart';
+import '../../../konsultasi/presentation/screens/konsultasi_detail_screen.dart';
+import '../../../konsultasi/repositories/konsultasi_repository.dart';
+import '../../../peminjaman/presentation/screens/peminjaman_detail_screen.dart';
+import '../../../peminjaman/repositories/peminjaman_repository.dart';
 import '../../models/gelatik_notification.dart';
 import '../../repositories/notification_repository.dart';
 
@@ -53,20 +59,64 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             _items = _items
                 .map(
                   (entry) => entry.id == item.id
-                      ? GelatikNotification(
-                          id: entry.id,
-                          title: entry.title,
-                          message: entry.message,
-                          type: entry.type,
-                          isRead: true,
-                          createdAt: entry.createdAt,
-                        )
+                      ? entry.copyWith(isRead: true)
                       : entry,
                 )
                 .toList(growable: false);
           });
         }
       } catch (_) {}
+    }
+    if (!mounted) return;
+    final resourceId = item.resourceId;
+    try {
+      final resourceType = item.resourceType?.toLowerCase() ?? '';
+      if (resourceId != null && resourceType.contains('konsult')) {
+        final detail = await ref
+            .read(konsultasiRepositoryProvider)
+            .getDetail(resourceId);
+        if (mounted) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => KonsultasiDetailScreen(konsultasi: detail),
+            ),
+          );
+        }
+        return;
+      }
+      if (resourceId != null && resourceType.contains('pinjam')) {
+        final detail = await ref
+            .read(peminjamanRepositoryProvider)
+            .getPeminjamanDetail(resourceId);
+        if (mounted) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PeminjamanDetailScreen(pinjam: detail),
+            ),
+          );
+        }
+        return;
+      }
+      if (resourceId != null && resourceType.contains('email')) {
+        final items = await ref.read(emailRepositoryProvider).getUsulan();
+        final detail = items
+            .where((entry) => entry.id == resourceId)
+            .firstOrNull;
+        if (detail != null && mounted) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => UsulanEmailDetailScreen(usulan: detail),
+            ),
+          );
+          return;
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Detail belum dapat dibuka: $error')),
+        );
+      }
     }
     if (!mounted) return;
     showModalBottomSheet(
@@ -162,10 +212,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                             if (item.createdAt != null) ...[
                               const SizedBox(height: 6),
                               Text(
-                                DateFormat(
-                                  'dd MMM yyyy, HH:mm',
-                                  'id_ID',
-                                ).format(item.createdAt!),
+                                GelatikDateFormatter.dateTime(item.createdAt!),
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: AppColors.mutedText(context),

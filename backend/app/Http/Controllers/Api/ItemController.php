@@ -18,16 +18,16 @@ class ItemController extends Controller
     }
 
     /** GET /api/item — semua item TIK */
-    public function item()
+    public function item(Request $request)
     {
-        $items = $this->itemService->getListAlat();
+        $items = $this->itemService->getListAlat($request->string('search')->trim()->value() ?: null);
         return response()->json(['success' => true, 'data' => $items]);
     }
 
     /** GET /api/items — list item TIK */
-    public function index()
+    public function index(Request $request)
     {
-        $items = $this->itemService->getListAlat();
+        $items = $this->itemService->getListAlat($request->string('search')->trim()->value() ?: null);
         return response()->json(['success' => true, 'data' => $items]);
     }
 

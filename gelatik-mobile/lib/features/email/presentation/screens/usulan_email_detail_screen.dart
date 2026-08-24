@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
@@ -148,7 +149,9 @@ class UsulanEmailDetailScreen extends StatelessWidget {
                     if (usulan.tanggalVerifikasi != null) ...[
                       _buildInfoRow(
                         'Tanggal Verifikasi',
-                        '${usulan.tanggalVerifikasi!.day}/${usulan.tanggalVerifikasi!.month}/${usulan.tanggalVerifikasi!.year}',
+                        GelatikDateFormatter.dateTime(
+                          usulan.tanggalVerifikasi!,
+                        ),
                         mutedText,
                         theme,
                       ),

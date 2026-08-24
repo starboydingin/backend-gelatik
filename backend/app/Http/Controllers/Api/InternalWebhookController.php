@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class InternalWebhookController extends Controller
 {
@@ -44,16 +45,31 @@ class InternalWebhookController extends Controller
         }
 
         try {
-            // Simpan status pengiriman ke database (Tabel whatsapp_delivery_logs)
-            DB::table('whatsapp_delivery_logs')->insert([
+            $deliveryKey = (string) ($reference['delivery_key'] ?? hash('sha256', implode('|', [
+                $reference['event_type'],
+                $reference['reference_id'],
+                $reference['user_id'],
+            ])));
+
+            $existing = DB::table('whatsapp_delivery_logs')
+                ->where('delivery_key', $deliveryKey)
+                ->first();
+
+            // updateOrInsert makes repeated callbacks and queue retries idempotent.
+            DB::table('whatsapp_delivery_logs')->updateOrInsert(
+                ['delivery_key' => $deliveryKey],
+                [
                 'user_id' => $reference['user_id'],
-                'event_type' => $reference['event_type'],
+                'event_type' => Str::limit((string) $reference['event_type'], 100, ''),
                 'reference_id' => $reference['reference_id'],
                 'status' => $status,
+                'attempts' => ((int) ($existing->attempts ?? 0)) + 1,
+                'error' => $status === 'failed' ? Str::limit((string) $error, 2000, '') : null,
                 'sent_at' => $status === 'delivered' ? now() : null,
-                'created_at' => now(),
+                'created_at' => $existing->created_at ?? now(),
                 'updated_at' => now(),
-            ]);
+                ],
+            );
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {

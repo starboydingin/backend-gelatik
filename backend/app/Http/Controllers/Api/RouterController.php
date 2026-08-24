@@ -19,7 +19,10 @@ class RouterController extends Controller
     /** GET /api/list-router-opd */
     public function listRouterOpd(Request $request)
     {
-        $data = $this->layananInternetService->getListRouterOpd($request->user());
+        $data = $this->layananInternetService->getListRouterOpd(
+            $request->user(),
+            $request->string('search')->trim()->value() ?: null,
+        );
 
         return response()->json([
             'success' => true,

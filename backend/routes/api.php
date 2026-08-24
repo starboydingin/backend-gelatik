@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\CalendarController;
 use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\Api\ChatbotUrlController;
@@ -71,6 +72,8 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/pinjam', [PinjamController::class, 'index']);
     Route::post('/pinjam', [PinjamController::class, 'store']);
     Route::get('/pinjam/{id}', [PinjamController::class, 'show']);
+    Route::get('/pinjam/{id}/attachment/{kind?}', [AttachmentController::class, 'pinjam'])
+        ->where('kind', 'document|return-proof');
     Route::put('/pinjam/{id}', [PinjamController::class, 'update']);
     Route::delete('/pinjam/{id}', [PinjamController::class, 'destroy']);
     Route::post('/pinjam/{id}/status', [PinjamController::class, 'updateStatus']);
@@ -81,6 +84,8 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/konsul', [KonsultasiController::class, 'index']);
     Route::post('/konsul', [KonsultasiController::class, 'store']);
     Route::get('/konsul/{id}', [KonsultasiController::class, 'show']);
+    Route::get('/konsul/{id}/attachment', [AttachmentController::class, 'konsultasi']);
+    Route::get('/konsul/{id}/responses/{responseId}/attachment', [AttachmentController::class, 'konsultasiResponse']);
     Route::put('/konsul/{id}', [KonsultasiController::class, 'update']);
     Route::delete('/konsul/{id}', [KonsultasiController::class, 'destroy']);
     Route::post('/konsul/{id}/response', [KonsultasiController::class, 'respond']);
@@ -199,6 +204,7 @@ Route::middleware('auth:api')->group(function () {
 
     // F-BOT: Chatbot AI Native
     Route::post('/chatbot/message', [ChatbotController::class, 'message']);
+    Route::get('/chatbot/conversations/latest', [ChatbotController::class, 'latestConversation']);
     Route::get('/chatbot/history', [ChatbotController::class, 'history']);
     Route::delete('/chatbot/history', [ChatbotController::class, 'deleteHistory']);
 

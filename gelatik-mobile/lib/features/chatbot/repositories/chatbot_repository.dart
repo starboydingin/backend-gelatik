@@ -159,6 +159,23 @@ class ChatbotRepository {
     }
   }
 
+  Future<String?> getLatestSessionId() async {
+    try {
+      final response = await apiClient.dio.get('/chatbot/conversations/latest');
+      final data = _dataEnvelope(response.data);
+      if (data == null) return null;
+      if (data is! Map) {
+        throw ChatbotRepositoryException.malformed(
+          'Data percakapan terbaru bukan object JSON.',
+        );
+      }
+      final sessionId = data['session_id']?.toString();
+      return sessionId == null || sessionId.trim().isEmpty ? null : sessionId;
+    } on DioException catch (error) {
+      throw ChatbotRepositoryException.fromDioException(error);
+    }
+  }
+
   Future<void> deleteHistory(String sessionId) async {
     try {
       final response = await apiClient.dio.delete(

@@ -146,6 +146,35 @@ async function history() {
         localStorage.removeItem('gelatik_chat_session')
     }
 }
+async function syncLatestConversation(preferredSession = '') {
+    try {
+        const latest = payload(await api.get('/chatbot/conversations/latest', { cache: false }))
+        const nextSession = preferredSession || latest?.session_id || ''
+        if (!nextSession) return
+        if (sessionId.value !== nextSession) {
+            sessionId.value = nextSession
+            localStorage.setItem('gelatik_chat_session', nextSession)
+        }
+        await history()
+    } catch {
+        // The local greeting and current history remain usable while offline.
+    }
+}
+async function handleRealtimeChat(event) {
+    const data = event.detail || {}
+    const eventType = String(data.type || '')
+    const remoteSession = String(data.session_id || '')
+    if (!eventType.startsWith('chatbot.')) return
+
+    if (eventType === 'chatbot.conversation.deleted' && remoteSession === sessionId.value) {
+        sessionId.value = ''
+        localStorage.removeItem('gelatik_chat_session')
+        messages.value = messages.value.filter((item) => item.localStarter)
+        await syncLatestConversation()
+        return
+    }
+    await syncLatestConversation(remoteSession)
+}
 async function send(text = input.value) {
     if (!String(text).trim() || sending.value) return
     const prompt = String(text).trim()
@@ -201,11 +230,12 @@ async function initialize() {
     if (!initialized.value) {
         initialized.value = true
         // History is supplemental. Load it without blocking the first visible chatbot bubble.
-        void history()
+        void syncLatestConversation()
     }
 }
 onMounted(() => {
     initialize()
+    window.addEventListener('gelatik:chatbot', handleRealtimeChat)
     // Vue's declarative wheel listener can be passive in some embedded Windows
     // runtimes. This explicit listener keeps mouse-wheel scrolling cancellable.
     quickQuestionStrip.value?.addEventListener('wheel', scrollQuickQuestions, { passive: false })
@@ -220,6 +250,7 @@ onDeactivated(() => {
 onBeforeUnmount(() => {
     document.removeEventListener('visibilitychange', handleVisibilityChange)
     quickQuestionStrip.value?.removeEventListener('wheel', scrollQuickQuestions)
+    window.removeEventListener('gelatik:chatbot', handleRealtimeChat)
     if (inactivityTimer) window.clearTimeout(inactivityTimer)
     sessionStorage.setItem(visitKey, String(Date.now()))
 })

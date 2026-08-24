@@ -1,9 +1,12 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { BellIcon } from '@heroicons/vue/24/outline'
+import { useRouter } from 'vue-router'
 import { api, errorMessage, invalidateApiCache, payload, rows } from '../lib/api'
+import { notificationRoute } from '../lib/notificationRoute'
 
-defineProps({ adminArea: Boolean })
+const props = defineProps({ adminArea: Boolean })
+const router = useRouter()
 
 const open = ref(false)
 const items = ref([])
@@ -22,16 +25,14 @@ async function markRead(item) {
     if (!item.read && !item.read_at) await api.post(`/notifications/${item.id}/read`)
     item.read = true
 }
-async function toggleOpen() {
+function toggleOpen() {
     open.value = !open.value
-    if (!open.value || !unread.value) return
-
+}
+async function openItem(item) {
     try {
-        await api.post('/notifications/read-all')
-        items.value.forEach((item) => {
-            item.read = true
-            item.read_at = item.read_at || new Date().toISOString()
-        })
+        await markRead(item)
+        open.value = false
+        await router.push(notificationRoute(item, props.adminArea))
     } catch (requestError) {
         error.value = errorMessage(requestError)
     }
@@ -83,7 +84,7 @@ onUnmounted(() => window.removeEventListener('gelatik:notification', realtimeRef
                 v-else
                 :key="item.id"
                 class="flex w-full gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-0 hover:bg-slate-50"
-                @click="markRead(item)"
+                @click="openItem(item)"
             >
                 <span
                     class="mt-1 size-2 shrink-0 rounded-full"

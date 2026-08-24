@@ -9,6 +9,13 @@ use Illuminate\Support\Facades\Log;
 
 class SendUsulanEmailCreatedNotification implements ShouldQueue
 {
+    public int $tries = 3;
+
+    public function backoff(): array
+    {
+        return [10, 30, 90];
+    }
+
     public function __construct() {}
 
     public function handle(UsulanEmailCreated $event): void
@@ -28,6 +35,7 @@ class SendUsulanEmailCreatedNotification implements ShouldQueue
             );
         } catch (\Exception $e) {
             Log::error('SendUsulanEmailCreatedNotification FCM Error: ' . $e->getMessage());
+            throw $e;
         }
     }
 }

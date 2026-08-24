@@ -220,6 +220,29 @@ class KonsultasiRepository {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getFaq({int? topikId}) async {
+    try {
+      final response = await apiClient.dio.get(
+        '/faq',
+        queryParameters: topikId == null ? null : {'topik_id': topikId},
+      );
+      final data = _envelope(response.data);
+      if (data is! List) {
+        throw KonsultasiRepositoryException.malformed(
+          'Data FAQ konsultasi bukan list JSON.',
+        );
+      }
+      return data
+          .whereType<Map>()
+          .map((entry) => Map<String, dynamic>.from(entry))
+          .toList(growable: false);
+    } on DioException catch (error) {
+      throw KonsultasiRepositoryException.fromDioException(error);
+    } on KonsultasiRepositoryException {
+      rethrow;
+    }
+  }
+
   Future<KonsultasiModel> _object(
     Future<Response<dynamic>> Function() request,
   ) async {

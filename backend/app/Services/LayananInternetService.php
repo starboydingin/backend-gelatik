@@ -11,7 +11,7 @@ class LayananInternetService
     /**
      * Ambil data router OPD milik user yang sedang login
      */
-    public function getListRouterOpd(User $user): array
+    public function getListRouterOpd(User $user, ?string $search = null): array
     {
         if (empty($user->nama_opd)) {
             return [
@@ -27,11 +27,27 @@ class LayananInternetService
 
         $listRouter = RouterList::aktif()
             ->where('nama_opd', $user->nama_opd)
-            ->get();
+            ->when(filled($search), fn ($q) => $q->where(function ($nested) use ($search): void {
+                $nested->where('identity_router', 'like', '%'.$search.'%')
+                    ->orWhere('interface', 'like', '%'.$search.'%')
+                    ->orWhere('lokasi', 'like', '%'.$search.'%');
+            }))
+            ->orderBy('identity_router')
+            ->orderBy('id')
+            ->get()
+            ->unique(fn (RouterList $item): string => strtolower(trim(implode('|', [
+                $item->identity_router,
+                $item->interface,
+                $item->lokasi,
+            ]))))
+            ->values();
 
         $router = Router::aktif()
             ->where('nama_opd', $user->nama_opd)
-            ->get();
+            ->orderBy('id')
+            ->get()
+            ->unique(fn (Router $item): string => strtolower(trim((string) ($item->identity_router ?? $item->getKey()))))
+            ->values();
 
         return [
             'list_router' => $listRouter,

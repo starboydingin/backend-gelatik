@@ -12,6 +12,13 @@ use Illuminate\Support\Facades\Log;
 
 class SendUsulanEmailNotification implements ShouldQueue
 {
+    public int $tries = 3;
+
+    public function backoff(): array
+    {
+        return [10, 30, 90];
+    }
+
     /**
      * Create the event listener.
      */
@@ -26,6 +33,7 @@ class SendUsulanEmailNotification implements ShouldQueue
     public function handle(UsulanEmailStatusChanged $event): void
     {
         $nodeService = new NodeServiceClient();
+        $deliveryFailure = null;
         $ownerId = (int) ($event->usulan->created_by ?? 0);
         if ($ownerId <= 0) {
             Log::warning('Usulan email status notification skipped because the owner is missing.', [
@@ -66,6 +74,7 @@ class SendUsulanEmailNotification implements ShouldQueue
             }
         } catch (\Exception $e) {
             Log::error('SendUsulanEmailNotification WA Error: ' . $e->getMessage());
+            $deliveryFailure = $e;
         }
 
         // 2. FCM Push Notification (topic-based)
@@ -82,6 +91,11 @@ class SendUsulanEmailNotification implements ShouldQueue
             );
         } catch (\Exception $e) {
             Log::error('SendUsulanEmailNotification FCM Error: ' . $e->getMessage());
+            $deliveryFailure ??= $e;
+        }
+
+        if ($deliveryFailure) {
+            throw $deliveryFailure;
         }
     }
 }

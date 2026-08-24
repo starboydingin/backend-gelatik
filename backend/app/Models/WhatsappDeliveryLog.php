@@ -6,18 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class WhatsappDeliveryLog extends Model
 {
-    public $timestamps = false;
-
     protected $fillable = [
+        'delivery_key',
         'user_id',
         'event_type',
         'reference_id',
         'status',
+        'attempts',
+        'error',
         'sent_at',
     ];
 
     protected $casts = [
         'sent_at' => 'datetime',
+        'attempts' => 'integer',
     ];
 
     public function user()

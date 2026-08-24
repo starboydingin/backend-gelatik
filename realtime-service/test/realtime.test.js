@@ -3,6 +3,7 @@ const test = require('node:test');
 
 const { validateRuntimeConfig } = require('../src/config');
 const { normalizePayload } = require('../src/realtime/eventSchema');
+const { normalizeIndonesianNumber } = require('../src/whatsapp/waGateway');
 const {
     createAuthMiddleware,
     createBroadcaster,
@@ -119,4 +120,12 @@ test('disconnect removes connection state', () => {
     registry.remove('socket-1');
     assert.equal(registry.has('socket-1'), false);
     assert.equal(registry.size(), 0);
+});
+
+test('WhatsApp numbers are normalized safely without changing recipients', () => {
+    assert.equal(normalizeIndonesianNumber('0812-3456-7890'), '6281234567890');
+    assert.equal(normalizeIndonesianNumber('81234567890'), '6281234567890');
+    assert.equal(normalizeIndonesianNumber('+62 812 3456 7890'), '6281234567890');
+    assert.throws(() => normalizeIndonesianNumber('123'), /tidak valid/);
+    assert.throws(() => normalizeIndonesianNumber(''), /tidak valid/);
 });

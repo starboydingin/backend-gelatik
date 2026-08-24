@@ -152,11 +152,6 @@ class PinjamService
             $updateData['catatan_petugas'] = $catatan;
         }
 
-        // Catatan petugas is the administrator's confirmation context. Keep it
-        // for every valid status transition, not only for a rejected request.
-        if (filled($catatan)) {
-        }
-
         if ($statusBaru === 'Selesai') {
             if ($buktiPengembalian) {
                 $path = $buktiPengembalian->store('bukti_pengembalian', 'public');

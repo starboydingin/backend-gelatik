@@ -22,7 +22,10 @@ class ChatbotService
     // minimal incident details.
     private const CONSULTATION_OFFER_AFTER = 2;
 
-    public function __construct(private KonsultasiService $konsultasiService)
+    public function __construct(
+        private KonsultasiService $konsultasiService,
+        private NodeServiceClient $nodeService,
+    )
     {
     }
 
@@ -72,6 +75,7 @@ class ChatbotService
                 'user_id' => $user->id,
                 'session_id' => $sessionId,
             ]);
+            $this->broadcastConversation($user, $conversation, 'chatbot.conversation.created');
         }
 
         // A new visit must not inherit an unfinished escalation from a much
@@ -113,7 +117,7 @@ class ChatbotService
             $conversation->refresh();
         }
 
-        $userMessage = ChatbotMessage::create([
+        $userMessage = $this->persistMessage($user, $conversation, [
             'conversation_id' => $conversation->id,
             'role' => 'user',
             'content' => $message,
@@ -194,7 +198,7 @@ class ChatbotService
                 default => self::SCOPE_REFUSAL,
             };
 
-            ChatbotMessage::create([
+            $this->persistMessage($user, $conversation, [
                 'conversation_id' => $conversation->id,
                 'role' => 'assistant',
                 'content' => $reply,
@@ -224,7 +228,7 @@ class ChatbotService
                 $conversation,
                 $activeContext
             );
-            ChatbotMessage::create([
+            $this->persistMessage($user, $conversation, [
                 'conversation_id' => $conversation->id,
                 'role' => 'assistant',
                 'content' => $officialFaqReply,
@@ -338,7 +342,7 @@ class ChatbotService
             $activeContext
         );
 
-        ChatbotMessage::create([
+        $this->persistMessage($user, $conversation, [
             'conversation_id' => $conversation->id,
             'role' => 'assistant',
             'content' => $providerReply,
@@ -414,6 +418,22 @@ class ChatbotService
             ->get();
     }
 
+    public function latestConversation(User $user): ?array
+    {
+        $conversation = ChatbotConversation::query()
+            ->where('user_id', $user->id)
+            ->withCount('messages')
+            ->latest('updated_at')
+            ->first();
+
+        return $conversation ? [
+            'id' => (int) $conversation->id,
+            'session_id' => $conversation->session_id,
+            'messages_count' => (int) $conversation->messages_count,
+            'updated_at' => $conversation->updated_at?->toISOString(),
+        ] : null;
+    }
+
     public function deleteHistory(User $user, string $sessionId)
     {
         $conversation = ChatbotConversation::where('user_id', $user->id)
@@ -423,6 +443,7 @@ class ChatbotService
         if ($conversation) {
             ChatbotMessage::where('conversation_id', $conversation->id)->delete();
             $conversation->delete();
+            $this->broadcastConversation($user, $conversation, 'chatbot.conversation.deleted');
 
             return true;
         }
@@ -693,7 +714,7 @@ class ChatbotService
         string $provider,
         array $extra = []
     ): array {
-        ChatbotMessage::create([
+        $this->persistMessage($conversation->user, $conversation, [
             'conversation_id' => $conversation->id,
             'role' => 'assistant',
             'content' => $reply,
@@ -706,6 +727,34 @@ class ChatbotService
             'reply' => $reply,
             'provider' => $provider,
         ], $extra);
+    }
+
+    private function persistMessage(User $user, ChatbotConversation $conversation, array $attributes): ChatbotMessage
+    {
+        $message = ChatbotMessage::create($attributes);
+        $conversation->touch();
+        $this->nodeService->broadcastToUser(
+            $user->id,
+            'chatbot.message.created',
+            RealtimeEventPayload::make('chatbot.message.created', (int) $conversation->id, [
+                'session_id' => $conversation->session_id,
+                'message_id' => (int) $message->id,
+                'role' => $message->role,
+            ]),
+        );
+
+        return $message;
+    }
+
+    private function broadcastConversation(User $user, ChatbotConversation $conversation, string $event): void
+    {
+        $this->nodeService->broadcastToUser(
+            $user->id,
+            $event,
+            RealtimeEventPayload::make($event, (int) $conversation->id, [
+                'session_id' => $conversation->session_id,
+            ]),
+        );
     }
 
     /**

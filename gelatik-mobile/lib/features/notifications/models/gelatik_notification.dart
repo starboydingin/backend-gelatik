@@ -5,6 +5,8 @@ class GelatikNotification {
   final String type;
   final bool isRead;
   final DateTime? createdAt;
+  final String? resourceType;
+  final int? resourceId;
 
   const GelatikNotification({
     required this.id,
@@ -13,6 +15,8 @@ class GelatikNotification {
     required this.type,
     required this.isRead,
     this.createdAt,
+    this.resourceType,
+    this.resourceId,
   });
 
   factory GelatikNotification.fromJson(Map<String, dynamic> json) {
@@ -25,6 +29,19 @@ class GelatikNotification {
       isRead:
           read == true || read == 1 || read == '1' || json['read_at'] != null,
       createdAt: DateTime.tryParse('${json['created_at'] ?? ''}'),
+      resourceType: json['resource_type']?.toString(),
+      resourceId: int.tryParse('${json['resource_id'] ?? ''}'),
     );
   }
+
+  GelatikNotification copyWith({bool? isRead}) => GelatikNotification(
+    id: id,
+    title: title,
+    message: message,
+    type: type,
+    isRead: isRead ?? this.isRead,
+    createdAt: createdAt,
+    resourceType: resourceType,
+    resourceId: resourceId,
+  );
 }

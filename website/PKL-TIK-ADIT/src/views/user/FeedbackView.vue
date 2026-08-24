@@ -1,9 +1,11 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ChatBubbleBottomCenterTextIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import { api, errorMessage } from '../../lib/api'
 import AlertMessage from '../../components/AlertMessage.vue'
 import PageHeader from '../../components/PageHeader.vue'
+const router = useRouter()
 const form = ref({ kritik: '', saran: '' }),
     message = ref(''),
     error = ref(''),
@@ -15,6 +17,7 @@ async function submit() {
         await api.post('/kritik-saran', form.value)
         message.value = 'Terima kasih. Masukan Anda berhasil dikirim.'
         form.value = { kritik: '', saran: '' }
+        await router.push('/app/rating')
     } catch (requestError) {
         error.value = errorMessage(requestError)
     } finally {

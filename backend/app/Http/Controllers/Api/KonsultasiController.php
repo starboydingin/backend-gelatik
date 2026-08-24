@@ -143,6 +143,14 @@ class KonsultasiController extends Controller
     {
         $konsultasi = Konsultasi::findOrFail($id);
         Gate::authorize('delete', $konsultasi);
+
+        if ($konsultasi->status !== 'Menunggu') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Konsultasi yang sudah diproses tidak dapat dihapus.',
+            ], 409);
+        }
+
         $konsultasi->delete();
 
         return response()->json(['success' => true, 'message' => 'Konsultasi berhasil dihapus.']);

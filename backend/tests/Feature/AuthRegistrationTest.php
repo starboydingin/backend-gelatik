@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\PasswordResetOtp;
 use App\Models\User;
+use App\Models\WhatsappSubscription;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -119,6 +120,12 @@ class AuthRegistrationTest extends TestCase
     {
         $user = $this->createUser('reset@example.test', '1');
         $user->update(['no_hp' => '081234567890']);
+        WhatsappSubscription::create([
+            'user_id' => $user->id,
+            'nomor_wa' => '081234567890',
+            'is_opt_in' => true,
+            'verified_at' => now(),
+        ]);
         $sentOtp = null;
         Http::fake(function ($request) use (&$sentOtp) {
             if (str_ends_with($request->url(), '/health')) {
@@ -301,6 +308,15 @@ class AuthRegistrationTest extends TestCase
             $table->timestamp('verified_at')->nullable();
             $table->timestamp('consumed_at')->nullable();
             $table->timestamp('last_sent_at');
+            $table->timestamps();
+        });
+        Schema::create('whatsapp_subscriptions', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->unique();
+            $table->string('nomor_wa');
+            $table->boolean('is_opt_in')->default(false);
+            $table->timestamp('verified_at')->nullable();
+            $table->string('last_delivery_status')->nullable();
             $table->timestamps();
         });
         Schema::create('unker_list_router', function (Blueprint $table): void {

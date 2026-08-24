@@ -13,6 +13,10 @@ const ALLOWED_EVENTS = new Set([
     'pengumuman.created',
     'usulan_email.created',
     'usulan_email.status_changed',
+    'chatbot.conversation.created',
+    'chatbot.conversation.updated',
+    'chatbot.conversation.deleted',
+    'chatbot.message.created',
 ]);
 
 const SENSITIVE_KEYS = new Set([

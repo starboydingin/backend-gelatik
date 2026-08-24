@@ -7,6 +7,9 @@ import EmptyState from '../../components/EmptyState.vue'
 import LoadingState from '../../components/LoadingState.vue'
 import ServiceHero from '../../components/ServiceHero.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import SummaryModal from '../../components/SummaryModal.vue'
+import PaginationControls from '../../components/PaginationControls.vue'
+import { formatDateTime } from '../../lib/date'
 const route = useRoute(),
     admin = computed(() => route.path.startsWith('/admin')),
     list = ref([]),
@@ -16,7 +19,9 @@ const route = useRoute(),
     search = ref(''),
     statusFilter = ref('all'),
     showForm = ref(false),
-    detail = ref(null),
+    summary = ref(null),
+    page = ref(1),
+    pagination = ref({ current_page: 1, last_page: 1, total: 0 }),
     submitting = ref(false),
     form = ref({ nip: '', email_pribadi: '' })
 const selectedEmployee = computed(() =>
@@ -45,28 +50,25 @@ const stats = computed(() => [
     },
     { label: 'Ditolak', value: list.value.filter((item) => /tolak/i.test(item.status)).length },
 ])
-function formatSubmittedAt(value) {
-    if (!value) return '-'
-    const parsed = new Date(value)
-    if (Number.isNaN(parsed.getTime())) return value
-
-    return new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    }).format(parsed)
-}
 async function load() {
     loading.value = true
     try {
-        list.value = rows(payload(await api.get('/pengajuan-email')))
+        const data = payload(await api.get('/pengajuan-email', { params: { page: page.value }, cache: false }))
+        list.value = rows(data)
+        pagination.value = {
+            current_page: Number(data?.current_page || 1),
+            last_page: Number(data?.last_page || 1),
+            total: Number(data?.total ?? list.value.length),
+        }
     } catch (e) {
         error.value = errorMessage(e)
     } finally {
         loading.value = false
     }
+}
+async function changePage(nextPage) {
+    page.value = nextPage
+    await load()
 }
 async function open() {
     error.value = ''
@@ -82,12 +84,8 @@ async function open() {
         error.value = errorMessage(requestError)
     }
 }
-async function showDetail(id) {
-    try {
-        detail.value = payload(await api.get(`/pengajuan-email/${id}`))
-    } catch (requestError) {
-        error.value = errorMessage(requestError)
-    }
+function showSummary(item) {
+    summary.value = item
 }
 async function submit() {
     submitting.value = true
@@ -101,21 +99,6 @@ async function submit() {
         error.value = errorMessage(e)
     } finally {
         submitting.value = false
-    }
-}
-async function action(id, type) {
-    let body = {}
-    if (type === 'buat-email-resmi') {
-        const value = prompt('Masukkan email resmi yang dibuat')
-        if (!value) return
-        body = { email_resmi: value }
-    }
-    if (type === 'tolak-email') body = { catatan: prompt('Alasan penolakan') || '' }
-    try {
-        await api.post(`/pengajuan-email/${id}/${type}`, body)
-        await load()
-    } catch (e) {
-        error.value = errorMessage(e)
     }
 }
 onMounted(load)
@@ -190,131 +173,12 @@ onMounted(load)
             </select>
         </div>
         <LoadingState v-if="loading" />
-        <div v-else class="table-wrap border-0 shadow-none">
+        <div v-else class="p-5">
             <EmptyState v-if="!list.length" />
-            <table v-else class="data-table email-proposal-table">
-                <colgroup>
-                    <col class="w-12" />
-                    <col class="w-36" />
-                    <col class="w-40" />
-                    <col class="w-44" />
-                    <col class="w-44" />
-                    <col class="w-28" />
-                    <col class="w-36" />
-                    <col class="w-24" />
-                </colgroup>
-                <thead>
-                    <tr>
-                        <th>No.</th>
-                        <th>Nama</th>
-                        <th>NIP</th>
-                        <th>Email pribadi</th>
-                        <th>Email resmi</th>
-                        <th>Status</th>
-                        <th>Tanggal diajukan</th>
-                        <th>Tindakan</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(item, index) in displayedList" :key="item.id">
-                        <td>{{ index + 1 }}</td>
-                        <td class="font-semibold">
-                            <strong>{{
-                                item.nama || item.nama_pegawai || `Usulan #${item.id}`
-                            }}</strong>
-                        </td>
-                        <td class="whitespace-nowrap">{{ item.nip || '-' }}</td>
-                        <td class="truncate" :title="item.email_pribadi">{{ item.email_pribadi }}</td>
-                        <td>{{ item.email_resmi || '—' }}</td>
-                        <td>
-                            <StatusBadge :status="item.status" />
-                        </td>
-                        <td class="whitespace-nowrap">{{ formatSubmittedAt(item.created_at) }}</td>
-                        <td class="whitespace-nowrap">
-                            <button class="btn-secondary min-h-9 px-3" @click="showDetail(item.id)">
-                                {{ admin ? 'Kelola' : 'Detail' }}
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"><article v-for="item in displayedList" :key="item.id" class="card flex min-h-64 flex-col"><div class="flex items-start justify-between gap-3"><p class="eyebrow">Usulan #{{ item.id }}</p><StatusBadge :status="item.status" /></div><h2 class="mt-3 line-clamp-2 text-lg font-bold">{{ item.nama || item.nama_pegawai || 'Pegawai ASN' }}</h2><dl class="mt-4 grid gap-3 text-sm"><div><dt class="label">NIP</dt><dd>{{ item.nip || '-' }}</dd></div><div><dt class="label">Email pribadi</dt><dd class="truncate" :title="item.email_pribadi">{{ item.email_pribadi || '-' }}</dd></div><div><dt class="label">Diajukan</dt><dd>{{ formatDateTime(item.created_at) }}</dd></div></dl><div class="mt-auto flex flex-wrap gap-2 pt-5"><button class="btn-secondary min-h-9 px-3" @click="showSummary(item)">Ringkasan</button><RouterLink class="btn-secondary min-h-9 px-3" :to="`${admin ? '/admin' : '/app'}/email-resmi/${item.id}`">{{ admin ? 'Kelola' : 'Detail' }}</RouterLink></div></article></div>
+            <PaginationControls :current-page="pagination.current_page" :last-page="pagination.last_page" :total="pagination.total" @change="changePage" />
         </div>
         </section>
-        <section v-if="detail" class="card">
-            <div class="flex items-start justify-between gap-4">
-                <div>
-                    <p class="eyebrow">Detail usulan email</p>
-                    <h2 class="mt-1 text-xl font-bold text-navy">
-                        {{ detail.nama || detail.nama_pegawai || `Usulan #${detail.id}` }}
-                    </h2>
-                </div>
-                <div class="flex flex-wrap justify-end gap-2">
-                    <button
-                        v-if="admin"
-                        class="btn-secondary min-h-9 px-3"
-                        @click="action(detail.id, 'verifikasi')"
-                    >
-                        Verifikasi
-                    </button>
-                    <button
-                        v-if="admin"
-                        class="btn-primary min-h-9 px-3"
-                        @click="action(detail.id, 'buat-email-resmi')"
-                    >
-                        Buat email
-                    </button>
-                    <button
-                        v-if="admin"
-                        class="btn-danger min-h-9 px-3"
-                        @click="action(detail.id, 'tolak-email')"
-                    >
-                        Tolak
-                    </button>
-                    <button class="btn-secondary min-h-9 px-3" @click="detail = null">Tutup</button>
-                </div>
-            </div>
-            <dl class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div>
-                    <dt class="label">NIP</dt>
-                    <dd>{{ detail.nip || '-' }}</dd>
-                </div>
-                <div>
-                    <dt class="label">Unit kerja</dt>
-                    <dd>{{ detail.unit_kerja || '-' }}</dd>
-                </div>
-                <div>
-                    <dt class="label">Jabatan</dt>
-                    <dd>{{ detail.jabatan || '-' }}</dd>
-                </div>
-                <div>
-                    <dt class="label">Email pribadi</dt>
-                    <dd class="break-all">{{ detail.email_pribadi || '-' }}</dd>
-                </div>
-                <div>
-                    <dt class="label">Email resmi</dt>
-                    <dd class="break-all">{{ detail.email_resmi || '-' }}</dd>
-                </div>
-                <div>
-                    <dt class="label">Status</dt>
-                    <dd><StatusBadge :status="detail.status" /></dd>
-                </div>
-                <div>
-                    <dt class="label">Tanggal pengajuan</dt>
-                    <dd>{{ detail.created_at || '-' }}</dd>
-                </div>
-                <div>
-                    <dt class="label">Tanggal verifikasi</dt>
-                    <dd>{{ detail.tanggal_verifikasi || '-' }}</dd>
-                </div>
-                <div>
-                    <dt class="label">Diverifikasi oleh</dt>
-                    <dd>{{ detail.diverifikasi_oleh || '-' }}</dd>
-                </div>
-                <div class="sm:col-span-2 lg:col-span-4">
-                    <dt class="label">Catatan petugas</dt>
-                    <dd class="whitespace-pre-wrap">{{ detail.catatan || '-' }}</dd>
-                </div>
-            </dl>
-        </section>
+        <SummaryModal :open="Boolean(summary)" :title="summary?.nama || summary?.nama_pegawai || `Usulan #${summary?.id}`" @close="summary = null"><dl v-if="summary" class="grid gap-4 sm:grid-cols-2"><div><dt class="label">Status</dt><dd><StatusBadge :status="summary.status" /></dd></div><div><dt class="label">NIP</dt><dd>{{ summary.nip || '-' }}</dd></div><div><dt class="label">Email pribadi</dt><dd class="break-all">{{ summary.email_pribadi || '-' }}</dd></div><div><dt class="label">Email resmi</dt><dd class="break-all">{{ summary.email_resmi || '-' }}</dd></div></dl></SummaryModal>
     </div>
 </template>

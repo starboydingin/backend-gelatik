@@ -130,6 +130,8 @@ class PasswordResetOtpService
     {
         // Password recovery must use the explicitly opted-in WhatsApp number,
         // never the general profile phone number.
-        return $user->whatsappSubscription?->nomor_wa;
+        $subscription = $user->whatsappSubscription;
+
+        return $subscription?->is_opt_in ? $subscription->nomor_wa : null;
     }
 }

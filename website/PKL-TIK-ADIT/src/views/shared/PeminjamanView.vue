@@ -9,6 +9,9 @@ import LoadingState from '../../components/LoadingState.vue'
 import ServiceHero from '../../components/ServiceHero.vue'
 import StatusSummary from '../../components/StatusSummary.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import SummaryModal from '../../components/SummaryModal.vue'
+import PaginationControls from '../../components/PaginationControls.vue'
+import { formatLoanSchedule } from '../../lib/date'
 const route = useRoute(),
     auth = useAuthStore(),
     admin = computed(() => route.path.startsWith('/admin')),
@@ -21,7 +24,9 @@ const route = useRoute(),
     statusFilter = ref('all'),
     showForm = ref(false),
     editingId = ref(null),
-    detail = ref(null),
+    summary = ref(null),
+    page = ref(1),
+    pagination = ref({ current_page: 1, last_page: 1, total: 0 }),
     form = ref({
         nama_pic: '',
         jabatan_pic: '',
@@ -45,7 +50,6 @@ function localDate(offsetDays = 0) {
     return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
 }
 const today = localDate()
-const tomorrow = localDate(1)
 const minimumStartTime = computed(() => {
     if (form.value.tanggal_mulai !== today) return undefined
     const now = new Date(Date.now() + 60_000)
@@ -89,12 +93,22 @@ const displayedItems = computed(() =>
 async function load() {
     loading.value = true
     try {
-        items.value = rows(payload(await api.get('/pinjam')))
+        const data = payload(await api.get('/pinjam', { params: { page: page.value }, cache: false }))
+        items.value = rows(data)
+        pagination.value = {
+            current_page: Number(data?.current_page || 1),
+            last_page: Number(data?.last_page || 1),
+            total: Number(data?.total ?? items.value.length),
+        }
     } catch (e) {
         error.value = errorMessage(e)
     } finally {
         loading.value = false
     }
+}
+async function changePage(nextPage) {
+    page.value = nextPage
+    await load()
 }
 async function loadAssets() {
     assets.value = rows(payload(await api.get('/items')))
@@ -160,12 +174,8 @@ async function edit(item) {
         error.value = errorMessage(requestError)
     }
 }
-async function showDetail(id) {
-    try {
-        detail.value = payload(await api.get(`/pinjam/${id}`))
-    } catch (requestError) {
-        error.value = errorMessage(requestError)
-    }
+function showSummary(item) {
+    summary.value = item
 }
 async function addAsset() {
     if (!draft.value.item_id) return
@@ -314,7 +324,6 @@ onMounted(load)
                         v-model="form.tanggal_mulai"
                         type="date"
                         :min="today"
-                        :max="tomorrow"
                         class="input"
                         required /></label
                 ><label
@@ -412,114 +421,23 @@ onMounted(load)
             </select>
         </div>
         <LoadingState v-if="loading" />
-        <div v-else class="table-wrap">
+        <div v-else>
             <EmptyState v-if="!items.length" />
-            <table v-else class="data-table">
-                <thead>
-                    <tr>
-                        <th>Pengajuan</th>
-                        <th>Pemohon</th>
-                        <th>Jadwal</th>
-                        <th>Status</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="item in displayedItems" :key="item.id">
-                        <td>
-                            <strong
-                                >#{{ item.id }} · {{ item.keterangan || 'Peminjaman aset' }}</strong
-                            >
-                            <p class="mt-1 text-xs text-slate-500">
-                                {{ item.pinjam_items?.length || 0 }} item
-                            </p>
-                        </td>
-                        <td>{{ item.user?.name || item.nama_pic || '-' }}</td>
-                        <td>
-                            {{ item.tanggal_mulai || '-' }}<br /><span
-                                class="text-xs text-slate-400"
-                                >{{ item.jam_mulai || '' }}</span
-                            >
-                        </td>
-                        <td>
-                            <StatusBadge :status="item.status" />
-                        </td>
-                        <td>
-                            <div v-if="admin" class="flex">
-                                <RouterLink
-                                    class="btn-secondary min-h-9 px-3"
-                                    :to="`/admin/peminjaman/${item.id}/kelola`"
-                                >
-                                    Kelola
-                                </RouterLink>
-                            </div>
-                            <div v-else class="flex flex-wrap gap-2">
-                                <button
-                                    class="btn-secondary min-h-9 px-3"
-                                    @click="showDetail(item.id)"
-                                >
-                                    Detail
-                                </button>
-                                <button
-                                    v-if="!admin && String(item.status).toLowerCase() === 'menunggu'"
-                                    class="btn-secondary min-h-9 px-3"
-                                    @click="edit(item)"
-                                >
-                                    Edit
-                                </button>
-                                <button class="btn-danger min-h-9 px-3" @click="remove(item.id)">
-                                    Hapus
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <section v-if="detail" class="card">
-            <div class="flex items-start justify-between gap-4">
-                <div>
-                    <p class="eyebrow">Detail peminjaman</p>
-                    <h2 class="mt-1 text-xl font-bold text-navy">Pengajuan #{{ detail.id }}</h2>
-                </div>
-                <button class="btn-secondary min-h-9 px-3" @click="detail = null">Tutup</button>
+            <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <article v-for="item in displayedItems" :key="item.id" class="card flex min-h-64 flex-col">
+                    <div class="flex items-start justify-between gap-3"><p class="eyebrow">Peminjaman #{{ item.id }}</p><StatusBadge :status="item.status" /></div>
+                    <h2 class="mt-3 line-clamp-2 text-lg font-bold">{{ item.keterangan || 'Peminjaman aset TIK' }}</h2>
+                    <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt class="label">Pemohon</dt><dd>{{ item.user?.name || item.nama_pic || '-' }}</dd></div><div><dt class="label">Jadwal</dt><dd>{{ formatLoanSchedule(item.tanggal_mulai, item.jam_mulai) }}</dd></div><div class="sm:col-span-2"><dt class="label">Aset</dt><dd>{{ item.pinjam_items?.length || 0 }} jenis aset</dd></div></dl>
+                    <div class="mt-auto flex flex-wrap gap-2 pt-5">
+                        <button class="btn-secondary min-h-9 px-3" @click="showSummary(item)">Ringkasan</button>
+                        <RouterLink class="btn-secondary min-h-9 px-3" :to="admin ? `/admin/peminjaman/${item.id}/kelola` : `/app/peminjaman/${item.id}`">{{ admin ? 'Kelola' : 'Detail' }}</RouterLink>
+                        <button v-if="!admin && String(item.status).toLowerCase() === 'menunggu'" class="btn-secondary min-h-9 px-3" @click="edit(item)">Edit</button>
+                        <button v-if="!admin && String(item.status).toLowerCase() === 'menunggu'" class="btn-danger min-h-9 px-3" @click="remove(item.id)">Hapus</button>
+                    </div>
+                </article>
             </div>
-            <dl class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div>
-                    <dt class="label">Pemohon</dt>
-                    <dd>{{ detail.user?.name || detail.nama_pic }}</dd>
-                </div>
-                <div>
-                    <dt class="label">Instansi</dt>
-                    <dd>{{ detail.instansi_pic || '-' }}</dd>
-                </div>
-                <div>
-                    <dt class="label">Jadwal</dt>
-                    <dd>{{ detail.tanggal_mulai || '-' }} {{ detail.jam_mulai || '' }}</dd>
-                </div>
-                <div>
-                    <dt class="label">Status</dt>
-                    <dd><StatusBadge :status="detail.status" /></dd>
-                </div>
-                <div class="sm:col-span-2 lg:col-span-4">
-                    <dt class="label">Keperluan</dt>
-                    <dd class="whitespace-pre-wrap">{{ detail.keterangan || '-' }}</dd>
-                </div>
-                <div class="sm:col-span-2 lg:col-span-4">
-                    <dt class="label">Aset yang diajukan</dt>
-                    <dd class="mt-2 divide-y divide-[var(--color-border)] overflow-hidden rounded-lg border border-[var(--color-border)]">
-                        <div
-                            v-for="entry in detail.pinjam_items || []"
-                            :key="entry.id || entry.item_id"
-                            class="flex items-center justify-between gap-3 p-3"
-                        >
-                            <span>{{ entry.master_item?.nama || entry.master_item?.nama_item || `Aset #${entry.item_id}` }}</span>
-                            <strong>Jumlah {{ entry.quantity || entry.jumlah || 1 }}</strong>
-                        </div>
-                        <p v-if="!(detail.pinjam_items || []).length" class="p-3">Data aset belum tersedia.</p>
-                    </dd>
-                </div>
-            </dl>
-        </section>
+            <PaginationControls :current-page="pagination.current_page" :last-page="pagination.last_page" :total="pagination.total" @change="changePage" />
+        </div>
+        <SummaryModal :open="Boolean(summary)" :title="summary?.keterangan || `Peminjaman #${summary?.id}`" @close="summary = null"><dl v-if="summary" class="grid gap-4 sm:grid-cols-2"><div><dt class="label">Status</dt><dd><StatusBadge :status="summary.status" /></dd></div><div><dt class="label">Jadwal</dt><dd>{{ formatLoanSchedule(summary.tanggal_mulai, summary.jam_mulai) }}</dd></div><div><dt class="label">Pemohon</dt><dd>{{ summary.user?.name || summary.nama_pic || '-' }}</dd></div><div><dt class="label">Jumlah aset</dt><dd>{{ summary.pinjam_items?.length || 0 }} jenis</dd></div></dl></SummaryModal>
     </div>
 </template>

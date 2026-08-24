@@ -9,7 +9,9 @@ import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../providers/konsultasi_provider.dart';
 
 class BuatKonsultasiScreen extends ConsumerStatefulWidget {
-  const BuatKonsultasiScreen({super.key});
+  final int? initialTopikId;
+
+  const BuatKonsultasiScreen({super.key, this.initialTopikId});
 
   @override
   ConsumerState<BuatKonsultasiScreen> createState() =>
@@ -27,6 +29,7 @@ class _BuatKonsultasiScreenState extends ConsumerState<BuatKonsultasiScreen> {
   @override
   void initState() {
     super.initState();
+    _topikId = widget.initialTopikId;
     Future.microtask(() => ref.read(konsultasiProvider.notifier).loadTopik());
   }
 

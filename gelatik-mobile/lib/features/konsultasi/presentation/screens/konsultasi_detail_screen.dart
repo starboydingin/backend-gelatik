@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
@@ -139,7 +140,7 @@ class _KonsultasiDetailScreenState
         title: Text('Tiket #${current.id}'),
         centerTitle: true,
         actions: [
-          if (isOwner && !isAdmin)
+          if (isOwner && !isAdmin && current.status == 'Menunggu')
             IconButton(
               key: const Key('delete-consultation'),
               onPressed: state.isSubmitting ? null : _delete,
@@ -241,7 +242,7 @@ class _HeaderCard extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          '${konsultasi.createdAt.day}/${konsultasi.createdAt.month}/${konsultasi.createdAt.year}',
+          GelatikDateFormatter.dateTime(konsultasi.createdAt),
           style: TextStyle(color: AppColors.mutedText(context)),
         ),
         const Divider(height: 24),

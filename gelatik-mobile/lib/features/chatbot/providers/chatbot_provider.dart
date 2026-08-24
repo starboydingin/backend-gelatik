@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/realtime/realtime_socket_service.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../models/chat_message_model.dart';
 import '../models/chatbot_request.dart';
@@ -82,7 +83,9 @@ class ChatbotNotifier extends StateNotifier<ChatbotState> {
       clearError: true,
     );
     try {
-      final sessionId = state.sessionId ?? await storage.getChatbotSessionId();
+      final localSessionId =
+          state.sessionId ?? await storage.getChatbotSessionId();
+      final sessionId = localSessionId ?? await repository.getLatestSessionId();
       if (generation != _generation) return;
       if (sessionId == null || sessionId.trim().isEmpty) {
         state = state.copyWith(
@@ -92,6 +95,7 @@ class ChatbotNotifier extends StateNotifier<ChatbotState> {
         );
         return;
       }
+      await storage.saveChatbotSessionId(sessionId);
       final messages = await repository.getHistory(sessionId);
       if (generation != _generation) return;
       if (messages.isEmpty) {
@@ -118,6 +122,22 @@ class ChatbotNotifier extends StateNotifier<ChatbotState> {
   }
 
   Future<void> refreshHistory() => loadHistory(refresh: true);
+
+  Future<void> syncFromRealtime(
+    String? sessionId, {
+    bool deleted = false,
+  }) async {
+    if (sessionId != null && sessionId.isNotEmpty) {
+      if (deleted && sessionId == state.sessionId) {
+        await storage.deleteChatbotSessionId();
+        state = state.copyWith(messages: const [], clearSession: true);
+      } else {
+        await storage.saveChatbotSessionId(sessionId);
+        state = state.copyWith(sessionId: sessionId);
+      }
+    }
+    await loadHistory(refresh: true);
+  }
 
   Future<void> sendMessage(String text) async {
     final query = text.trim();
@@ -262,8 +282,22 @@ class ChatbotNotifier extends StateNotifier<ChatbotState> {
 
 final chatbotProvider =
     StateNotifierProvider.autoDispose<ChatbotNotifier, ChatbotState>((ref) {
-      return ChatbotNotifier(
+      final notifier = ChatbotNotifier(
         repository: ref.watch(chatbotRepositoryProvider),
         storage: ref.watch(secureStorageServiceProvider),
       );
+      final subscription = ref
+          .watch(realtimeSocketServiceProvider)
+          .events
+          .where((event) => event.type.startsWith('chatbot.'))
+          .listen(
+            (event) => unawaited(
+              notifier.syncFromRealtime(
+                event.sessionId,
+                deleted: event.type == 'chatbot.conversation.deleted',
+              ),
+            ),
+          );
+      ref.onDispose(subscription.cancel);
+      return notifier;
     });

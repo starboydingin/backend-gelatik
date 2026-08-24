@@ -18,9 +18,9 @@ class TopikController extends Controller
     }
 
     /** GET /api/topik (publik/terautentikasi) */
-    public function index()
+    public function index(Request $request)
     {
-        $topiks = $this->faqService->getAllTopik();
+        $topiks = $this->faqService->getAllTopik($request->string('search')->trim()->value() ?: null);
 
         return response()->json(['success' => true, 'data' => $topiks]);
     }

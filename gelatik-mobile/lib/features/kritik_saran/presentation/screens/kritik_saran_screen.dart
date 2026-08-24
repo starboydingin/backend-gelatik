@@ -6,6 +6,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../providers/kritik_saran_provider.dart';
+import '../../../rating/presentation/screens/rating_screen.dart';
 
 /// KritikSaranScreen — Form Kritik & Saran Pengguna Layanan TIK (M-G)
 class KritikSaranScreen extends ConsumerStatefulWidget {
@@ -116,12 +117,14 @@ class _KritikSaranScreenState extends ConsumerState<KritikSaranScreen> {
                 ),
                 const SizedBox(height: 24),
                 AppButton(
-                  text: 'Tutup & Kembali',
+                  text: 'Lanjut Beri Rating',
                   backgroundColor: actionEmerald,
                   textColor: Colors.white,
                   onPressed: () {
                     Navigator.of(dialogContext).pop(); // Close Dialog
-                    Navigator.of(context).pop(); // Back to previous page
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => const RatingScreen()),
+                    );
                   },
                 ),
               ],

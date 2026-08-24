@@ -4,6 +4,8 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use RuntimeException;
 
 class NodeServiceClient
 {
@@ -89,20 +91,32 @@ class NodeServiceClient
      */
     public function sendWhatsApp($nomorWa, $message, $reference = [])
     {
+        $deliveryKey = (string) ($reference['delivery_key'] ?? hash('sha256', implode('|', [
+            $reference['event_type'] ?? 'unknown',
+            $reference['reference_id'] ?? '0',
+            $reference['user_id'] ?? '0',
+            Str::limit((string) $message, 160, ''),
+        ])));
+
         try {
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Accept' => 'application/json'
-            ])->timeout(5)->post($this->baseUrl . '/internal/wa/send', [
+            ])->timeout(20)->post($this->baseUrl . '/internal/wa/send', [
                 'nomor_wa' => $nomorWa,
                 'message' => $message,
-                'reference' => $reference // array berisi event_type, reference_id, user_id
+                'reference' => $reference + ['delivery_key' => $deliveryKey],
+                'delivery_key' => $deliveryKey,
             ]);
 
-            return $response->json();
+            if (! $response->successful() || $response->json('success') !== true) {
+                throw new RuntimeException('WhatsApp gateway menolak pengiriman.');
+            }
+
+            return $response->json() + ['delivery_key' => $deliveryKey];
         } catch (\Throwable $e) {
             Log::error('Gagal mengirim WhatsApp ke Node.js: ' . $e->getMessage());
-            return ['success' => false, 'error' => $e->getMessage()];
+            throw $e;
         }
     }
 

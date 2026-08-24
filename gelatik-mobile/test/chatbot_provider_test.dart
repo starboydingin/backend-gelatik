@@ -43,6 +43,10 @@ class _FakeRepository extends ChatbotRepository {
   Completer<ChatbotResponseModel>? sendCompleter;
   int sendCalls = 0;
   int deleteCalls = 0;
+  String? latestSessionId;
+
+  @override
+  Future<String?> getLatestSessionId() async => latestSessionId;
 
   @override
   Future<List<ChatMessageModel>> getHistory(String sessionId) async {
