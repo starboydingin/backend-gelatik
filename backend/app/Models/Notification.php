@@ -30,11 +30,15 @@ class Notification extends Model
     public function getResourceTypeAttribute(): ?string
     {
         $type = strtolower((string) $this->type);
+        $content = strtolower(trim($this->judul.' '.$this->message));
 
         return match (true) {
-            str_contains($type, 'konsultasi') => 'konsultasi',
-            str_contains($type, 'pinjam') => 'peminjaman',
-            str_contains($type, 'usulan_email'), str_contains($type, 'email') => 'usulan_email',
+            str_contains($type, 'konsultasi'), str_contains($type, 'konsul'),
+            str_contains($content, 'konsultasi') => 'konsultasi',
+            str_contains($type, 'pinjam'), str_contains($type, 'peminjaman'),
+            str_contains($content, 'peminjaman') => 'peminjaman',
+            str_contains($type, 'usulan_email'), str_contains($type, 'email'),
+            str_contains($content, 'usulan email'), str_contains($content, 'email resmi') => 'usulan_email',
             default => null,
         };
     }
