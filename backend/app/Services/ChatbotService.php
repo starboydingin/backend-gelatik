@@ -91,6 +91,14 @@ class ChatbotService
             && $messageContext !== $previousContext;
         $activeContext = $messageContext ?? $previousContext;
 
+        // Retain the first recognised TIK subject as soon as it is mentioned.
+        // Previously, the state was only saved after a failure signal, so a
+        // later short message such as "masih gk bisa" lost its WiFi context.
+        if ($messageContext !== null && $previousContext === null) {
+            $conversation->update(['escalation_context' => $messageContext]);
+            $conversation->refresh();
+        }
+
         if ($isContextSwitch) {
             // A new service topic is a new problem. Never carry a pending
             // consultation offer from WiFi over to, for example, email.
@@ -124,6 +132,27 @@ class ChatbotService
             }
             $conversation->increment('unresolved_count');
             $conversation->refresh();
+        }
+
+        // Follow-up troubleshooting must remain available even when an
+        // external AI provider is slow or unavailable. These replies preserve
+        // the established service context and therefore never turn a WiFi
+        // complaint into an unrelated-question refusal or a 504 response.
+        if ($scope === 'allowed'
+            && $activeContext !== null
+            && ($this->isIssueSignal($normalized) || $this->isContextualHelpRequest($normalized))) {
+            $reply = $this->appendConsultationOfferIfNeeded(
+                $this->contextualTroubleshootingReply($activeContext),
+                $conversation,
+                $activeContext,
+            );
+
+            return $this->storeLocalReply(
+                $conversation,
+                $sessionId,
+                $reply,
+                'contextual_follow_up',
+            );
         }
 
         if ($scope === 'allowed' && $conversation->consultation_offer_pending && $activeContext !== null) {
@@ -279,13 +308,25 @@ class ChatbotService
             $timedOut = $geminiFailureReason === 'timeout'
                 || ($response['reason'] ?? null) === 'timeout';
 
-            return [
-                'success' => false,
-                'error' => 'Maaf, layanan chatbot sedang tidak tersedia saat ini.',
-                'error_code' => $timedOut
-                    ? 'upstream_timeout'
-                    : 'upstream_unavailable',
-            ];
+            // A temporary AI-provider outage must not turn a valid Gelatik
+            // conversation into a client-side 504. Persist a transparent,
+            // useful local fallback instead; API 504 remains reserved for
+            // genuinely unexpected controller/service failures.
+            Log::warning('Chatbot providers unavailable; returning local fallback.', [
+                'reason' => $timedOut ? 'timeout' : 'unavailable',
+                'context' => $activeContext,
+            ]);
+
+            $reply = $activeContext !== null
+                ? $this->contextualTroubleshootingReply($activeContext)
+                : 'Maaf, jawaban otomatis sedang tidak tersedia. Anda dapat menanyakan layanan TIK Gelatik seperti WiFi/internet, email dinas, peminjaman aset, konsultasi, hosting, subdomain, atau TTE. Jika kendala Anda mendesak, silakan hubungi helpdesk TIK.';
+
+            return $this->storeLocalReply(
+                $conversation,
+                $sessionId,
+                $this->appendConsultationOfferIfNeeded($reply, $conversation, $activeContext),
+                'provider_fallback',
+            );
         }
 
         $providerReply = $this->appendConsultationOfferIfNeeded(
@@ -494,6 +535,7 @@ class ChatbotService
     private function isIssueSignal(string $normalized): bool
     {
         return Str::contains($normalized, [
+            'belum bisa',
             'masih belum bisa',
             'masih tidak bisa',
             'belum berhasil',
@@ -520,6 +562,31 @@ class ChatbotService
             'still not working',
             'still error',
         ]);
+    }
+
+    private function isContextualHelpRequest(string $normalized): bool
+    {
+        return Str::contains($normalized, [
+            'ada cara lain',
+            'cara lain',
+            'langkah lain',
+            'saran lain',
+            'apa lagi',
+            'langkah berikutnya',
+            'selanjutnya bagaimana',
+        ]);
+    }
+
+    private function contextualTroubleshootingReply(string $context): string
+    {
+        return match ($context) {
+            'internet' => 'Jika WiFi/internet masih belum bisa, coba cek apakah perangkat lain di lokasi yang sama juga mengalami kendala. Jika iya, jangan mengubah konfigurasi jaringan sendiri; catat nama WiFi, lokasi/ruangan, waktu kejadian, dan pesan error yang muncul. Jika hanya satu perangkat yang bermasalah, lupakan jaringan WiFi lalu sambungkan kembali, pastikan IP/DNS memakai pengaturan otomatis, dan jalankan Diagnosa Jaringan pada perangkat. Bila tetap gagal, saya dapat membantu meneruskan kendala ini ke petugas TIK.',
+            'email' => 'Jika kendala email masih belum selesai, pastikan alamat email yang digunakan benar dan catat pesan error yang muncul. Jangan membagikan kata sandi kepada siapa pun. Saya dapat membantu menyiapkan konsultasi untuk petugas TIK bila Anda masih memerlukan bantuan.',
+            'peminjaman_aset' => 'Jika pengajuan peminjaman masih terkendala, periksa kembali tanggal, kebutuhan, dan ketersediaan aset pada formulir. Catat pesan validasi atau status yang tampil; saya dapat membantu menyiapkan konsultasi untuk petugas TIK bila kendala berlanjut.',
+            'hosting' => 'Jika layanan hosting, domain, atau subdomain masih terkendala, catat alamat layanan, waktu kejadian, dan pesan error tanpa menyertakan kata sandi atau token. Saya dapat membantu menyiapkan konsultasi untuk petugas TIK.',
+            'tte' => 'Jika proses TTE masih terkendala, pastikan data dan dokumen yang digunakan sesuai, lalu catat pesan error yang muncul. Jangan pernah mengirim passphrase melalui chat. Saya dapat membantu menyiapkan konsultasi untuk petugas TIK.',
+            default => 'Jika kendala layanan TIK ini masih belum selesai, catat pesan error, waktu kejadian, serta langkah yang sudah dicoba. Saya dapat membantu menyiapkan konsultasi untuk petugas TIK.',
+        };
     }
 
     private function appendConsultationOfferIfNeeded(
