@@ -137,6 +137,31 @@ class AuthRepository {
     }
   }
 
+  /// POST /api/me/change-password for an already authenticated account.
+  Future<String> changePassword({
+    required String currentPassword,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      final response = await apiClient.dio.post(
+        '/me/change-password',
+        data: {
+          'current_password': currentPassword,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+        },
+      );
+      final data = response.data;
+      if (data is Map && data['success'] == true) {
+        return data['message']?.toString() ?? 'Kata sandi berhasil diperbarui.';
+      }
+      throw ApiException(message: 'Kata sandi tidak dapat diperbarui.');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   /// POST /api/forgot-password
   Future<String> requestPasswordReset(String email) async {
     try {

@@ -7,13 +7,13 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
-import '../../../auth/presentation/screens/forgot_password_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../internet/presentation/screens/self_assessment_screen.dart';
 import '../../../notifications/presentation/screens/notifications_screen.dart';
 import '../../../peminjaman/presentation/screens/ajukan_peminjaman_screen.dart';
 import '../../providers/wa_notification_provider.dart';
 import 'edit_profil_screen.dart';
+import 'change_password_screen.dart';
 import 'notifikasi_whatsapp_screen.dart';
 import '../../../rating/presentation/screens/rating_screen.dart';
 
@@ -334,10 +334,10 @@ class ProfilScreen extends ConsumerWidget {
                     icon: Icons.lock_outline_rounded,
                     iconColor: accentNavy,
                     title: 'Ganti Password',
-                    subtitle: 'Kirim tautan pengaturan ulang password',
+                    subtitle: 'Ubah password dengan password lama',
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const ForgotPasswordScreen(),
+                        builder: (_) => const ChangePasswordScreen(),
                       ),
                     ),
                   ),
