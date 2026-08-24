@@ -15,6 +15,8 @@ const messages = ref([]),
     sending = ref(false),
     initialized = ref(false)
 const quickQuestionStrip = ref(null)
+let inactivityTimer = null
+let lastChatActivityAt = Date.now()
 const quickQuestionDrag = {
     pointerId: null,
     startX: 0,
@@ -44,6 +46,23 @@ function appendStarterIfDue() {
         message:
             'Halo, saya Asisten Konsultasi TIK Gelatik. Ada yang bisa saya bantu hari ini? Pilih salah satu pertanyaan cepat di bawah atau tulis pertanyaan Anda sendiri.',
     })
+}
+function resetInactivityTimer() {
+    lastChatActivityAt = Date.now()
+    if (inactivityTimer) window.clearTimeout(inactivityTimer)
+    inactivityTimer = window.setTimeout(() => {
+        // This is a visual session reset only. The API conversation and its
+        // history remain intact, while the next reply starts a fresh context.
+        if (Date.now() - lastChatActivityAt < starterResetAfter) return
+        messages.value.push({
+            id: `starter-idle-${Date.now()}`,
+            role: 'assistant',
+            localStarter: true,
+            createdAt: Date.now(),
+            message:
+                'Halo, saya Asisten Konsultasi TIK Gelatik. Ada yang bisa saya bantu hari ini? Pilih salah satu pertanyaan cepat di bawah atau tulis pertanyaan Anda sendiri.',
+        })
+    }, starterResetAfter)
 }
 function handleVisibilityChange() {
     if (document.hidden) {
@@ -130,6 +149,7 @@ async function history() {
 async function send(text = input.value) {
     if (!String(text).trim() || sending.value) return
     const prompt = String(text).trim()
+    resetInactivityTimer()
     input.value = ''
     error.value = ''
     messages.value.push({ role: 'user', message: prompt, localMessage: true })
@@ -176,6 +196,7 @@ async function clear() {
 async function initialize() {
     // The welcome is entirely local so opening this page never waits for the database.
     appendStarterIfDue()
+    resetInactivityTimer()
     document.addEventListener('visibilitychange', handleVisibilityChange)
     if (!initialized.value) {
         initialized.value = true
@@ -199,6 +220,7 @@ onDeactivated(() => {
 onBeforeUnmount(() => {
     document.removeEventListener('visibilitychange', handleVisibilityChange)
     quickQuestionStrip.value?.removeEventListener('wheel', scrollQuickQuestions)
+    if (inactivityTimer) window.clearTimeout(inactivityTimer)
     sessionStorage.setItem(visitKey, String(Date.now()))
 })
 </script>
@@ -212,10 +234,10 @@ onBeforeUnmount(() => {
             </button></PageHeader
         ><AlertMessage :message="error" />
         <section
-            class="mx-auto max-w-4xl overflow-hidden border-[4px] border-[var(--line)] bg-[var(--paper)] shadow-[8px_8px_0_var(--line)]"
+            class="mx-auto max-w-4xl overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-surface)]"
         >
-            <header class="flex items-center gap-3 border-b-[4px] border-[var(--line)] bg-[var(--navy)] p-5 text-white">
-                <span class="grid size-11 place-items-center border-[3px] border-black bg-[var(--gold)] text-black"
+            <header class="flex items-center gap-3 border-b border-white/15 bg-[var(--color-brand-primary-strong)] p-5 text-white">
+                <span class="grid size-11 place-items-center rounded-lg bg-[var(--color-brand-secondary)] text-slate-950"
                     ><SparklesIcon class="size-6"
                 /></span>
                 <div>
@@ -235,11 +257,11 @@ onBeforeUnmount(() => {
                     "
                 >
                     <p
-                        class="max-w-[88%] whitespace-pre-wrap border-[3px] border-[var(--line)] px-4 py-3 text-sm font-semibold leading-6 shadow-[4px_4px_0_var(--line)] sm:max-w-[75%]"
+                        class="max-w-[88%] whitespace-pre-wrap rounded-xl border border-[var(--color-border)] px-4 py-3 text-sm font-medium leading-6 sm:max-w-[75%]"
                         :class="
                             item.role === 'user' || item.sender === 'user'
-                                ? 'bg-[var(--teal)] text-black'
-                                : 'bg-[var(--paper)] text-[var(--ink)]'
+                                ? 'border-[var(--color-brand-primary)] bg-[var(--color-brand-primary)] text-white'
+                                : 'bg-[var(--color-surface-muted)] text-[var(--color-text-primary)]'
                         "
                     >
                         {{ chatText(item) }}
@@ -249,7 +271,7 @@ onBeforeUnmount(() => {
                     Gelatik sedang menyiapkan jawaban...
                 </p>
             </div>
-            <div class="border-t-[4px] border-[var(--line)] p-4 sm:p-5">
+            <div class="border-t border-[var(--color-border)] p-4 sm:p-5">
                 <div
                     ref="quickQuestionStrip"
                     class="quick-question-strip"
@@ -320,17 +342,18 @@ onBeforeUnmount(() => {
     max-width: min(84vw, 38rem);
     flex: 0 0 auto;
     scroll-snap-align: start;
-    border: 3px solid var(--line);
-    background: var(--gold);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-surface);
     padding: 0.5rem 0.75rem;
     color: #000;
     font-size: 0.75rem;
-    font-weight: 900;
+    font-weight: 600;
     line-height: 1.35;
     text-align: left;
     white-space: normal;
-    box-shadow: 3px 3px 0 var(--line);
-    transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+    box-shadow: none;
+    transition: border-color 150ms ease-out, background-color 150ms ease-out;
     user-select: none;
 }
 
@@ -340,8 +363,9 @@ onBeforeUnmount(() => {
 
 .quick-question:hover:not(:disabled),
 .quick-question:focus-visible:not(:disabled) {
-    transform: translate(3px, 3px);
-    box-shadow: none;
+    border-color: var(--color-brand-primary);
+    background: var(--color-brand-primary-soft);
+    color: var(--color-brand-primary);
 }
 
 @media (min-width: 640px) {
@@ -360,25 +384,3 @@ onBeforeUnmount(() => {
     }
 }
 </style>
-let inactivityTimer = null
-let lastChatActivityAt = Date.now()
-function resetInactivityTimer() {
-    lastChatActivityAt = Date.now()
-    if (inactivityTimer) window.clearTimeout(inactivityTimer)
-    inactivityTimer = window.setTimeout(() => {
-        // This is a visual session reset only. The API conversation and its
-        // history remain intact, while the next reply starts a fresh context.
-        if (Date.now() - lastChatActivityAt < starterResetAfter) return
-        messages.value.push({
-            id: `starter-idle-${Date.now()}`,
-            role: 'assistant',
-            localStarter: true,
-            createdAt: Date.now(),
-            message:
-                'Halo, saya Asisten Konsultasi TIK Gelatik. Ada yang bisa saya bantu hari ini? Pilih salah satu pertanyaan cepat di bawah atau tulis pertanyaan Anda sendiri.',
-        })
-    }, starterResetAfter)
-}
-    resetInactivityTimer()
-    resetInactivityTimer()
-    if (inactivityTimer) window.clearTimeout(inactivityTimer)

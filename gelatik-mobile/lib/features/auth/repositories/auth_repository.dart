@@ -163,16 +163,17 @@ class AuthRepository {
   }
 
   /// POST /api/forgot-password
-  Future<String> requestPasswordReset(String email) async {
+  Future<Map<String, dynamic>> requestPasswordReset(String identifier) async {
     try {
       final response = await apiClient.dio.post(
         '/forgot-password',
-        data: {'email': email},
+        data: {'identifier': identifier},
       );
       final data = response.data;
       if (data is Map && data['success'] == true) {
-        return data['message']?.toString() ??
-            'Jika alamat email terdaftar, tautan reset telah dikirim.';
+        if (data['data'] is Map) {
+          return Map<String, dynamic>.from(data['data'] as Map);
+        }
       }
       throw ApiException(message: 'Permintaan reset kata sandi gagal.');
     } on DioException catch (e) {
@@ -180,10 +181,29 @@ class AuthRepository {
     }
   }
 
+  Future<String> verifyPasswordResetOtp({
+    required String challengeId,
+    required String otp,
+  }) async {
+    try {
+      final response = await apiClient.dio.post(
+        '/forgot-password/verify',
+        data: {'challenge_id': challengeId, 'otp': otp},
+      );
+      final data = response.data;
+      final resetData = data is Map ? data['data'] : null;
+      if (data is Map && data['success'] == true && resetData is Map) {
+        return resetData['reset_token']?.toString() ?? '';
+      }
+      throw ApiException(message: 'Verifikasi kode gagal.');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   /// POST /api/reset-password
   Future<String> resetPassword({
-    required String email,
-    required String token,
+    required String resetToken,
     required String password,
     required String passwordConfirmation,
   }) async {
@@ -191,8 +211,7 @@ class AuthRepository {
       final response = await apiClient.dio.post(
         '/reset-password',
         data: {
-          'email': email,
-          'token': token,
+          'reset_token': resetToken,
           'password': password,
           'password_confirmation': passwordConfirmation,
         },

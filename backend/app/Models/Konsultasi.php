@@ -30,6 +30,11 @@ class Konsultasi extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
     public function topik()
     {
         return $this->belongsTo(MasterTopik::class, 'faq_id');

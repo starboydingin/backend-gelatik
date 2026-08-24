@@ -9,6 +9,49 @@ class InternetRepository {
 
   InternetRepository({required this.apiClient});
 
+  Future<Map<String, dynamic>> getInternetOverview() async {
+    try {
+      final response = await apiClient.dio.get('/list-router-opd');
+      final data = _data(response.data);
+      if (data is! Map) throw const FormatException('Data Internet tidak valid.');
+      final bandwidth = data['bandwidth'] is Map
+          ? Map<String, dynamic>.from(data['bandwidth'])
+          : <String, dynamic>{'available': false, 'connections': const []};
+      final entries = data['list_router'] is List
+          ? data['list_router']
+          : (data['router'] is List ? data['router'] : const []);
+      final routers = (entries as List)
+          .whereType<Map>()
+          .map((entry) {
+            final value = Map<String, dynamic>.from(entry);
+            return {
+              'nama_router': value['nama_router'] ?? value['identity_router'] ?? 'Router OPD',
+              'ip_address': value['ip_address'] ?? '-',
+              'tipe': value['tipe'] ?? value['interface'] ?? '-',
+              'status': _status(value['status'] ?? value['is_active']),
+              'lokasi': value['lokasi'] ?? '-',
+              'beban_traffic': value['beban_traffic'] ?? '-',
+            };
+          })
+          .toList(growable: false);
+      final connections = bandwidth['connections'] is List ? bandwidth['connections'] as List : const [];
+      final primary = connections.whereType<Map>().firstOrNull;
+      return {
+        'routers': routers,
+        'bandwidth': {
+          'opd': bandwidth['opd'] ?? 'Informasi bandwidth belum tersedia',
+          'provider': bandwidth['available'] == true ? 'Data Router OPD' : 'Tidak tersedia dari API',
+          'status': bandwidth['available'] == true ? 'Tersedia' : 'Belum tersedia',
+          'available': bandwidth['available'] == true,
+          'download_mbps': primary?['download_mbps'] ?? '-',
+          'upload_mbps': primary?['upload_mbps'] ?? '-',
+        },
+      };
+    } on DioException catch (error) {
+      throw ApiException.fromDioException(error);
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getRouters() async {
     try {
       final response = await apiClient.dio.get('/list-router-opd');

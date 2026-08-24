@@ -42,6 +42,8 @@ class RouterController extends Controller
             'identity_router' => 'required|string|max:2000',
             'interface' => 'nullable|string|max:255',
             'lokasi' => 'nullable|string|max:1000',
+            'bandwidth_download_mbps' => 'nullable|integer|min:0|max:1000000',
+            'bandwidth_upload_mbps' => 'nullable|integer|min:0|max:1000000',
             'status' => 'nullable|integer|in:0,1',
         ]);
 
@@ -64,6 +66,8 @@ class RouterController extends Controller
             'identity_router' => 'sometimes|required|string|max:2000',
             'interface' => 'nullable|string|max:255',
             'lokasi' => 'nullable|string|max:1000',
+            'bandwidth_download_mbps' => 'nullable|integer|min:0|max:1000000',
+            'bandwidth_upload_mbps' => 'nullable|integer|min:0|max:1000000',
             'status' => 'nullable|integer|in:0,1',
         ]);
 

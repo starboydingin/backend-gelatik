@@ -3011,6 +3011,102 @@
                     "response": []
                 }
             ]
+        },
+        {
+            "name": "16 - IDDS Upgrade - OTP, Dashboard, Calendar & Reports",
+            "item": [
+                {
+                    "name": "POST Request OTP Reset Password WhatsApp",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                        "auth": { "type": "noauth" },
+                        "body": { "mode": "raw", "raw": "{\n  \"identifier\": \"username-atau-email-atau-nip\"\n}", "options": { "raw": { "language": "json" } } },
+                        "url": { "raw": "{{base_url}}/forgot-password", "host": ["{{base_url}}"], "path": ["forgot-password"] },
+                        "description": "Mengirim OTP reset password ke nomor WhatsApp akun. Response sukses mengandung challenge_id dan expires_in tanpa membocorkan keberadaan akun. Rate limit 3 request/menit dan cooldown 60 detik. Contoh error gateway: 422 dengan pesan aman bahwa kode belum dapat dikirim."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Verify OTP Reset Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                        "auth": { "type": "noauth" },
+                        "body": { "mode": "raw", "raw": "{\n  \"challenge_id\": \"UUID_DARI_REQUEST_OTP\",\n  \"otp\": \"123456\"\n}", "options": { "raw": { "language": "json" } } },
+                        "url": { "raw": "{{base_url}}/forgot-password/verify", "host": ["{{base_url}}"], "path": ["forgot-password", "verify"] },
+                        "description": "Memverifikasi OTP sekali pakai. Response sukses mengandung reset_token sementara. OTP salah/kedaluwarsa menghasilkan 422 tanpa detail sensitif."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Reset Password dengan Token OTP",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                        "auth": { "type": "noauth" },
+                        "body": { "mode": "raw", "raw": "{\n  \"reset_token\": \"TOKEN_DARI_VERIFY_OTP\",\n  \"password\": \"PasswordBaru123!\",\n  \"password_confirmation\": \"PasswordBaru123!\"\n}", "options": { "raw": { "language": "json" } } },
+                        "url": { "raw": "{{base_url}}/reset-password", "host": ["{{base_url}}"], "path": ["reset-password"] },
+                        "description": "Mengubah password setelah OTP valid dan mencabut token akses lama. Token reset hanya dapat digunakan satu kali."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Dashboard Sesuai Role",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }] },
+                        "url": { "raw": "{{base_url}}/admin/dashboard", "host": ["{{base_url}}"], "path": ["admin", "dashboard"] },
+                        "description": "Dashboard operasional admin atau strategis superadmin. Superadmin menerima admin_activity; role lain ditolak middleware admin."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Calendar Sesuai Role",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }] },
+                        "url": { "raw": "{{base_url}}/dashboard/calendar?start=2026-08-01&end=2026-08-31", "host": ["{{base_url}}"], "path": ["dashboard", "calendar"], "query": [{ "key": "start", "value": "2026-08-01" }, { "key": "end", "value": "2026-08-31" }] },
+                        "description": "User hanya menerima aktivitas miliknya; admin/superadmin menerima data operasional global. Rentang maksimal 93 hari."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Data Laporan Terfilter",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }] },
+                        "url": { "raw": "{{base_url}}/laporan/konsultasi/data?start_date=2026-08-01&end_date=2026-08-31&status=Menunggu", "host": ["{{base_url}}"], "path": ["laporan", "konsultasi", "data"], "query": [{ "key": "start_date", "value": "2026-08-01" }, { "key": "end_date", "value": "2026-08-31" }, { "key": "status", "value": "Menunggu" }] },
+                        "description": "Admin/superadmin only. Ganti type dengan peminjaman, konsultasi, atau usulan-email. Filter opsional: start_date, end_date, status, user_id, opd, topik_id, asset_id."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Export Laporan CSV",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "text/csv" }],
+                        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }] },
+                        "url": { "raw": "{{base_url}}/laporan/peminjaman/export?format=csv", "host": ["{{base_url}}"], "path": ["laporan", "peminjaman", "export"], "query": [{ "key": "format", "value": "csv" }] },
+                        "description": "Admin/superadmin only. Mengunduh query laporan secara streaming/chunked melalui Laravel Excel. Semua filter data dapat disertakan."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Export Laporan Excel",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }],
+                        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }] },
+                        "url": { "raw": "{{base_url}}/laporan/usulan-email/export?format=xlsx", "host": ["{{base_url}}"], "path": ["laporan", "usulan-email", "export"], "query": [{ "key": "format", "value": "xlsx" }] },
+                        "description": "Admin/superadmin only. Ganti type dengan peminjaman, konsultasi, atau usulan-email. Format harus xlsx."
+                    },
+                    "response": []
+                }
+            ]
         }
     ]
 }

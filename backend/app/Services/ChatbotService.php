@@ -1077,7 +1077,11 @@ class ChatbotService
 
         $client = Http::acceptJson()
             ->connectTimeout($connectTimeout)
-            ->timeout($requestTimeout);
+            ->timeout($requestTimeout)
+            // The local PHP cURL stack can prefer an unreachable IPv6 route
+            // even though the providers are reachable over IPv4. Keep TLS
+            // verification enabled; this only selects the working IP family.
+            ->withOptions(['force_ip_resolve' => 'v4']);
 
         $caBundle = config('services.chatbot.ca_bundle');
         if (is_string($caBundle) && is_file($caBundle)) {

@@ -13,6 +13,7 @@ const readCache = new Map()
 // cache, while a longer TTL prevents the same page from repeatedly competing
 // for the local Laravel worker during normal navigation.
 const defaultReadTtl = 90_000
+const staleIfErrorTtl = 5 * 60_000
 const cacheKey = (url, config = {}) =>
     JSON.stringify([url, config.params || {}, sessionStorage.getItem('gelatik_token') || ''])
 const rawGet = api.get.bind(api)
@@ -29,6 +30,18 @@ export async function cachedGet(url, config = {}, ttl = defaultReadTtl) {
         readCache.set(key, { createdAt: Date.now(), response })
         return response
     } catch (error) {
+        const mayUseStale =
+            !error.response || error.code === 'ECONNABORTED' || error.response?.status >= 500
+        const staleResponse = cached?.response
+        const staleIsResolved = staleResponse && typeof staleResponse.then !== 'function'
+        if (
+            mayUseStale &&
+            staleIsResolved &&
+            Date.now() - cached.createdAt < staleIfErrorTtl
+        ) {
+            readCache.set(key, cached)
+            return staleResponse
+        }
         readCache.delete(key)
         throw error
     }

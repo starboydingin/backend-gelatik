@@ -6,7 +6,6 @@ use App\Events\PinjamStatusChanged;
 use App\Models\WhatsappSubscription;
 use App\Services\FcmNotificationService;
 use App\Services\NodeServiceClient;
-use App\Services\RealtimeEventPayload;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -28,18 +27,9 @@ class SendPinjamNotification implements ShouldQueue
     {
         $nodeService = new NodeServiceClient();
         
-        // 1. Broadcast via Socket.io (F-RT)
-        $nodeService->broadcastToUser(
-            $event->pinjam->user_id,
-            'pinjam.status_changed',
-            RealtimeEventPayload::make('pinjam.status_changed', (int) $event->pinjam->id, [
-                'old_status' => $event->oldStatus,
-                'status' => $event->newStatus,
-                'message' => 'Status peminjaman Anda telah diubah menjadi ' . $event->newStatus
-            ])
-        );
-
-        // 2. WhatsApp Notification (F-WA)
+        // Socket.IO and the browser inbox are written synchronously by
+        // PinjamService. This queued listener only handles external push.
+        // 1. WhatsApp Notification (F-WA)
         try {
             $subscription = WhatsappSubscription::where('user_id', $event->pinjam->user_id)
                 ->where('is_opt_in', true)
@@ -75,7 +65,7 @@ class SendPinjamNotification implements ShouldQueue
             Log::error('SendPinjamNotification WA Error: ' . $e->getMessage());
         }
 
-        // 3. FCM Push Notification (topic-based)
+        // 2. FCM Push Notification (topic-based)
         try {
             $fcm = new FcmNotificationService();
             $fcm->sendToUser(

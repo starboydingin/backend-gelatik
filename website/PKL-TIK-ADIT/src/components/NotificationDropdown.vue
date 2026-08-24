@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { BellIcon } from '@heroicons/vue/24/outline'
-import { api, errorMessage, payload, rows } from '../lib/api'
+import { api, errorMessage, invalidateApiCache, payload, rows } from '../lib/api'
 
 defineProps({ adminArea: Boolean })
 
@@ -10,9 +10,10 @@ const items = ref([])
 const error = ref('')
 const unread = computed(() => items.value.filter((item) => !item.read && !item.read_at).length)
 
-async function load() {
+async function load({ fresh = false } = {}) {
     try {
-        items.value = rows(payload(await api.get('/notifications'))).slice(0, 5)
+        if (fresh) invalidateApiCache('/notifications')
+        items.value = rows(payload(await api.get('/notifications', { cache: !fresh }))).slice(0, 5)
     } catch (requestError) {
         error.value = errorMessage(requestError)
     }
@@ -36,7 +37,7 @@ async function toggleOpen() {
     }
 }
 function realtimeRefresh() {
-    load()
+    load({ fresh: true })
 }
 onMounted(() => {
     load()
@@ -48,7 +49,7 @@ onUnmounted(() => window.removeEventListener('gelatik:notification', realtimeRef
 <template>
     <div class="relative">
         <button
-            class="brutal-icon-button relative"
+            class="icon-button relative"
             aria-label="Buka notifikasi"
             :aria-expanded="open"
             @click="toggleOpen"
@@ -56,13 +57,13 @@ onUnmounted(() => window.removeEventListener('gelatik:notification', realtimeRef
             <BellIcon class="size-5" />
             <span
                 v-if="unread"
-                class="absolute -right-1 -top-1 grid size-5 place-items-center border-2 border-[var(--line)] bg-[var(--danger)] text-[10px] font-black text-black"
+                class="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-red-600 text-[10px] font-bold text-white ring-2 ring-[var(--color-surface)]"
                 >{{ unread > 9 ? '9+' : unread }}</span
             >
         </button>
         <div
             v-if="open"
-            class="absolute right-0 top-14 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden border-[3px] border-[var(--line)] bg-[var(--paper)] shadow-[6px_6px_0_var(--line)]"
+            class="absolute right-0 top-14 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-overlay)]"
         >
             <div class="flex items-center justify-between border-b border-stroke px-4 py-3">
                 <strong class="text-sm text-navy">Notifikasi terbaru</strong

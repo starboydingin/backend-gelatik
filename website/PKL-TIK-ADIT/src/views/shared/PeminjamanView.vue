@@ -39,6 +39,18 @@ const route = useRoute(),
         items: [],
     }),
     draft = ref({ item_id: '', quantity: 1 })
+function localDate(offsetDays = 0) {
+    const date = new Date()
+    date.setDate(date.getDate() + offsetDays)
+    return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
+}
+const today = localDate()
+const tomorrow = localDate(1)
+const minimumStartTime = computed(() => {
+    if (form.value.tanggal_mulai !== today) return undefined
+    const now = new Date(Date.now() + 60_000)
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+})
 const statusItems = computed(() => [
     {
         label: 'Menunggu',
@@ -301,11 +313,13 @@ onMounted(load)
                     ><input
                         v-model="form.tanggal_mulai"
                         type="date"
+                        :min="today"
+                        :max="tomorrow"
                         class="input"
                         required /></label
                 ><label
                     ><span class="label">Jam mulai</span
-                    ><input v-model="form.jam_mulai" type="time" class="input" /></label
+                    ><input v-model="form.jam_mulai" type="time" class="input" :min="minimumStartTime" /></label
                 ><label
                     ><span class="label">Durasi</span>
                     <div class="flex gap-2">
@@ -332,11 +346,11 @@ onMounted(load)
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                         @change="setDocument"
                 /></label
-                ><p v-if="editingId" class="md:col-span-2 border-2 border-[var(--line)] p-3 text-sm">
+                ><p v-if="editingId" class="md:col-span-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3 text-sm">
                     Dokumen pendukung tidak dapat diubah setelah pengajuan dikirim.
                 </p>
             </div>
-            <section class="mt-6 border-t-2 border-[var(--line)] pt-5">
+            <section class="mt-6 border-t border-[var(--color-border)] pt-5">
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <div>
                         <p class="eyebrow">Daftar aset</p>
@@ -346,7 +360,7 @@ onMounted(load)
                         {{ editingId ? 'Perubahan aset langsung disimpan.' : 'Tambahkan minimal satu aset.' }}
                     </p>
                 </div>
-                <div v-if="form.items.length" class="mt-4 divide-y-2 divide-[var(--line)] border-2 border-[var(--line)]">
+                <div v-if="form.items.length" class="mt-4 divide-y divide-[var(--color-border)] overflow-hidden rounded-lg border border-[var(--color-border)]">
                     <div v-for="(asset, i) in form.items" :key="`${asset.item_id}-${i}`" class="flex flex-wrap items-center justify-between gap-3 p-3">
                         <div>
                             <strong>{{ asset.master_item?.nama || assetName(asset.item_id) }}</strong>
@@ -357,7 +371,7 @@ onMounted(load)
                         </button>
                     </div>
                 </div>
-                <p v-else class="mt-4 border-2 border-dashed border-[var(--line)] p-3 text-sm font-medium">
+                <p v-else class="mt-4 rounded-lg border border-dashed border-[var(--color-border-strong)] p-3 text-sm font-medium">
                     Belum ada aset yang dipilih.
                 </p>
             </section>
@@ -493,7 +507,7 @@ onMounted(load)
                 </div>
                 <div class="sm:col-span-2 lg:col-span-4">
                     <dt class="label">Aset yang diajukan</dt>
-                    <dd class="mt-2 divide-y-2 divide-[var(--line)] border-2 border-[var(--line)]">
+                    <dd class="mt-2 divide-y divide-[var(--color-border)] overflow-hidden rounded-lg border border-[var(--color-border)]">
                         <div
                             v-for="entry in detail.pinjam_items || []"
                             :key="entry.id || entry.item_id"

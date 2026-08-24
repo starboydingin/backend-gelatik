@@ -2,17 +2,71 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exports\ServiceReportExport;
 use App\Http\Controllers\Controller;
 use App\Services\LaporanPeminjamanService;
+use App\Services\ServiceReportQuery;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Excel as ExcelWriter;
+use Maatwebsite\Excel\Facades\Excel;
 
 class LaporanController extends Controller
 {
     protected $laporanService;
 
-    public function __construct(LaporanPeminjamanService $laporanService)
+    public function __construct(
+        LaporanPeminjamanService $laporanService,
+        private ServiceReportQuery $serviceReportQuery,
+    )
     {
         $this->laporanService = $laporanService;
+    }
+
+    public function index(Request $request, string $type)
+    {
+        $this->authorizeReport($request);
+        $filters = $this->validatedFilters($request, $type);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->serviceReportQuery->build($type, $filters)->paginate(20),
+        ]);
+    }
+
+    public function export(Request $request, string $type)
+    {
+        $this->authorizeReport($request);
+        $filters = $this->validatedFilters($request, $type);
+        $format = $request->validate(['format' => 'required|in:csv,xlsx'])['format'];
+        $writer = $format === 'csv' ? ExcelWriter::CSV : ExcelWriter::XLSX;
+
+        return Excel::download(
+            new ServiceReportExport($type, $filters, $this->serviceReportQuery),
+            $type.'-'.now()->format('Ymd-His').'.'.$format,
+            $writer,
+        );
+    }
+
+    private function validatedFilters(Request $request, string $type): array
+    {
+        if (! in_array($type, ['peminjaman', 'konsultasi', 'usulan-email'], true)) {
+            abort(404);
+        }
+
+        return $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'status' => 'nullable|string|max:50',
+            'user_id' => 'nullable|integer|exists:users,id',
+            'opd' => 'nullable|string|max:500',
+            'topik_id' => 'nullable|integer|exists:master_topik,id',
+            'asset_id' => 'nullable|integer|exists:master_item,id',
+        ]);
+    }
+
+    private function authorizeReport(Request $request): void
+    {
+        abort_unless($request->user()->hasAnyRole(['admin', 'superadmin']), 403, 'Unauthorized');
     }
 
     /**

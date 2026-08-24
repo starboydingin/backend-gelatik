@@ -88,6 +88,19 @@ class _InternetRepositoryFake extends InternetRepository {
     : super(apiClient: ApiClient(secureStorageService: SecureStorageService()));
 
   @override
+  Future<Map<String, dynamic>> getInternetOverview() async => {
+    'bandwidth': {
+      'opd': 'Informasi bandwidth belum tersedia',
+      'provider': 'Tidak tersedia dari API',
+      'status': 'Belum tersedia',
+      'available': false,
+      'download_mbps': '-',
+      'upload_mbps': '-',
+    },
+    'routers': await getRouters(),
+  };
+
+  @override
   Future<List<Map<String, dynamic>>> getRouters() async => [
     {
       'nama_router': 'Router OPD',
@@ -151,7 +164,7 @@ void main() {
         expect(find.text('UPLOAD'), findsNothing);
         expect(find.text('Informasi bandwidth belum tersedia'), findsOneWidget);
         expect(
-          find.text('Metrik download dan upload belum tersedia dari API.'),
+          find.text('Informasi bandwidth untuk OPD Anda belum tersedia.'),
           findsOneWidget,
         );
         expect(find.text('Buat Pengaduan Internet'), findsOneWidget);

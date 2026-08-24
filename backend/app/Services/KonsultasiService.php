@@ -9,12 +9,21 @@ use App\Models\Konsultasi;
 use App\Models\KonsultasiResponse;
 use App\Models\Notification;
 use App\Models\User;
+use App\Services\NodeServiceClient;
+use App\Services\RealtimeEventPayload;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class KonsultasiService
 {
+    public function __construct(
+        private AdminAuditService $audit,
+        private AdminNotificationService $adminNotifications,
+    )
+    {
+    }
+
     /**
      * Buat pengajuan konsultasi TIK baru.
      */
@@ -35,7 +44,16 @@ class KonsultasiService
             'created_by' => $user->id,
         ]);
 
-        // Dispatch Event untuk memicu notifikasi ke admin
+        // The browser inbox and Socket.IO signal are persisted/delivered now;
+        // queued listeners remain responsible only for optional push delivery.
+        $this->adminNotifications->announce(
+            'konsultasi.created',
+            (int) $konsultasi->id,
+            'Permintaan Konsultasi',
+            'Pengajuan konsultasi baru telah masuk.',
+            'konsultasi',
+            ['status' => $konsultasi->status],
+        );
         event(new KonsultasiCreated($konsultasi));
 
         return $konsultasi->load(['user', 'topik']);
@@ -68,6 +86,12 @@ class KonsultasiService
         // written in the business action, not a queued listener, so retries do
         // not create duplicate "admin replied" notifications.
         if ($pembalas->hasAnyRole(['admin', 'superadmin'])) {
+            $this->audit->record(
+                $pembalas,
+                'konsultasi.response_created',
+                "Membalas konsultasi “{$konsultasi->judul}”.",
+                $konsultasi,
+            );
             Notification::create([
                 'user_id' => $konsultasi->user_id,
                 'judul' => 'Balasan baru dari admin',
@@ -76,6 +100,19 @@ class KonsultasiService
                 'item_id' => $konsultasi->id,
                 'read' => false,
             ]);
+
+            // Keep the user's open web/mobile session in sync immediately.
+            // WhatsApp and FCM are still handled asynchronously by the event
+            // listener below, so a gateway outage never blocks this reply.
+            app(NodeServiceClient::class)->broadcastToUser(
+                $konsultasi->user_id,
+                'konsultasi.responded',
+                RealtimeEventPayload::make('konsultasi.responded', (int) $konsultasi->id, [
+                    'status' => $konsultasi->status,
+                    'response_id' => (int) $response->id,
+                    'message' => 'Anda mendapat balasan baru pada konsultasi: '.$konsultasi->judul,
+                ]),
+            );
         }
 
         // Dispatch Event untuk notifikasi
@@ -106,6 +143,35 @@ class KonsultasiService
             'status'     => $statusBaru,
             'updated_by' => $admin ? $admin->id : null,
         ]);
+
+        if ($admin) {
+            $this->audit->record(
+                $admin,
+                'konsultasi.status_changed',
+                "Mengubah status konsultasi “{$konsultasi->judul}” dari {$oldStatus} menjadi {$statusBaru}.",
+                $konsultasi,
+                ['status_lama' => $oldStatus, 'status_baru' => $statusBaru],
+            );
+
+            Notification::create([
+                'user_id' => $konsultasi->user_id,
+                'judul' => 'Status konsultasi diperbarui',
+                'message' => "Status konsultasi \"{$konsultasi->judul}\" berubah menjadi {$statusBaru}.",
+                'type' => 'konsultasi_status',
+                'item_id' => $konsultasi->id,
+                'read' => false,
+            ]);
+
+            app(NodeServiceClient::class)->broadcastToUser(
+                $konsultasi->user_id,
+                'konsultasi.status_changed',
+                RealtimeEventPayload::make('konsultasi.status_changed', (int) $konsultasi->id, [
+                    'status' => $statusBaru,
+                    'old_status' => $oldStatus,
+                    'message' => 'Status konsultasi Anda telah diubah menjadi '.$statusBaru,
+                ]),
+            );
+        }
 
         event(new KonsultasiStatusChanged($konsultasi, $oldStatus, $statusBaru));
 

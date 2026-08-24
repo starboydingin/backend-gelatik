@@ -36,6 +36,7 @@ Route::post('/internal/wa/webhook-delivery-status', [InternalWebhookController::
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,1');
+Route::post('/forgot-password/verify', [AuthController::class, 'verifyPasswordResetOtp'])->middleware('throttle:5,1');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 
 // Development/test only: bootstrap separate presentation accounts without
@@ -57,6 +58,8 @@ Route::middleware('auth:api')->group(function () {
     // Auth
     Route::get('/me', [AuthController::class, 'me']);
     Route::patch('/me', [AuthController::class, 'updateProfile']);
+    Route::post('/me/change-password', [AuthController::class, 'changePassword']);
+    Route::get('/me/activity-log', [AuthController::class, 'activityLog']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Dashboard
@@ -201,4 +204,6 @@ Route::middleware('auth:api')->group(function () {
 
     // F-LAPORAN: Laporan Peminjaman
     Route::get('/laporan/peminjaman', [LaporanController::class, 'peminjaman']);
+    Route::get('/laporan/{type}/data', [LaporanController::class, 'index']);
+    Route::get('/laporan/{type}/export', [LaporanController::class, 'export'])->middleware('throttle:10,1');
 });

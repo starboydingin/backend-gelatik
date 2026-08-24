@@ -135,7 +135,7 @@ onMounted(load)
         <form v-if="showForm" class="section-panel" @submit.prevent="submit">
             <div class="section-panel-header">
                 <p class="eyebrow">Pengajuan berdasarkan data BKD</p>
-                <h2 class="mt-1 text-xl font-bold text-[var(--ink)]">Ajukan email ASN</h2>
+                <h2 class="mt-1 text-xl font-bold text-[var(--color-text-primary)]">Ajukan email ASN</h2>
             </div>
             <div class="space-y-5 p-5 md:p-7">
                 <p class="text-sm leading-6 text-slate-600">
@@ -154,7 +154,7 @@ onMounted(load)
                         </option>
                     </select>
                 </label>
-                <div v-if="selectedEmployee" class="border-2 border-[var(--line)] bg-[var(--paper)] p-4 text-sm">
+                <div v-if="selectedEmployee" class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4 text-sm">
                     <strong>{{ selectedEmployee.nama }}</strong>
                     <p class="mt-1 text-slate-600">
                         NIP {{ selectedEmployee.nip }} - {{ selectedEmployee.Unit_Kerja || selectedEmployee.unit_kerja || '-' }}
@@ -175,9 +175,9 @@ onMounted(load)
         <section class="section-panel overflow-hidden">
             <div class="section-panel-header">
                 <p class="eyebrow">Monitoring pengajuan</p>
-                <h2 class="mt-1 text-xl font-bold text-[var(--ink)]">Riwayat usulan email ASN</h2>
+                <h2 class="mt-1 text-xl font-bold text-[var(--color-text-primary)]">Riwayat usulan email ASN</h2>
             </div>
-        <div class="grid gap-3 border-b-2 border-[var(--line)] p-5 md:grid-cols-[220px_1fr] md:items-end">
+        <div class="grid gap-3 border-b border-[var(--color-border)] p-5 md:grid-cols-[220px_1fr] md:items-end">
             <input
                 v-model="search"
                 class="input md:order-2 md:justify-self-end md:w-72"

@@ -36,35 +36,35 @@ const auth = useAuthStore(),
     router = useRouter(),
     open = ref(false)
 const userItems = [
-    { label: 'Dashboard', to: '/app/dashboard', icon: HomeIcon, group: 'Portal layanan' },
+    { label: 'Dashboard', to: '/app/dashboard', icon: HomeIcon, group: 'Dashboard' },
     {
         label: 'Konsultasi TIK',
         to: '/app/konsultasi',
         icon: ChatBubbleLeftRightIcon,
-        group: 'Portal layanan',
+        group: 'Layanan',
     },
-    { label: 'Kalender', to: '/app/kalender', icon: CalendarDaysIcon, group: 'Portal layanan' },
-    { label: 'Peminjaman', to: '/app/peminjaman', icon: BriefcaseIcon, group: 'Portal layanan' },
-    { label: 'Usulan Email', to: '/app/email-resmi', icon: EnvelopeIcon, group: 'Portal layanan' },
-    { label: 'Router OPD', to: '/app/router', icon: WifiIcon, group: 'Portal layanan' },
+    { label: 'Kalender', to: '/app/kalender', icon: CalendarDaysIcon, group: 'Informasi' },
+    { label: 'Peminjaman', to: '/app/peminjaman', icon: BriefcaseIcon, group: 'Layanan' },
+    { label: 'Usulan Email', to: '/app/email-resmi', icon: EnvelopeIcon, group: 'Layanan' },
+    { label: 'Internet & Bandwidth', to: '/app/router', icon: WifiIcon, group: 'Layanan' },
     {
         label: 'Kritik & Saran',
         to: '/app/umpan-balik',
         icon: ChatBubbleBottomCenterTextIcon,
-        group: 'Portal layanan',
+        group: 'Interaksi',
     },
-    { label: 'Pengumuman', to: '/app/pengumuman', icon: MegaphoneIcon, group: 'Portal layanan' },
-    { label: 'Notifikasi', to: '/app/notifikasi', icon: BellIcon, group: 'Akun & bantuan' },
-    { label: 'FAQ', to: '/app/faq', icon: QuestionMarkCircleIcon, group: 'Akun & bantuan' },
-    { label: 'Rating', to: '/app/rating', icon: StarIcon, group: 'Akun & bantuan' },
+    { label: 'Pengumuman', to: '/app/pengumuman', icon: MegaphoneIcon, group: 'Informasi' },
+    { label: 'Notifikasi', to: '/app/notifikasi', icon: BellIcon, group: 'Interaksi' },
+    { label: 'FAQ', to: '/app/faq', icon: QuestionMarkCircleIcon, group: 'Informasi' },
+    { label: 'Rating', to: '/app/rating', icon: StarIcon, group: 'Interaksi' },
     {
         label: 'WhatsApp',
         to: '/app/whatsapp',
         icon: DevicePhoneMobileIcon,
-        group: 'Akun & bantuan',
+        group: 'Akun',
     },
-    { label: 'Chatbot', to: '/app/chatbot', icon: SparklesIcon, group: 'Akun & bantuan' },
-    { label: 'Profil', to: '/app/profil', icon: UserCircleIcon, group: 'Akun & bantuan' },
+    { label: 'Chatbot', to: '/app/chatbot', icon: SparklesIcon, group: 'Interaksi' },
+    { label: 'Profil', to: '/app/profil', icon: UserCircleIcon, group: 'Akun' },
 ]
 const adminItems = [
     { label: 'Dasbor', to: '/admin/dashboard', icon: HomeIcon, group: 'Portal admin' },
@@ -83,7 +83,19 @@ const adminItems = [
         label: 'Laporan Peminjaman',
         to: '/admin/laporan-peminjaman',
         icon: ChartBarIcon,
-        group: 'Layanan',
+        group: 'Pelaporan',
+    },
+    {
+        label: 'Laporan Konsultasi',
+        to: '/admin/laporan-konsultasi',
+        icon: ChartBarIcon,
+        group: 'Pelaporan',
+    },
+    {
+        label: 'Laporan Usulan Email',
+        to: '/admin/laporan-email',
+        icon: ChartBarIcon,
+        group: 'Pelaporan',
     },
     {
         label: 'Kritik & Saran',
@@ -99,7 +111,7 @@ const adminItems = [
         group: 'Konten',
     },
     { label: 'Notifikasi', to: '/admin/notifikasi', icon: BellIcon, group: 'Sistem' },
-    { label: 'Pengaturan', to: '/admin/pengaturan', icon: Cog6ToothIcon, group: 'Sistem' },
+    { label: 'Profil & Pengaturan', to: '/admin/pengaturan', icon: Cog6ToothIcon, group: 'Sistem' },
 ]
 const adminArea = computed(() => route.path.startsWith('/admin'))
 // Cached user views retain their loaded list/form state while a user moves
@@ -120,7 +132,11 @@ const cacheableViews = [
     'ProfileView',
     'FeedbackView',
 ]
-const items = computed(() => (adminArea.value ? adminItems : userItems))
+const items = computed(() => {
+    if (!adminArea.value) return userItems
+    if (auth.roles.map((role) => role.toLowerCase()).includes('superadmin')) return adminItems
+    return adminItems.filter((item) => item.to !== '/admin/peran')
+})
 const mobileItems = computed(() =>
     adminArea.value
         ? [adminItems[0], adminItems[3], adminItems[1]]

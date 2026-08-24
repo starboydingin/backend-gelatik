@@ -85,6 +85,23 @@ function formatDate(value) {
         year: 'numeric',
     }).format(date)
 }
+function formatDateTime(value) {
+    if (!value) return 'Waktu belum tersedia'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return 'Waktu belum tersedia'
+    return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(date)
+}
+function auditRoleLabel(role) {
+    if (role === 'superadmin') return 'Superadmin'
+    if (role === 'admin') return 'Admin'
+    return 'Administrator'
+}
 function itemTitle(item, type) {
     if (type === 'users') return item.name || item.username || `Pengguna #${item.id}`
     if (type === 'konsultasi') return item.judul || item.topik?.topik || `Konsultasi #${item.id}`
@@ -253,10 +270,19 @@ onMounted(async () => {
                     <article
                         v-for="item in data.admin_activity || []"
                         :key="item.id"
-                        class="py-3 text-sm"
+                        class="flex flex-wrap items-start justify-between gap-3 py-4 text-sm"
                     >
-                        <strong>{{ item.actor || 'Sistem' }}</strong>
-                        <span class="ml-2 text-slate-500">{{ item.description }}</span>
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <strong class="text-navy">{{ item.actor || 'Administrator' }}</strong>
+                                <span
+                                    class="badge text-[10px]"
+                                    :class="item.actor_role === 'superadmin' ? 'bg-violet-50 text-violet-700' : 'bg-sky-50 text-sky-700'"
+                                >{{ auditRoleLabel(item.actor_role) }}</span>
+                            </div>
+                            <p class="mt-1 text-slate-600">{{ item.description }}</p>
+                        </div>
+                        <time class="shrink-0 text-xs text-slate-500">{{ formatDateTime(item.created_at) }}</time>
                     </article>
                     <p v-if="!data.admin_activity?.length" class="py-8 text-center text-sm text-slate-500">Belum ada aktivitas administrator.</p>
                 </div>

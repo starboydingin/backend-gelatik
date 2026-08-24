@@ -3,17 +3,31 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminAuditLog;
+use App\Models\Konsultasi;
+use App\Models\Notification;
+use App\Models\Pinjam;
 use App\Models\RouterList;
 use App\Models\User;
+use App\Models\UsulanEmail;
+use App\Services\AdminAuditService;
+use App\Services\PasswordResetOtpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private PasswordResetOtpService $passwordResetOtpService,
+        private AdminAuditService $adminAudit,
+    )
+    {
+    }
+
     /**
      * Login user dan dapatkan access token (Passport)
      * POST /api/login
@@ -136,6 +150,15 @@ class AuthController extends Controller
 
         $user->update($validated);
 
+        if ($user->hasAnyRole(['admin', 'superadmin'])) {
+            $this->adminAudit->record(
+                $user,
+                'profile.updated',
+                'Memperbarui profil administrator.',
+                $user,
+            );
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Profil berhasil diperbarui.',
@@ -143,24 +166,118 @@ class AuthController extends Controller
         ]);
     }
 
+    /** POST /api/me/change-password */
+    public function changePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+        $user = $request->user();
+
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => 'Kata sandi saat ini tidak sesuai.',
+            ]);
+        }
+
+        $user->update(['password' => Hash::make($validated['password'])]);
+        if ($user->hasAnyRole(['admin', 'superadmin'])) {
+            $this->adminAudit->record(
+                $user,
+                'password.changed',
+                'Mengubah kata sandi administrator.',
+                $user,
+            );
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kata sandi berhasil diperbarui.',
+        ]);
+    }
+
+    /** GET /api/me/activity-log — aktivitas akun sendiri, bukan log global. */
+    public function activityLog(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->hasAnyRole(['admin', 'superadmin'])) {
+            if (! Schema::hasTable('admin_audit_logs')) {
+                return response()->json(['success' => true, 'data' => []]);
+            }
+
+            $entries = AdminAuditLog::query()
+                ->where('actor_id', $user->id)
+                ->latest()
+                ->take(30)
+                ->get(['id', 'action', 'description', 'created_at']);
+
+            return response()->json(['success' => true, 'data' => $entries]);
+        }
+
+        $entries = collect()
+            ->concat(Konsultasi::query()->where('user_id', $user->id)->latest()->take(30)->get(['id', 'judul', 'created_at'])->map(fn (Konsultasi $konsultasi) => [
+                'id' => 'konsultasi-'.$konsultasi->id,
+                'action' => 'konsultasi.created',
+                'description' => 'Mengajukan konsultasi'.($konsultasi->judul ? ': '.$konsultasi->judul : '.'),
+                'created_at' => $konsultasi->created_at,
+            ]))
+            ->concat(Pinjam::query()->where('user_id', $user->id)->latest()->take(30)->get(['id', 'keterangan', 'created_at'])->map(fn (Pinjam $pinjam) => [
+                'id' => 'pinjam-'.$pinjam->id,
+                'action' => 'pinjam.created',
+                'description' => 'Mengajukan peminjaman aset'.($pinjam->keterangan ? ': '.$pinjam->keterangan : '.'),
+                'created_at' => $pinjam->created_at,
+            ]))
+            ->concat(UsulanEmail::query()->where('created_by', $user->id)->latest()->take(30)->get(['id', 'email_pribadi', 'created_at'])->map(fn (UsulanEmail $usulan) => [
+                'id' => 'usulan-email-'.$usulan->id,
+                'action' => 'usulan_email.created',
+                'description' => 'Mengajukan usulan email ASN'.($usulan->email_pribadi ? ' untuk '.$usulan->email_pribadi.'.' : '.'),
+                'created_at' => $usulan->created_at,
+            ]))
+            ->concat(Notification::query()->where('user_id', $user->id)->latest()->take(30)->get(['id', 'judul', 'created_at'])->map(fn (Notification $notification) => [
+                'id' => 'notification-'.$notification->id,
+                'action' => 'notification.received',
+                'description' => 'Menerima pembaruan: '.($notification->judul ?: 'Notifikasi layanan').'.',
+                'created_at' => $notification->created_at,
+            ]))
+            ->sortByDesc('created_at')
+            ->take(30)
+            ->values();
+
+        return response()->json(['success' => true, 'data' => $entries]);
+    }
+
     /** POST /api/forgot-password */
     public function forgotPassword(Request $request)
     {
-        $validated = $request->validate(['email' => 'required|email']);
+        $validated = $request->validate(['identifier' => 'required|string|max:255']);
+        $challenge = $this->passwordResetOtpService->request($validated['identifier']);
 
-        try {
-            Password::sendResetLink(['email' => $validated['email']]);
-        } catch (\Throwable) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Email reset belum dapat dikirim. Silakan hubungi administrator layanan.',
-            ], 503);
-        }
-
-        // Do not reveal whether an address is registered.
         return response()->json([
             'success' => true,
-            'message' => 'Jika alamat email terdaftar, tautan reset kata sandi telah dikirim.',
+            'message' => 'Jika akun dan nomor WhatsApp terdaftar, kode verifikasi telah dikirim.',
+            'data' => $challenge,
+        ]);
+    }
+
+    /** POST /api/forgot-password/verify */
+    public function verifyPasswordResetOtp(Request $request)
+    {
+        $validated = $request->validate([
+            'challenge_id' => 'required|uuid',
+            'otp' => 'required|digits:6',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kode verifikasi berhasil diverifikasi.',
+            'data' => [
+                'reset_token' => $this->passwordResetOtpService->verify(
+                    $validated['challenge_id'],
+                    $validated['otp'],
+                ),
+            ],
         ]);
     }
 
@@ -168,25 +285,11 @@ class AuthController extends Controller
     public function resetPassword(Request $request)
     {
         $validated = $request->validate([
-            'token' => 'required|string',
-            'email' => 'required|email',
+            'reset_token' => 'required|string|size:64',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        $status = Password::reset($validated, function (User $user, string $password): void {
-            $user->forceFill([
-                'password' => Hash::make($password),
-                'remember_token' => \Illuminate\Support\Str::random(60),
-            ])->save();
-            $user->tokens()->update(['revoked' => true]);
-        });
-
-        if ($status !== Password::PASSWORD_RESET) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tautan reset tidak valid atau telah kedaluwarsa.',
-            ], 422);
-        }
+        $this->passwordResetOtpService->reset($validated['reset_token'], $validated['password']);
 
         return response()->json([
             'success' => true,

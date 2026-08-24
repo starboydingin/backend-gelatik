@@ -85,7 +85,7 @@ onMounted(load)
                 <header class="section-panel-header flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <p class="eyebrow">Data pengajuan pengguna</p>
-                        <h2 class="mt-1 text-xl font-bold text-[var(--ink)]">Pengajuan #{{ loan.id }}</h2>
+                        <h2 class="mt-1 text-xl font-bold text-[var(--color-text-primary)]">Pengajuan #{{ loan.id }}</h2>
                     </div>
                     <StatusBadge :status="loan.status" />
                 </header>
@@ -106,7 +106,7 @@ onMounted(load)
 
                     <div>
                         <p class="label">Aset yang diajukan</p>
-                        <div class="divide-y-2 divide-[var(--line)] border-2 border-[var(--line)]">
+                        <div class="divide-y divide-[var(--color-border)] overflow-hidden rounded-lg border border-[var(--color-border)]">
                             <div v-for="entry in loan.pinjam_items || []" :key="entry.id || entry.item_id" class="flex items-center justify-between gap-4 p-3">
                                 <span>{{ entry.master_item?.nama || entry.master_item?.nama_item || `Aset #${entry.item_id}` }}</span>
                                 <strong class="shrink-0">{{ entry.quantity || entry.jumlah || 1 }} unit</strong>
@@ -120,7 +120,7 @@ onMounted(load)
             <section class="section-panel h-fit">
                 <header class="section-panel-header">
                     <p class="eyebrow">Tindakan petugas</p>
-                    <h2 class="mt-1 text-xl font-bold text-[var(--ink)]">Konfirmasi peminjaman</h2>
+                    <h2 class="mt-1 text-xl font-bold text-[var(--color-text-primary)]">Konfirmasi peminjaman</h2>
                 </header>
                 <form class="space-y-6 p-5 md:p-6" @submit.prevent="saveConfirmation">
                     <p class="pb-1 text-sm leading-6 text-slate-600">Admin tidak dapat mengubah formulir atau aset yang diajukan pengguna.</p>
@@ -135,7 +135,7 @@ onMounted(load)
                         <span class="label !mb-2">Catatan petugas</span>
                         <textarea v-model="confirmation.catatan" class="input min-h-32" :disabled="!canConfirm" placeholder="Tulis catatan konfirmasi untuk pemohon."></textarea>
                     </label>
-                    <p v-if="!canConfirm" class="border-2 border-[var(--line)] bg-slate-50 p-3 text-sm">Pengajuan berstatus {{ loan.status }} dan tidak memiliki transisi lanjutan.</p>
+                    <p v-if="!canConfirm" class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3 text-sm">Pengajuan berstatus {{ loan.status }} dan tidak memiliki transisi lanjutan.</p>
                     <button class="btn-primary mt-1 w-full" :disabled="saving || !canConfirm">
                         {{ saving ? 'Menyimpan...' : 'Simpan konfirmasi' }}
                     </button>

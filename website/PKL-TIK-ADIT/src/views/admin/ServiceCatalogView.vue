@@ -30,7 +30,15 @@ function blankForm() {
     if (selected.value === 'topik') return { topik: '', status: true }
     if (selected.value === 'faq') return { topik_id: '', judul: '', detail: '', status: true }
     if (selected.value === 'routers') {
-        return { nama_opd: '', identity_router: '', interface: '', lokasi: '', status: true }
+        return {
+            nama_opd: '',
+            identity_router: '',
+            interface: '',
+            lokasi: '',
+            bandwidth_download_mbps: '',
+            bandwidth_upload_mbps: '',
+            status: true,
+        }
     }
     return { judul: '', image: '', status: true }
 }
@@ -75,6 +83,10 @@ function requestBody() {
         body.stok = Number(body.stok)
     }
     if (selected.value === 'faq') body.topik_id = Number(body.topik_id)
+    if (selected.value === 'routers') {
+        body.bandwidth_download_mbps = body.bandwidth_download_mbps === '' ? null : Number(body.bandwidth_download_mbps)
+        body.bandwidth_upload_mbps = body.bandwidth_upload_mbps === '' ? null : Number(body.bandwidth_upload_mbps)
+    }
     return body
 }
 async function save() {
@@ -175,6 +187,11 @@ onMounted(async () => {
                                 {{ item.nama_opd }} · {{ item.interface || 'Tanpa interface' }} ·
                                 {{ item.lokasi || 'Tanpa lokasi' }}
                             </p>
+                            <p v-if="selected === 'routers'" class="mt-1 text-xs text-slate-500">
+                                Bandwidth: {{ item.bandwidth_download_mbps ?? 'belum tersedia' }}
+                                Mbps unduh · {{ item.bandwidth_upload_mbps ?? 'belum tersedia' }}
+                                Mbps unggah
+                            </p>
                         </div>
                         <div class="flex shrink-0 gap-2">
                             <button class="btn-secondary" type="button" @click="edit(item)">
@@ -269,6 +286,26 @@ onMounted(async () => {
                             ><span class="label">Lokasi</span
                             ><input v-model="form.lokasi" class="input"
                         /></label>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <label
+                                ><span class="label">Bandwidth unduh (Mbps)</span
+                                ><input
+                                    v-model.number="form.bandwidth_download_mbps"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    class="input"
+                            /></label>
+                            <label
+                                ><span class="label">Bandwidth unggah (Mbps)</span
+                                ><input
+                                    v-model.number="form.bandwidth_upload_mbps"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    class="input"
+                            /></label>
+                        </div>
                     </template>
                     <template v-else
                         ><label

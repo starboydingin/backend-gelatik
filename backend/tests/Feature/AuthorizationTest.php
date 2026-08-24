@@ -9,11 +9,13 @@ use App\Models\PinjamItem;
 use App\Models\User;
 use App\Models\UsulanEmail;
 use App\Services\ChatbotService;
+use App\Services\DashboardService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Passport\Passport;
+use Maatwebsite\Excel\Facades\Excel;
 use Mockery\MockInterface;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -277,6 +279,56 @@ class AuthorizationTest extends TestCase
         }
     }
 
+    public function test_chatbot_escalates_repeated_unresolved_issue_to_user_consultation(): void
+    {
+        Schema::create('chatbot_conversations', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->index();
+            $table->string('session_id');
+            $table->unsignedTinyInteger('unresolved_count')->default(0);
+            $table->unsignedBigInteger('escalated_konsultasi_id')->nullable();
+            $table->timestamps();
+        });
+        Schema::create('chatbot_messages', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('conversation_id')->index();
+            $table->enum('role', ['user', 'assistant']);
+            $table->text('content');
+            $table->enum('provider_used', ['gemini', 'groq']);
+            $table->timestamps();
+        });
+        Schema::create('faq', function (Blueprint $table): void {
+            $table->unsignedBigInteger('id')->primary();
+            $table->unsignedBigInteger('topik_id');
+            $table->string('judul');
+            $table->text('detail');
+            $table->string('status')->default('1');
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
+            $table->softDeletes();
+            $table->timestamps();
+        });
+        config()->set('services.chatbot.gemini.key', 'test-key');
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [['content' => ['parts' => [['text' => 'Silakan coba langkah berikutnya.']]]]],
+            ]),
+        ]);
+
+        $service = app(ChatbotService::class);
+        $first = $service->sendMessage($this->userA, 'Internet kantor tidak bisa digunakan', null);
+        $service->sendMessage($this->userA, 'Masih tidak bisa', $first['session_id']);
+        $result = $service->sendMessage($this->userA, 'Tetap tidak bisa', $first['session_id']);
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['escalated']);
+        $this->assertDatabaseHas('tr_konsultasi', [
+            'id' => $result['konsultasi_id'],
+            'user_id' => $this->userA->id,
+            'status' => 'Menunggu',
+        ]);
+    }
+
     public function test_user_can_view_own_pinjam_but_not_another_users_pinjam(): void
     {
         $this->actingAsApi($this->userA);
@@ -339,7 +391,7 @@ class AuthorizationTest extends TestCase
             'nomor_identitas' => '198804122014031002',
             'alamat_peminjam' => 'Bandar Lampung',
             'jenis_durasi' => 'harian',
-            'tanggal_mulai' => '2026-08-10',
+            'tanggal_mulai' => now()->addDay()->toDateString(),
             'jam_mulai' => '08:00',
             'durasi_peminjaman' => 2,
             'keterangan' => 'Integrasi mobile',
@@ -357,6 +409,31 @@ class AuthorizationTest extends TestCase
             'item_id' => 501,
             'quantity' => 1,
         ]);
+    }
+
+    public function test_pinjam_start_date_is_limited_to_today_or_tomorrow(): void
+    {
+        $this->actingAsApi($this->userA);
+        $payload = [
+            'nama_pic' => 'User A',
+            'instansi_pic' => 'Diskominfotik',
+            'kontak_pic' => '081234567890',
+            'jenis_identitas' => 'NIP',
+            'nomor_identitas' => '198804122014031002',
+            'alamat_peminjam' => 'Bandar Lampung',
+            'jenis_durasi' => 'harian',
+            'jam_mulai' => '08:00',
+            'durasi_peminjaman' => 1,
+            'items' => [['item_id' => 501, 'quantity' => 1]],
+        ];
+
+        $this->postJson('/api/pinjam', $payload + [
+            'tanggal_mulai' => now()->subDay()->toDateString(),
+        ])->assertUnprocessable()->assertJsonValidationErrors('tanggal_mulai');
+
+        $this->postJson('/api/pinjam', $payload + [
+            'tanggal_mulai' => now()->addDays(2)->toDateString(),
+        ])->assertUnprocessable()->assertJsonValidationErrors('tanggal_mulai');
     }
 
     public function test_konsultasi_detail_and_list_enforce_ownership(): void
@@ -535,6 +612,48 @@ class AuthorizationTest extends TestCase
         $this->getJson('/api/admin/users')->assertOk();
     }
 
+    public function test_superadmin_dashboard_uses_roles_across_the_configured_web_guard(): void
+    {
+        Schema::create('activity_log', function (Blueprint $table): void {
+            $table->id();
+            $table->string('description');
+            $table->string('causer_type')->nullable();
+            $table->unsignedBigInteger('causer_id')->nullable();
+            $table->timestamps();
+        });
+        \DB::table('activity_log')->insert([
+            'description' => 'Memperbarui layanan',
+            'causer_type' => User::class,
+            'causer_id' => $this->admin->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->mock(DashboardService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getStatistikInternal')->once()->andReturn([]);
+        });
+
+        $this->actingAsApi($this->superadmin);
+        $this->getJson('/api/admin/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.scope', 'superadmin')
+            ->assertJsonPath('data.admin_activity.0.actor', $this->admin->name);
+    }
+
+    public function test_service_reports_are_restricted_and_export_filtered_queries(): void
+    {
+        $this->actingAsApi($this->userA);
+        $this->getJson('/api/laporan/konsultasi/data')->assertForbidden();
+
+        $this->actingAsApi($this->admin);
+        $this->getJson('/api/laporan/konsultasi/data?status=Menunggu')
+            ->assertOk()
+            ->assertJsonPath('data.data.0.status', 'Menunggu');
+
+        Excel::fake();
+        $this->get('/api/laporan/konsultasi/export?format=csv&status=Menunggu')->assertOk();
+        Excel::assertDownloaded('konsultasi-'.now()->format('Ymd-His').'.csv');
+    }
+
     public function test_admin_master_data_and_announcements_are_role_gated(): void
     {
         $this->actingAsApi($this->userA);
@@ -678,6 +797,7 @@ class AuthorizationTest extends TestCase
             $table->id();
             $table->string('name');
             $table->string('nama_opd')->nullable();
+            $table->string('nip')->nullable();
             $table->string('username')->unique();
             $table->string('email')->unique();
             $table->string('password');
@@ -784,6 +904,17 @@ class AuthorizationTest extends TestCase
             $table->text('pesan');
             $table->text('file')->nullable();
             $table->softDeletes();
+            $table->timestamps();
+        });
+
+        Schema::create('notification', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->string('judul');
+            $table->text('message');
+            $table->string('type')->nullable();
+            $table->unsignedBigInteger('item_id')->nullable();
+            $table->boolean('read')->default(false);
             $table->timestamps();
         });
         Schema::create('usulan_email', function (Blueprint $table): void {

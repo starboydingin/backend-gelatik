@@ -26,10 +26,10 @@ defineProps({
             <div
                 v-for="stat in stats"
                 :key="stat.label"
-                class="border-[3px] border-[var(--line)] bg-[var(--gold)] p-4 text-black"
+                class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-slate-950"
             >
-                <strong class="block text-2xl font-black text-black">{{ stat.value }}</strong>
-                <span class="mt-1 block text-xs font-black uppercase text-black">{{
+                <strong class="block text-2xl font-bold text-slate-950">{{ stat.value }}</strong>
+                <span class="mt-1 block text-xs font-semibold uppercase text-slate-700">{{
                     stat.label
                 }}</span>
             </div>

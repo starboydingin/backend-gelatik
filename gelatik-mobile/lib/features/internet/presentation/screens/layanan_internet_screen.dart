@@ -107,7 +107,9 @@ class _LayananInternetScreenState extends ConsumerState<LayananInternetScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        'Metrik download dan upload belum tersedia dari API.',
+                        info['available'] == true
+                            ? 'Download ${info['download_mbps']} Mbps • Upload ${info['upload_mbps']} Mbps'
+                            : 'Informasi bandwidth untuk OPD Anda belum tersedia.',
                         style: TextStyle(fontSize: 12, color: mutedText),
                       ),
                     ),

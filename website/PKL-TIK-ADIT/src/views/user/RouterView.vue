@@ -15,6 +15,7 @@ const auth = useAuthStore(),
     search = ref(''),
     status = ref('all')
 const allRows = computed(() => [...rows(data.value?.list_router), ...rows(data.value?.router)])
+const bandwidth = computed(() => data.value?.bandwidth || { available: false, connections: [] })
 const list = computed(() =>
     allRows.value.filter((item) => {
         const matchesSearch = Object.values(item)
@@ -67,6 +68,25 @@ onMounted(load)
             :description="`Lihat identitas router, interface, lokasi pemasangan, dan status perangkat yang tercatat untuk ${auth.user?.nama_opd || 'unit kerja Anda'}.`"
             :stats="stats"
         />
+        <section class="section-panel p-5 md:p-6">
+            <div class="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+                <div>
+                    <p class="eyebrow">Informasi bandwidth</p>
+                    <h2 class="mt-1 text-xl font-bold">{{ bandwidth.opd || auth.user?.nama_opd || 'OPD Anda' }}</h2>
+                    <p class="mt-2 text-sm text-[var(--color-text-secondary)]">
+                        {{ bandwidth.available ? 'Kapasitas koneksi yang tercatat pada router OPD.' : 'Informasi bandwidth untuk OPD Anda belum tersedia.' }}
+                    </p>
+                </div>
+                <div v-if="bandwidth.available" class="grid grid-cols-2 gap-3">
+                    <div class="rounded-xl bg-blue-50 px-5 py-3 text-blue-900"><span class="block text-xs font-semibold">Download</span><strong class="text-xl">{{ bandwidth.connections?.[0]?.download_mbps ?? '—' }} Mbps</strong></div>
+                    <div class="rounded-xl bg-amber-50 px-5 py-3 text-amber-900"><span class="block text-xs font-semibold">Upload</span><strong class="text-xl">{{ bandwidth.connections?.[0]?.upload_mbps ?? '—' }} Mbps</strong></div>
+                </div>
+                <div v-else class="flex flex-wrap gap-2">
+                    <RouterLink to="/app/chatbot" class="btn-secondary">Cari solusi dengan AI</RouterLink>
+                    <RouterLink to="/app/konsultasi" class="btn-primary">Buat konsultasi</RouterLink>
+                </div>
+            </div>
+        </section>
         <section class="section-panel">
             <div class="grid gap-4 border-b border-stroke p-5 md:grid-cols-[1fr_220px]">
                 <label class="relative"

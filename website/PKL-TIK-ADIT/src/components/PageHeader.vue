@@ -11,8 +11,8 @@ defineProps({
     >
         <div class="min-w-0 max-w-4xl">
             <p class="eyebrow">{{ eyebrow }}</p>
-            <h2 class="mt-2 text-2xl font-bold leading-tight text-[var(--ink)] md:text-3xl">{{ title }}</h2>
-            <p v-if="description" class="mt-3 max-w-3xl text-sm leading-6 text-[var(--ink)] md:text-base">
+            <h2 class="mt-2 text-2xl font-bold leading-tight text-[var(--color-text-primary)] md:text-3xl">{{ title }}</h2>
+            <p v-if="description" class="mt-3 max-w-3xl text-sm leading-6 text-[var(--color-text-secondary)] md:text-base">
                 {{ description }}
             </p>
         </div>
@@ -21,12 +21,7 @@ defineProps({
 </template>
 
 <style scoped>
-/* Matches the calmer Dashboard service hero, without the heavier hard-brutalist frame. */
 .page-heading {
-    border: 2px solid var(--line) !important;
-    border-left: 6px solid var(--line) !important;
-    border-radius: 6px !important;
-    box-shadow: 3px 3px 0 var(--line) !important;
-    background: var(--paper) !important;
+    border-top: 4px solid var(--color-brand-primary) !important;
 }
 </style>

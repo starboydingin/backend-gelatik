@@ -105,4 +105,20 @@ class NodeServiceClient
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
+
+    public function whatsappStatus(): array
+    {
+        try {
+            $response = Http::acceptJson()->timeout(3)->get($this->baseUrl.'/health');
+
+            return [
+                'success' => $response->successful(),
+                'status' => $response->json('whatsappStatus'),
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('Status WhatsApp gateway tidak tersedia.', ['exception' => $e::class]);
+
+            return ['success' => false, 'status' => 'unavailable'];
+        }
+    }
 }

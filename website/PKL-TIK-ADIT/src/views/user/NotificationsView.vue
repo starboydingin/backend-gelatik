@@ -167,16 +167,16 @@ onMounted(load)
             <p class="mt-4 whitespace-pre-wrap leading-7">{{ selectedNotification.message || '-' }}</p>
             <LoadingState v-if="detailLoading" />
             <template v-else-if="detail">
-                <div class="mt-5 border-t-2 border-[var(--line)] pt-5">
+                <div class="mt-5 border-t border-[var(--color-border)] pt-5">
                     <p class="label">Konsultasi Anda</p>
                     <h3 class="mt-1 font-bold">{{ detail.judul || 'Konsultasi TIK' }}</h3>
                     <p class="mt-3 whitespace-pre-wrap">{{ detail.deskripsi || detail.pesan || detail.pertanyaan || '-' }}</p>
                     <div class="mt-4 flex items-center gap-3"><span class="label mb-0">Status</span><StatusBadge :status="detail.status" /></div>
                 </div>
-                <div class="mt-5 border-t-2 border-[var(--line)] pt-5">
+                <div class="mt-5 border-t border-[var(--color-border)] pt-5">
                     <p class="label">Balasan dari admin</p>
                     <div class="mt-3 space-y-3">
-                        <article v-for="response in adminResponses(detail)" :key="response.id" class="border-2 border-[var(--line)] p-3">
+                        <article v-for="response in adminResponses(detail)" :key="response.id" class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
                             <strong>{{ response.user?.name || 'Admin' }}</strong>
                             <p class="mt-1 whitespace-pre-wrap">{{ response.isi_respon || response.jawaban || response.pesan }}</p>
                             <small class="mt-2 block text-slate-500">{{ response.created_at || '' }}</small>

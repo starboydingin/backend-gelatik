@@ -2,10 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\PasswordResetOtp;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Passport\ClientRepository;
 use Laravel\Passport\Passport;
@@ -114,14 +115,38 @@ class AuthRegistrationTest extends TestCase
             ->assertJsonPath('data.no_hp', '081234567899');
     }
 
-    public function test_password_can_be_reset_with_a_valid_broker_token(): void
+    public function test_password_can_be_reset_with_a_valid_whatsapp_otp(): void
     {
         $user = $this->createUser('reset@example.test', '1');
-        $token = Password::createToken($user);
+        $user->update(['no_hp' => '081234567890']);
+        $sentOtp = null;
+        Http::fake(function ($request) use (&$sentOtp) {
+            if (str_ends_with($request->url(), '/health')) {
+                return Http::response(['status' => 'ok', 'whatsappStatus' => 'connected']);
+            }
+            if (str_ends_with($request->url(), '/internal/wa/send')) {
+                preg_match('/\b(\d{6})\b/', (string) $request['message'], $matches);
+                $sentOtp = $matches[1] ?? null;
+
+                return Http::response(['success' => true]);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $challenge = $this->postJson('/api/forgot-password', ['identifier' => $user->email])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->json('data.challenge_id');
+        $this->assertMatchesRegularExpression('/^\d{6}$/', (string) $sentOtp);
+
+        $resetToken = $this->postJson('/api/forgot-password/verify', [
+            'challenge_id' => $challenge,
+            'otp' => $sentOtp,
+        ])->assertOk()->json('data.reset_token');
 
         $this->postJson('/api/reset-password', [
-            'email' => $user->email,
-            'token' => $token,
+            'reset_token' => $resetToken,
             'password' => 'password456',
             'password_confirmation' => 'password456',
         ])->assertOk()->assertJsonPath('success', true);
@@ -130,6 +155,28 @@ class AuthRegistrationTest extends TestCase
             'identifier' => $user->email,
             'password' => 'password456',
         ])->assertOk();
+    }
+
+    public function test_password_reset_rejects_invalid_and_expired_otp(): void
+    {
+        $user = $this->createUser('otp-invalid@example.test', '1');
+        $challenge = PasswordResetOtp::create([
+            'user_id' => $user->id,
+            'otp_hash' => Hash::make('123456'),
+            'expires_at' => now()->addMinutes(10),
+            'last_sent_at' => now(),
+        ]);
+
+        $this->postJson('/api/forgot-password/verify', [
+            'challenge_id' => $challenge->id,
+            'otp' => '654321',
+        ])->assertUnprocessable()->assertJsonValidationErrors('otp');
+
+        $challenge->update(['expires_at' => now()->subSecond()]);
+        $this->postJson('/api/forgot-password/verify', [
+            'challenge_id' => $challenge->id,
+            'otp' => '123456',
+        ])->assertUnprocessable()->assertJsonValidationErrors('otp');
     }
 
     public function test_inactive_existing_user_remains_inactive_and_cannot_login(): void
@@ -243,6 +290,18 @@ class AuthRegistrationTest extends TestCase
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
+        });
+        Schema::create('password_reset_otps', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->unsignedBigInteger('user_id')->index();
+            $table->string('otp_hash');
+            $table->string('reset_token_hash', 64)->nullable()->unique();
+            $table->unsignedTinyInteger('attempts')->default(0);
+            $table->timestamp('expires_at');
+            $table->timestamp('verified_at')->nullable();
+            $table->timestamp('consumed_at')->nullable();
+            $table->timestamp('last_sent_at');
+            $table->timestamps();
         });
         Schema::create('unker_list_router', function (Blueprint $table): void {
             $table->unsignedBigInteger('id')->primary();

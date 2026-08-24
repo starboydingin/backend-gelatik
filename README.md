@@ -159,3 +159,15 @@ Snapshot FAQ aktif pada database development:
 | WiFi di ruangan mati | Cek perangkat, router/access point, kabel, dan gangguan jaringan; bila belum selesai hubungi helpdesk di `+62 813-7330-4040`. |
 | WiFi terhubung tetapi tidak ada internet | Uji perangkat lain, restart/lupakan WiFi, cek indikator, DNS, dan DHCP; hubungi helpdesk bila masalah berlanjut. |
 | Pertanyaan Test 1 | Jawaban Test 1. Ini adalah data testing yang masih aktif dan sebaiknya dinonaktifkan atau dihapus melalui admin sebelum production. |
+
+## 8. IDDS Upgrade dan fitur lintas aplikasi
+
+Website menggunakan design system berbasis semantic token dengan branding resmi Gelatik. Reset password kini memakai OTP WhatsApp, dashboard/kalender mengikuti scope role, chatbot dapat mengeskalasi keluhan berulang menjadi konsultasi, informasi bandwidth berasal dari backend, dan admin/superadmin dapat mengekspor tiga jenis laporan sebagai CSV/XLSX.
+
+Dokumentasi arsitektur, migration, endpoint, keamanan, dan batasan runtime tersedia di [docs/IDDS_UPGRADE.md](docs/IDDS_UPGRADE.md). Contoh request terbaru tersedia pada folder **16 - IDDS Upgrade** di Postman Collection.
+
+## 8. IDDS Upgrade dan fitur lintas aplikasi
+
+Website menggunakan design system berbasis semantic token dengan branding resmi Gelatik. Reset password kini memakai OTP WhatsApp, dashboard/kalender mengikuti scope role, chatbot dapat mengeskalasi keluhan berulang menjadi konsultasi, informasi bandwidth berasal dari backend, dan admin/superadmin dapat mengekspor tiga jenis laporan sebagai CSV/XLSX.
+
+Dokumentasi arsitektur, migration, endpoint, keamanan, dan batasan runtime tersedia di [docs/IDDS_UPGRADE.md](docs/IDDS_UPGRADE.md). Contoh request terbaru tersedia pada folder **16 - IDDS Upgrade** di Postman Collection.

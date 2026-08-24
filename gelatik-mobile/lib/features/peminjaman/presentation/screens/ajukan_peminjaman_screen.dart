@@ -149,11 +149,12 @@ class _AjukanPeminjamanScreenState
   }
 
   Future<void> _selectDate() async {
+    final today = DateUtils.dateOnly(DateTime.now());
     final picked = await showDatePicker(
       context: context,
-      initialDate: _tanggalMulai,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: _tanggalMulai.isBefore(today) ? today : _tanggalMulai,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 1)),
     );
     if (picked != null) {
       setState(() {

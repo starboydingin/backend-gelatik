@@ -26,26 +26,25 @@ class SendUsulanEmailNotification implements ShouldQueue
     public function handle(UsulanEmailStatusChanged $event): void
     {
         $nodeService = new NodeServiceClient();
-        
-        // 1. Broadcast via Socket.io (F-RT)
-        $nodeService->broadcastToUser(
-            $event->usulan->user_id,
-            'usulan_email.status_changed',
-            [
+        $ownerId = (int) ($event->usulan->created_by ?? 0);
+        if ($ownerId <= 0) {
+            Log::warning('Usulan email status notification skipped because the owner is missing.', [
                 'usulan_id' => $event->usulan->id,
-                'new_status' => $event->newStatus,
-                'message' => 'Status usulan email Anda telah diubah menjadi ' . $event->newStatus
-            ]
-        );
+            ]);
 
-        // 2. WhatsApp Notification (F-WA)
+            return;
+        }
+
+        // Socket.IO and the browser inbox are written synchronously by
+        // UsulanEmailService. This queued listener only handles external push.
+        // 1. WhatsApp Notification (F-WA)
         try {
-            $subscription = WhatsappSubscription::where('user_id', $event->usulan->user_id)
+            $subscription = WhatsappSubscription::where('user_id', $ownerId)
                 ->where('is_opt_in', true)
                 ->first();
 
             if ($subscription) {
-                $nama = $event->usulan->user ? $event->usulan->user->name : 'Pengguna';
+                $nama = $event->usulan->user?->name ?? 'Pengguna';
                 $statusLower = strtolower($event->newStatus);
 
                 if ($statusLower === 'ditolak') {
@@ -61,7 +60,7 @@ class SendUsulanEmailNotification implements ShouldQueue
                     [
                         'event_type' => 'usulan_email.status_changed',
                         'reference_id' => $event->usulan->id,
-                        'user_id' => $event->usulan->user_id
+                        'user_id' => $ownerId
                     ]
                 );
             }
@@ -69,11 +68,11 @@ class SendUsulanEmailNotification implements ShouldQueue
             Log::error('SendUsulanEmailNotification WA Error: ' . $e->getMessage());
         }
 
-        // 3. FCM Push Notification (topic-based)
+        // 2. FCM Push Notification (topic-based)
         try {
             $fcm = new FcmNotificationService();
             $fcm->sendToUser(
-                $event->usulan->user_id,
+                $ownerId,
                 'Usulan Email',
                 'Status usulan email Anda telah diubah menjadi ' . $event->newStatus,
                 [

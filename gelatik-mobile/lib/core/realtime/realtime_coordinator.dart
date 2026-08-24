@@ -36,6 +36,8 @@ class RealtimeCoordinator {
         await konsultasi.refreshFromRealtime(event.entityId);
         await home.refreshFromRealtime();
       });
+    } else if (event.type.startsWith('usulan_email.')) {
+      _schedule('usulan_email', () => home.refreshFromRealtime());
     }
   }
 

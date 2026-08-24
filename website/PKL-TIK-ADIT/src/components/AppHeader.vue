@@ -26,9 +26,11 @@ const titles = {
     peran: ['Manajemen otorisasi', 'Peran & Izin'],
     pegawai: ['Referensi data ASN', 'Data Pegawai Email'],
     'laporan-peminjaman': ['Pelaporan operasional', 'Laporan Peminjaman'],
+    'laporan-konsultasi': ['Pelaporan operasional', 'Laporan Konsultasi'],
+    'laporan-email': ['Pelaporan operasional', 'Laporan Usulan Email'],
     pengumuman: ['Konten portal', 'Pengumuman'],
     'kritik-saran': ['Masukan pengguna', 'Kritik dan Saran'],
-    pengaturan: ['Konfigurasi aplikasi', 'Pengaturan'],
+    pengaturan: ['Akun administrator', 'Profil & Pengaturan'],
     'referensi-layanan': ['Master layanan', 'Referensi Layanan'],
 }
 const current = computed(
@@ -43,10 +45,10 @@ const initials = computed(() => (String(route.meta?.initials || '') || '').trim(
 
 <template>
     <header
-        class="app-top-header brutal-header sticky top-0 z-20 flex min-h-[76px] items-center gap-4 border-b-[3px] border-[var(--line)] px-4 md:px-7"
+        class="app-top-header sticky top-0 z-20 flex min-h-[76px] items-center gap-3 border-b px-4 md:gap-4 md:px-7"
     >
         <button
-            class="brutal-icon-button shrink-0 lg:hidden"
+            class="icon-button shrink-0 lg:hidden"
             aria-label="Buka menu navigasi"
             @click="$emit('menu')"
         >
@@ -56,12 +58,12 @@ const initials = computed(() => (String(route.meta?.initials || '') || '').trim(
         <GelatikLogo compact class="shrink-0 lg:hidden" />
         <div class="min-w-0 flex-1">
             <p class="eyebrow truncate">{{ current[0] }}</p>
-            <h1 class="truncate font-brand text-xl font-black uppercase tracking-[-.04em]">{{ current[1] }}</h1>
+            <h1 class="truncate font-brand text-xl font-bold tracking-tight">{{ current[1] }}</h1>
         </div>
         <NotificationDropdown :admin-area="adminArea" />
         <div class="hidden min-w-0 items-center gap-3 sm:flex">
             <span
-                class="grid size-11 shrink-0 place-items-center border-[3px] border-[var(--line)] bg-[var(--gold)] font-black text-black"
+                class="grid size-11 shrink-0 place-items-center rounded-lg bg-amber-400 font-bold text-slate-950"
                 >{{
                     initials ||
                     (user?.name || 'G')
@@ -73,8 +75,8 @@ const initials = computed(() => (String(route.meta?.initials || '') || '').trim(
                 }}</span
             >
             <div class="max-w-52 text-right">
-                <p class="truncate text-sm font-semibold text-navy">{{ user?.name }}</p>
-                <p class="truncate text-[11px] text-slate-500">{{ user?.nama_opd || subtitle }}</p>
+                <p class="truncate text-sm font-semibold text-[var(--color-text-primary)]">{{ user?.name }}</p>
+                <p class="truncate text-[11px] text-[var(--color-text-muted)]">{{ user?.nama_opd || subtitle }}</p>
             </div>
         </div>
     </header>

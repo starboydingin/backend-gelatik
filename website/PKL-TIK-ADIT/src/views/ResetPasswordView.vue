@@ -1,17 +1,15 @@
 <script setup>
 import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { api, errorMessage } from '../lib/api'
 import AlertMessage from '../components/AlertMessage.vue'
 import AuthLayout from '../components/AuthLayout.vue'
-const route = useRoute(),
-    router = useRouter(),
+const router = useRouter(),
     error = ref(''),
     message = ref(''),
     loading = ref(false)
 const form = ref({
-    token: route.query.token || '',
-    email: route.query.email || '',
+    reset_token: sessionStorage.getItem('gelatik_reset_token') || '',
     password: '',
     password_confirmation: '',
 })
@@ -20,6 +18,7 @@ async function submit() {
     error.value = ''
     try {
         message.value = (await api.post('/reset-password', form.value)).data.message
+        sessionStorage.removeItem('gelatik_reset_token')
         setTimeout(() => router.push('/login'), 1300)
     } catch (e) {
         error.value = errorMessage(e)
@@ -31,18 +30,16 @@ async function submit() {
 <template>
     <AuthLayout
         title="Atur kata sandi baru"
-        subtitle="Gunakan tautan yang dikirimkan ke email Anda."
+        subtitle="Buat kata sandi baru setelah nomor WhatsApp Anda berhasil diverifikasi."
     >
         <form @submit.prevent="submit">
             <AlertMessage :message="error" /><AlertMessage
                 :message="message"
                 type="success"
-            /><label class="label">Email</label
-            ><input v-model="form.email" type="email" class="input mb-4" required /><label
-                class="label"
-                >Token reset</label
-            ><input v-model="form.token" class="input mb-4" required /><label class="label"
-                >Kata sandi baru</label
+            /><AlertMessage
+                v-if="!form.reset_token"
+                message="Sesi verifikasi tidak tersedia. Silakan minta kode baru."
+            /><label class="label">Kata sandi baru</label
             ><input
                 v-model="form.password"
                 type="password"
@@ -56,7 +53,7 @@ async function submit() {
                 minlength="8"
                 class="input"
                 required
-            /><button class="btn-primary mt-5 w-full" :disabled="loading">
+            /><button class="btn-primary mt-5 w-full" :disabled="loading || !form.reset_token">
                 {{ loading ? 'Menyimpan…' : 'Simpan kata sandi' }}
             </button>
         </form>

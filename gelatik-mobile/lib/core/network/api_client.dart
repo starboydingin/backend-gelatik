@@ -42,6 +42,7 @@ class ApiClient {
         },
       ),
     );
+    dio.interceptors.add(_ShortLivedGetCacheInterceptor());
 
     if (kDebugMode) {
       dio.interceptors.add(
@@ -57,6 +58,112 @@ class ApiClient {
       );
     }
   }
+}
+
+class _ShortLivedGetCacheInterceptor extends Interceptor {
+  final Duration ttl = const Duration(seconds: 45);
+  final Duration staleIfError = const Duration(minutes: 5);
+  final Map<String, _CachedGetResponse> _responses = {};
+
+  _ShortLivedGetCacheInterceptor();
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    if (options.method.toUpperCase() != 'GET') {
+      _responses.clear();
+      return handler.next(options);
+    }
+    if (options.extra['skipShortCache'] == true) {
+      return handler.next(options);
+    }
+
+    final cached = _responses[_key(options)];
+    if (cached != null && DateTime.now().difference(cached.savedAt) <= ttl) {
+      return handler.resolve(cached.toResponse(options, fromStaleCache: false));
+    }
+    handler.next(options);
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    final options = response.requestOptions;
+    if (options.method.toUpperCase() == 'GET' &&
+        options.extra['skipShortCache'] != true &&
+        (response.statusCode ?? 500) < 400) {
+      _responses[_key(options)] = _CachedGetResponse.fromResponse(response);
+    }
+    handler.next(response);
+  }
+
+  @override
+  void onError(DioException error, ErrorInterceptorHandler handler) {
+    final options = error.requestOptions;
+    final mayUseStale = options.method.toUpperCase() == 'GET' &&
+        (error.type == DioExceptionType.connectionError ||
+            error.type == DioExceptionType.connectionTimeout ||
+            error.type == DioExceptionType.receiveTimeout ||
+            (error.response?.statusCode ?? 0) >= 500);
+    final cached = mayUseStale ? _responses[_key(options)] : null;
+    if (cached != null &&
+        DateTime.now().difference(cached.savedAt) <= staleIfError) {
+      return handler.resolve(cached.toResponse(options, fromStaleCache: true));
+    }
+    handler.next(error);
+  }
+
+  String _key(RequestOptions options) {
+    final query = options.queryParameters.entries.toList()
+      ..sort((left, right) => left.key.compareTo(right.key));
+    final normalizedQuery = query
+        .map((entry) => '${entry.key}=${entry.value}')
+        .join('&');
+    final token = options.headers['Authorization']?.toString() ?? '';
+    return '${options.baseUrl}${options.path}?$normalizedQuery|$token';
+  }
+}
+
+class _CachedGetResponse {
+  final dynamic data;
+  final int? statusCode;
+  final String? statusMessage;
+  final Headers headers;
+  final Map<String, dynamic> extra;
+  final DateTime savedAt;
+
+  const _CachedGetResponse({
+    required this.data,
+    required this.statusCode,
+    required this.statusMessage,
+    required this.headers,
+    required this.extra,
+    required this.savedAt,
+  });
+
+  factory _CachedGetResponse.fromResponse(Response response) =>
+      _CachedGetResponse(
+        data: response.data,
+        statusCode: response.statusCode,
+        statusMessage: response.statusMessage,
+        headers: response.headers,
+        extra: Map<String, dynamic>.from(response.extra),
+        savedAt: DateTime.now(),
+      );
+
+  Response<dynamic> toResponse(
+    RequestOptions options, {
+    required bool fromStaleCache,
+  }) => Response<dynamic>(
+    requestOptions: options,
+    data: data,
+    statusCode: statusCode,
+    statusMessage: statusMessage,
+    headers: headers,
+    extra: {
+      ...extra,
+      'memoryCache': true,
+      'staleCache': fromStaleCache,
+    },
+  );
 }
 
 final apiClientProvider = Provider<ApiClient>((ref) {

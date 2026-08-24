@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Events\PinjamCreated;
 use App\Events\PinjamStatusChanged;
 use App\Models\MasterItem;
+use App\Models\Notification;
 use App\Models\Pinjam;
 use App\Models\PinjamItem;
 use App\Models\User;
@@ -12,9 +13,18 @@ use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Services\NodeServiceClient;
+use App\Services\RealtimeEventPayload;
 
 class PinjamService
 {
+    public function __construct(
+        private AdminAuditService $audit,
+        private AdminNotificationService $adminNotifications,
+    )
+    {
+    }
+
     /**
      * Ajukan peminjaman aset TIK baru.
      */
@@ -99,7 +109,16 @@ class PinjamService
             return $pinjam;
         });
 
-        // Dispatch Event setelah transaksi berhasil disubmit
+        // Persist and publish to both privileged role rooms immediately. The
+        // queued event below remains for non-blocking push notification work.
+        $this->adminNotifications->announce(
+            'pinjam.created',
+            (int) $pinjam->id,
+            'Peminjaman Aset Baru',
+            'Pengajuan peminjaman aset baru telah masuk.',
+            'pinjam',
+            ['status' => $pinjam->status],
+        );
         event(new PinjamCreated($pinjam));
 
         return $pinjam->load('pinjamItems.masterItem');
@@ -153,6 +172,35 @@ class PinjamService
         }
 
         $pinjam->update($updateData);
+
+        if ($admin) {
+            $this->audit->record(
+                $admin,
+                'peminjaman.status_changed',
+                "Mengubah status peminjaman #{$pinjam->id} dari {$oldStatus} menjadi {$statusBaru}.",
+                $pinjam,
+                ['status_lama' => $oldStatus, 'status_baru' => $statusBaru],
+            );
+
+            Notification::create([
+                'user_id' => $pinjam->user_id,
+                'judul' => 'Status peminjaman diperbarui',
+                'message' => "Status peminjaman aset #{$pinjam->id} berubah menjadi {$statusBaru}.",
+                'type' => 'pinjam_status',
+                'item_id' => $pinjam->id,
+                'read' => false,
+            ]);
+
+            app(NodeServiceClient::class)->broadcastToUser(
+                $pinjam->user_id,
+                'pinjam.status_changed',
+                RealtimeEventPayload::make('pinjam.status_changed', (int) $pinjam->id, [
+                    'old_status' => $oldStatus,
+                    'status' => $statusBaru,
+                    'message' => 'Status peminjaman Anda telah diubah menjadi '.$statusBaru,
+                ]),
+            );
+        }
 
         // Dispatch Event untuk notifikasi (Socket.io, WA, FCM)
         event(new PinjamStatusChanged($pinjam, $oldStatus, $statusBaru));

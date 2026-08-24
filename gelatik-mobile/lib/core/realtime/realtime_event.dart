@@ -5,6 +5,7 @@ class RealtimeEvent {
     'konsultasi.created',
     'konsultasi.responded',
     'konsultasi.status_changed',
+    'usulan_email.status_changed',
   };
 
   final String eventId;

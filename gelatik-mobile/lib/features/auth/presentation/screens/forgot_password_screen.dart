@@ -18,21 +18,24 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
-  final _emailController = TextEditingController();
+  final _identifierController = TextEditingController();
+  final _otpController = TextEditingController();
+  String? _challengeId;
   bool _loading = false;
   String? _message;
   String? _error;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    final email = _emailController.text.trim();
-    if (!email.contains('@')) {
-      setState(() => _error = 'Masukkan alamat email yang valid.');
+    final identifier = _identifierController.text.trim();
+    if (identifier.isEmpty) {
+      setState(() => _error = 'Masukkan email, NIP, atau username akun.');
       return;
     }
     setState(() {
@@ -41,10 +44,37 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       _error = null;
     });
     try {
-      final message = await ref
+      final challenge = await ref
           .read(authRepositoryProvider)
-          .requestPasswordReset(email);
-      if (mounted) setState(() => _message = message);
+          .requestPasswordReset(identifier);
+      if (mounted) {
+        setState(() {
+          _challengeId = challenge['challenge_id']?.toString();
+          _message = 'Kode verifikasi telah dikirim ke nomor WhatsApp terdaftar.';
+        });
+      }
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _verify() async {
+    if (_challengeId == null || _otpController.text.trim().length != 6) {
+      setState(() => _error = 'Masukkan kode verifikasi 6 digit.');
+      return;
+    }
+    setState(() { _loading = true; _error = null; });
+    try {
+      final resetToken = await ref.read(authRepositoryProvider).verifyPasswordResetOtp(
+        challengeId: _challengeId!,
+        otp: _otpController.text.trim(),
+      );
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => ResetPasswordScreen(resetToken: resetToken)),
+      );
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     } finally {
@@ -73,15 +103,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Masukkan email akun Anda. Jika terdaftar, kami akan mengirimkan tautan reset kata sandi.',
+                  'Masukkan email, NIP, atau username. Kode verifikasi akan dikirim melalui WhatsApp.',
                 ),
                 const SizedBox(height: 20),
                 AppTextField(
-                  labelText: 'Email akun',
-                  hintText: 'nama@contoh.go.id',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  prefixIcon: const Icon(Icons.email_outlined),
+                  labelText: 'Email, NIP, atau username',
+                  hintText: 'Identitas akun',
+                  controller: _identifierController,
+                  prefixIcon: const Icon(Icons.person_outline),
                   errorText: _error,
                   onChanged: (_) => setState(() => _error = null),
                 ),
@@ -91,20 +120,27 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 ],
                 const SizedBox(height: 20),
                 AppButton(
-                  text: 'Kirim tautan reset',
+                  text: _challengeId == null ? 'Kirim kode WhatsApp' : 'Kirim ulang kode',
                   backgroundColor: AppColors.actionEmerald(context),
                   isLoading: _loading,
                   onPressed: _submit,
                 ),
-                const SizedBox(height: 10),
-                TextButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const ResetPasswordScreen(),
-                    ),
+                if (_challengeId != null) ...[
+                  const SizedBox(height: 16),
+                  AppTextField(
+                    labelText: 'Kode verifikasi',
+                    controller: _otpController,
+                    keyboardType: TextInputType.number,
+                    errorText: _error,
                   ),
-                  child: const Text('Saya sudah memiliki token reset'),
-                ),
+                  const SizedBox(height: 12),
+                  AppButton(
+                    text: 'Verifikasi kode',
+                    backgroundColor: AppColors.primaryTeal(context),
+                    isLoading: _loading,
+                    onPressed: _verify,
+                  ),
+                ],
               ],
             ),
           ),

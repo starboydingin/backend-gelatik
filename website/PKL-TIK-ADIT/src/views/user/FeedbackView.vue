@@ -32,12 +32,12 @@ async function submit() {
         <AlertMessage :message="error" /><AlertMessage :message="message" type="success" />
         <div class="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[.75fr_1.25fr]">
             <aside
-                class="flex flex-col items-start border-[2px] border-[var(--line)] bg-[var(--navy)] p-6 text-white shadow-[3px_3px_0_var(--line)] md:p-7"
+                class="flex flex-col items-start rounded-xl bg-[var(--color-brand-primary-strong)] p-6 text-white shadow-[var(--shadow-surface)] md:p-7"
             >
-                <ChatBubbleBottomCenterTextIcon class="size-10 text-[var(--gold)]" />
+                <ChatBubbleBottomCenterTextIcon class="size-10 text-[var(--color-brand-secondary)]" />
                 <div class="relative z-10">
-                    <p class="eyebrow !text-[var(--gold)]">Suara pengguna</p>
-                    <h2 class="mt-3 font-brand text-3xl font-black uppercase leading-tight text-white">
+                    <p class="eyebrow !text-[var(--color-brand-secondary)]">Suara pengguna</p>
+                    <h2 class="mt-3 font-brand text-3xl font-bold leading-tight !text-white">
                         Ceritakan pengalaman Anda apa adanya
                     </h2>
                     <p class="mt-4 text-sm font-semibold leading-7 text-white">
@@ -51,9 +51,9 @@ async function submit() {
                                 'Berikan saran yang dapat dilakukan',
                             ]"
                             :key="tip"
-                            class="flex items-center gap-3 border-2 border-[var(--line)] bg-white p-3 text-sm font-bold text-black"
+                            class="flex items-center gap-3 rounded-lg border border-white/20 bg-white/10 p-3 text-sm font-semibold text-white"
                         >
-                            <CheckIcon class="size-5 text-[var(--teal)]" />{{ tip }}
+                            <CheckIcon class="size-5 text-[var(--color-brand-secondary)]" />{{ tip }}
                         </div>
                     </div>
                 </div>

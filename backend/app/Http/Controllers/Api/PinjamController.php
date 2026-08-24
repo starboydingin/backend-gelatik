@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AjukanPinjamRequest;
 use App\Http\Requests\UbahStatusPinjamRequest;
+use App\Http\Requests\UpdatePinjamRequest;
 use App\Models\Pinjam;
 use App\Services\PinjamService;
 use Illuminate\Http\Request;
@@ -71,13 +72,13 @@ class PinjamController extends Controller
     }
 
     /** PUT /api/pinjam/{id} */
-    public function update(Request $request, $id)
+    public function update(UpdatePinjamRequest $request, $id)
     {
         $pinjam = Pinjam::findOrFail($id);
         Gate::authorize('update', $pinjam);
 
         try {
-            $updatedPinjam = $this->pinjamService->updatePengajuan($pinjam, $request->all());
+            $updatedPinjam = $this->pinjamService->updatePengajuan($pinjam, $request->validated());
 
             return response()->json([
                 'success' => true,

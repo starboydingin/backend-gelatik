@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        @apply bg-canvas;
+    }
+
+    body {
+        @apply min-w-[320px] overflow-x-hidden bg-canvas font-sans text-slate-800 antialiased;
+    }
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    button,
+    a,
+    input,
+    select,
+    textarea {
+        @apply transition duration-150;
+    }
+}
+
+@layer components {
+    .btn {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50;
+    }
+
+    .btn-primary {
+        @apply btn bg-brand-700 text-white hover:bg-brand-800;
+    }
+
+    .btn-secondary {
+        @apply btn border border-stroke bg-white text-navy hover:border-brand-300 hover:bg-brand-50;
+    }
+
+    .btn-danger {
+        @apply btn border border-rose-200 bg-white text-danger hover:bg-rose-50;
+    }
+
+    .card {
+        @apply rounded-xl border border-stroke bg-white p-5;
+    }
+
+    .input {
+        @apply min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-navy placeholder:text-slate-400 hover:border-slate-400 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100;
+    }
+
+    .label {
+        @apply mb-1.5 block text-sm font-semibold text-navy;
+    }
+
+    .badge {
+        @apply inline-flex rounded-full px-2.5 py-1 text-xs font-semibold;
+    }
+
+    .table-wrap {
+        @apply overflow-x-auto rounded-xl border border-stroke bg-white;
+    }
+
+    .data-table {
+        @apply min-w-full divide-y divide-slate-200 text-sm;
+    }
+
+    .data-table th {
+        @apply whitespace-nowrap bg-brand-800 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white;
+    }
+
+    .data-table td {
+        @apply max-w-sm px-4 py-4 align-top text-slate-700;
+    }
+
+    .data-table tbody {
+        @apply divide-y divide-slate-100;
+    }
+
+    .eyebrow {
+        @apply text-xs font-bold uppercase tracking-[.14em] text-brand-700;
+    }
+
+    .service-hero {
+        @apply relative flex flex-col justify-between gap-7 overflow-hidden rounded-xl border border-stroke border-t-[3px] border-t-brand-700 bg-white p-6 md:flex-row md:items-center md:p-7;
+    }
+
+    .section-panel {
+        @apply overflow-hidden rounded-xl border border-stroke bg-white;
+    }
+
+    .section-panel-header {
+        @apply border-b border-stroke bg-slate-50 px-5 py-4;
+    }
+
+    .page-stack {
+        @apply space-y-5 md:space-y-6;
+    }
+
+    .no-scrollbar {
+        scrollbar-width: none;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+}

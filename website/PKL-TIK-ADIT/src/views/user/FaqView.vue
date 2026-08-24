@@ -78,7 +78,7 @@ onMounted(load)
             </option>
         </select>
     </div>
-    <section class="mb-5 border-2 border-[var(--line)] p-4">
+    <section class="mb-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <p class="label">Topik FAQ tersedia</p>
         <div class="mt-3 flex flex-wrap gap-2">
             <button
@@ -86,7 +86,7 @@ onMounted(load)
                 :key="topic.id"
                 type="button"
                 class="btn-secondary min-h-9 px-3"
-                :class="selected === topic.id ? 'bg-[var(--teal)] text-white' : ''"
+                :class="selected === topic.id ? '!border-[var(--color-brand-primary)] !bg-[var(--color-brand-primary)] !text-white' : ''"
                 @click="selected = topic.id; load()"
             >
                 {{ topicLabel(topic) }}
@@ -117,7 +117,7 @@ onMounted(load)
 
 <style scoped>
 .faq-item + .faq-item {
-    border-top: 2px solid var(--line);
+    border-top: 1px solid var(--color-border);
 }
 
 .faq-trigger {
@@ -127,8 +127,8 @@ onMounted(load)
     justify-content: space-between;
     gap: 1rem;
     padding: 1rem 1.25rem;
-    color: var(--ink);
-    font-weight: 700;
+    color: var(--color-text-primary);
+    font-weight: 600;
     text-align: left;
     transition: background-color 160ms ease-out, transform 160ms ease-out;
 }

@@ -4,11 +4,11 @@ defineProps({ message: String, type: { type: String, default: 'error' } })
 <template>
     <div
         v-if="message"
-        class="mb-4 border-[3px] border-[var(--line)] px-4 py-3 text-sm font-bold shadow-[4px_4px_0_var(--line)]"
+        class="mb-4 rounded-lg border px-4 py-3 text-sm font-semibold"
         :class="
             type === 'success'
-                ? 'bg-[var(--emerald)] text-black'
-                : 'bg-[var(--danger)] text-black'
+                ? 'border-green-200 bg-green-50 text-green-800'
+                : 'border-red-200 bg-red-50 text-red-800'
         "
     >
         {{ message }}

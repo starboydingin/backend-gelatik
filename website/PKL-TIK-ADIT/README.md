@@ -121,7 +121,7 @@ Respons `201` berarti akun aktif dibuat dengan role `admin`. Akun tersebut selan
 
 | Modul | Endpoint utama |
 |---|---|
-| Auth dan profil | `POST /login`, `/register`, `/logout`, `/forgot-password`, `/reset-password`; `GET/PATCH /me` |
+| Auth dan profil | `POST /login`, `/register`, `/logout`, `/forgot-password`, `/forgot-password/verify`, `/reset-password`; `GET/PATCH /me` |
 | Dashboard | `GET /dashboard`, `/dashboard/calendar`, `/pengumuman` |
 | Peminjaman | `GET/POST /pinjam`, `GET/PUT/DELETE /pinjam/{id}`, `/pinjam/{id}/status`, `/items` |
 | Konsultasi | `GET/POST /konsul`, `GET/DELETE /konsul/{id}`, `/konsul/{id}/response`, `/konsul/{id}/status`, `/topik` |
@@ -131,7 +131,7 @@ Respons `201` berarti akun aktif dibuat dengan role `admin`. Akun tersebut selan
 | WhatsApp | `/notifikasi/wa/status`, `/notifikasi/wa/subscribe` |
 | Chatbot | `/chatbot/message`, `/chatbot/history` |
 | Admin | `/admin/dashboard`, `/admin/users`, `/admin/roles`, `/admin/permissions`, `/admin/notifications`, `/admin/kritik-saran`, `/admin/settings`, CRUD `/admin/items`, `/admin/topik`, `/admin/faq`, `/admin/sliders`, `/admin/routers` |
-| Laporan | `/laporan/peminjaman` |
+| Laporan | `/laporan/peminjaman`; `/laporan/{type}/data`; `/laporan/{type}/export?format=csv|xlsx` |
 
 Axios menambahkan Bearer token pada request terautentikasi. Respons `401` menghapus sesi; error `403`, `422`, timeout, network, dan `5xx` diterjemahkan menjadi pesan yang aman. REST tetap berfungsi ketika realtime dimatikan atau tidak tersedia.
 
@@ -140,4 +140,4 @@ Axios menambahkan Bearer token pada request terautentikasi. Respons `401` mengha
 - CRUD admin untuk item/aset, topik, FAQ, slider, dan daftar router OPD sudah tersedia. Manajemen domain belum tersedia sebagai endpoint admin terpisah.
 - `PATCH /me` saat ini mendukung data profil dasar; endpoint khusus avatar, ganti password dari profil, dan log aktivitas akun belum tersedia.
 - Kontrak event realtime selain event `notification` belum terdokumentasi, sehingga frontend tidak membuat nama event baru.
-- Font Montserrat/Inter pada mobile berasal dari Google Fonts dependency dan tidak tersedia sebagai file lokal. Web menggunakan fallback system dan wordmark logo resmi tanpa mengunduh font eksternal.
+- Website menggunakan Urbanist dari file lokal `public/assets/fonts`, sedangkan typography Flutter tetap mengikuti konfigurasi mobile existing. Branding website menggunakan komposisi wordmark resmi dari repository tanpa mengunduh font atau logo eksternal.

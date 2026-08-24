@@ -203,7 +203,7 @@ onMounted(load)
                         @change="form.file = $event.target.files[0]"
                 /></label>
             </div>
-            <section class="mt-5 border-t-2 border-[var(--line)] pt-4">
+            <section class="mt-5 border-t border-[var(--color-border)] pt-4">
                 <p class="label">Daftar topik tersedia</p>
                 <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     <button
@@ -211,7 +211,7 @@ onMounted(load)
                         :key="topic.id"
                         type="button"
                         class="btn-secondary min-h-10 justify-start px-3 text-left normal-case"
-                        :class="String(form.topik_id) === String(topic.id) ? 'bg-[var(--teal)] text-white' : ''"
+                        :class="String(form.topik_id) === String(topic.id) ? '!border-[var(--color-brand-primary)] !bg-[var(--color-brand-primary)] !text-white' : ''"
                         @click="form.topik_id = topic.id"
                     >
                         {{ topicLabel(topic) }}
@@ -332,7 +332,7 @@ onMounted(load)
                 <div class="sm:col-span-2">
                     <dt class="label">Tanggapan petugas</dt>
                     <dd class="mt-2 space-y-3">
-                        <article v-for="response in detail.responses || []" :key="response.id" class="border-2 border-[var(--line)] p-3">
+                        <article v-for="response in detail.responses || []" :key="response.id" class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
                             <strong>{{ response.user?.name || 'Petugas' }}</strong>
                             <p class="mt-1 whitespace-pre-wrap">{{ response.isi_respon || response.jawaban || response.pesan }}</p>
                         </article>

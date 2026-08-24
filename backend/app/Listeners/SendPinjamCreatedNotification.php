@@ -4,8 +4,6 @@ namespace App\Listeners;
 
 use App\Events\PinjamCreated;
 use App\Services\FcmNotificationService;
-use App\Services\NodeServiceClient;
-use App\Services\RealtimeEventPayload;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 
@@ -15,22 +13,12 @@ class SendPinjamCreatedNotification implements ShouldQueue
 
     public function handle(PinjamCreated $event): void
     {
-        $nodeService = new NodeServiceClient();
-
-        // 1. Broadcast Socket.io ke admin/all
-        $nodeService->broadcastToRole(
-            'admin',
-            'pinjam.created',
-            RealtimeEventPayload::make('pinjam.created', (int) $event->pinjam->id, [
-                'status' => $event->pinjam->status,
-                'message' => 'Sebuah permintaan peminjaman asset telah diminta.'
-            ])
-        );
-
-        // 2. FCM Push Notification ke Topic Admin
+        // Realtime and inbox persistence occur synchronously in the service.
+        // This queued listener only sends the optional mobile push.
         try {
             $fcm = new FcmNotificationService();
-            $fcm->sendToAdmins(
+            $fcm->sendToTopic(
+                'admin',
                 'Peminjaman Asset',
                 'Sebuah permintaan peminjaman asset telah diminta.',
                 [

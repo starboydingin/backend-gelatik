@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class SecureStorageService {
   final FlutterSecureStorage _storage;
+  String? _cachedToken;
+  bool _tokenLoaded = false;
 
   static const String _tokenKey = 'auth_token';
   static const String _chatbotSessionKey = 'chatbot_session_id';
@@ -12,14 +14,21 @@ class SecureStorageService {
 
   Future<void> saveToken(String token) async {
     await _storage.write(key: _tokenKey, value: token);
+    _cachedToken = token;
+    _tokenLoaded = true;
   }
 
   Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
+    if (_tokenLoaded) return _cachedToken;
+    _cachedToken = await _storage.read(key: _tokenKey);
+    _tokenLoaded = true;
+    return _cachedToken;
   }
 
   Future<void> deleteToken() async {
     await _storage.delete(key: _tokenKey);
+    _cachedToken = null;
+    _tokenLoaded = true;
     await deleteChatbotSessionId();
   }
 

@@ -43,12 +43,6 @@ class SendKonsultasiNotification implements ShouldQueue
                 'konsultasi.responded',
                 $payload
             );
-        } else {
-            $nodeService->broadcastToUser(
-                $event->konsultasi->user_id,
-            'konsultasi.responded',
-                $payload
-            );
         }
 
         // 2. WhatsApp Notification (F-WA)
@@ -57,7 +51,7 @@ class SendKonsultasiNotification implements ShouldQueue
                 ->where('is_opt_in', true)
                 ->first();
 
-            if ($subscription) {
+            if (! $targetIsAdmin && $subscription) {
                 $nama = $event->konsultasi->user ? $event->konsultasi->user->name : 'Pengguna';
                 $pesanRespon = $event->response ? ($event->response->pesan ?? '') : '';
                 $snippet = Str::limit(trim(strip_tags($pesanRespon)), 100);
@@ -86,7 +80,7 @@ class SendKonsultasiNotification implements ShouldQueue
         try {
             $fcm = new FcmNotificationService();
 
-            if ($event->response->is_admin) {
+            if (! $targetIsAdmin) {
                 // Admin membalas → kirim FCM ke user pemilik konsultasi
                 $fcm->sendToUser(
                     $event->konsultasi->user_id,

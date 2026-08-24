@@ -20,6 +20,11 @@ const routes = [
         meta: { guest: true },
     },
     {
+        path: '/verify-reset-otp',
+        component: () => import('../views/OtpVerificationView.vue'),
+        meta: { guest: true },
+    },
+    {
         path: '/app',
         component: () => import('../layouts/AppLayout.vue'),
         meta: { auth: true, userPortal: true },
@@ -69,7 +74,18 @@ const routes = [
             { path: 'pegawai', component: () => import('../views/admin/EmployeesView.vue') },
             {
                 path: 'laporan-peminjaman',
-                component: () => import('../views/admin/LoanReportView.vue'),
+                component: () => import('../views/admin/ServiceReportsView.vue'),
+                meta: { reportType: 'peminjaman' },
+            },
+            {
+                path: 'laporan-konsultasi',
+                component: () => import('../views/admin/ServiceReportsView.vue'),
+                meta: { reportType: 'konsultasi' },
+            },
+            {
+                path: 'laporan-email',
+                component: () => import('../views/admin/ServiceReportsView.vue'),
+                meta: { reportType: 'usulan-email' },
             },
             { path: 'pengumuman', component: () => import('../views/admin/AnnouncementsView.vue') },
             {
@@ -78,7 +94,7 @@ const routes = [
             },
         ],
     },
-    { path: '/:pathMatch(.*)*', redirect: '/' },
+    { path: '/:pathMatch(.*)*', component: () => import('../views/NotFoundView.vue') },
 ]
 
 const router = createRouter({

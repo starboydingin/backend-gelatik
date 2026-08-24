@@ -15,14 +15,14 @@ const groups = computed(() => [...new Set(props.items.map((item) => item.group))
 
 <template>
     <aside
-        class="brutal-sidebar fixed inset-y-0 left-0 z-40 flex w-[286px] flex-col border-r-[2px] border-[var(--line)] text-[var(--ink)] transition-transform lg:sticky lg:top-0 lg:h-screen"
+        class="app-sidebar fixed inset-y-0 left-0 z-40 flex w-[286px] flex-col text-white transition-transform lg:sticky lg:top-0 lg:h-screen"
         :class="open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
     >
-        <div class="app-sidebar-brand flex h-[76px] items-center border-b-[3px] border-[var(--line)] px-5">
-            <GelatikLogo compact />
+        <div class="app-sidebar-brand flex h-[76px] items-center border-b px-5">
+            <GelatikLogo compact inverse />
             <span
                 v-if="adminArea"
-                class="ml-auto border-2 border-[var(--line)] bg-[var(--gold)] px-2 py-1 text-[10px] font-black uppercase tracking-wider text-black"
+                class="ml-auto rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-950"
                 >Admin</span
             >
         </div>
@@ -32,7 +32,7 @@ const groups = computed(() => [...new Set(props.items.map((item) => item.group))
         >
             <section v-for="group in groups" :key="group" class="mb-6">
                 <p
-                    class="mb-2 border-b-2 border-[var(--line)] px-1 pb-1 text-[10px] font-black uppercase tracking-[.16em] text-[var(--ink)]"
+                    class="mb-2 px-2 pb-1 text-[10px] font-bold uppercase tracking-[.16em] text-blue-200"
                 >
                     {{ group }}
                 </p>
@@ -40,27 +40,27 @@ const groups = computed(() => [...new Set(props.items.map((item) => item.group))
                     v-for="item in items.filter((entry) => entry.group === group)"
                     :key="item.to"
                     :to="item.to"
-                    class="mb-2 flex items-center gap-3 border-2 border-transparent px-3 py-2.5 text-sm font-extrabold uppercase tracking-[-.02em]"
+                    class="mb-1 flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-sm font-semibold"
                     :class="
                         activePath === item.to
-                            ? 'border-[var(--line)] bg-[var(--teal)] text-black shadow-[3px_3px_0_var(--line)]'
-                            : 'text-[var(--ink)] hover:border-[var(--line)] hover:bg-[var(--gold)] hover:text-black'
+                            ? 'border-white/15 bg-white text-blue-950 shadow-sm'
+                            : 'text-blue-50 hover:bg-white/10 hover:text-white'
                     "
                     @click="$emit('close')"
                 >
                     <span
-                        class="grid size-8 shrink-0 place-items-center border-2 border-transparent"
+                        class="grid size-8 shrink-0 place-items-center rounded-md"
                         :class="
-                            activePath === item.to ? 'border-[var(--line)] bg-[var(--paper)] text-[var(--ink)]' : 'text-[var(--ink)]'
+                            activePath === item.to ? 'bg-blue-50 text-blue-800' : 'text-blue-200'
                         "
                         ><component :is="item.icon" class="size-5" /></span
                     ><span class="truncate">{{ item.label }}</span>
                 </RouterLink>
             </section>
         </nav>
-        <div class="border-t-[3px] border-[var(--line)] p-4">
+        <div class="border-t border-white/15 p-4">
             <button
-                class="btn-danger flex w-full items-center justify-center gap-2 px-3 text-xs"
+                class="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 text-sm font-semibold text-white hover:bg-white/15"
                 @click="$emit('logout')"
             >
                 <ArrowRightStartOnRectangleIcon class="size-5" />Keluar

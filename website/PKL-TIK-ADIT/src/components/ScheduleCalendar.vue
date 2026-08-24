@@ -53,7 +53,7 @@ watch(cursor, range, { immediate: true })
             </div>
         </div>
         <div
-            class="calendar-weekdays grid grid-cols-7 border-b-2 border-[var(--line)] pb-3 text-center text-xs font-bold text-[var(--ink)]"
+            class="calendar-weekdays grid grid-cols-7 border-b border-[var(--color-border)] pb-3 text-center text-xs font-semibold text-[var(--color-text-primary)]"
         >
             <span v-for="day in days" :key="day">{{ day }}</span>
         </div>
@@ -105,7 +105,7 @@ watch(cursor, range, { immediate: true })
     border-color: transparent;
     background: transparent;
     padding-inline: 0.5rem;
-    color: var(--navy);
+    color: var(--color-brand-primary);
     font-size: 1.5rem;
     font-weight: 900;
     line-height: 1;
@@ -113,9 +113,9 @@ watch(cursor, range, { immediate: true })
 
 .calendar-nav :deep(.btn-secondary:hover),
 .calendar-nav :deep(.btn-secondary:focus-visible) {
-    border-color: var(--line);
-    background: var(--gold);
-    color: #000;
+    border-color: var(--color-brand-primary);
+    background: var(--color-brand-primary-soft);
+    color: var(--color-brand-primary);
 }
 
 .calendar-cell {

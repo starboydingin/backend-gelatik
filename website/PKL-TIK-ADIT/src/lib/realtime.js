@@ -3,6 +3,20 @@ import { io } from 'socket.io-client'
 const enabled = import.meta.env.VITE_ENABLE_REALTIME === 'true'
 const realtimeUrl = import.meta.env.VITE_REALTIME_URL
 let socket = null
+const notificationEvents = [
+    'notification',
+    'konsultasi.created',
+    'konsultasi.responded',
+    'konsultasi.status_changed',
+    'pinjam.created',
+    'pinjam.status_changed',
+    'usulan_email.created',
+    'usulan_email.status_changed',
+]
+
+function notify(payload) {
+    window.dispatchEvent(new CustomEvent('gelatik:notification', { detail: payload }))
+}
 
 /**
  * All VITE_* values are bundled into browser code. Store only public URLs and
@@ -16,15 +30,13 @@ export function connectRealtime(token) {
         transports: ['websocket', 'polling'],
     })
 
-    socket.on('notification', (payload) => {
-        window.dispatchEvent(new CustomEvent('gelatik:notification', { detail: payload }))
-    })
+    notificationEvents.forEach((eventName) => socket.on(eventName, notify))
 
     return socket
 }
 
 export function disconnectRealtime() {
-    socket?.off('notification')
+    notificationEvents.forEach((eventName) => socket?.off(eventName, notify))
     socket?.disconnect()
     socket = null
 }

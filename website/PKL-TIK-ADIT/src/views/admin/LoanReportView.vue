@@ -90,10 +90,10 @@ onBeforeUnmount(() => window.clearTimeout(refreshTimer))
     </section>
     <AlertMessage :message="error" />
     <section v-if="data" class="report-panel card mt-6">
-        <header class="flex flex-col gap-2 border-b-2 border-[var(--line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <header class="flex flex-col gap-2 border-b border-[var(--color-border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <p class="eyebrow">Hasil laporan</p>
-                <h2 class="mt-2 text-xl font-bold text-[var(--ink)]">{{ report.period }}</h2>
+                <h2 class="mt-2 text-xl font-bold text-[var(--color-text-primary)]">{{ report.period }}</h2>
             </div>
             <p class="text-sm text-slate-600">Ringkasan berdasarkan periode terpilih.</p>
         </header>
@@ -108,20 +108,20 @@ onBeforeUnmount(() => window.clearTimeout(refreshTimer))
         <div class="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(16rem,.75fr)]">
             <section class="report-section">
                 <div class="flex items-center justify-between gap-3">
-                    <h3 class="font-bold text-[var(--ink)]">Aset terpopuler</h3>
+                    <h3 class="font-bold text-[var(--color-text-primary)]">Aset terpopuler</h3>
                     <span class="text-xs text-slate-500">Berdasarkan jumlah unit dipinjam</span>
                 </div>
-                <ol v-if="report.assets.length" class="mt-3 divide-y-2 divide-[var(--line)] border-y-2 border-[var(--line)]">
+                <ol v-if="report.assets.length" class="mt-3 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
                     <li v-for="(asset, index) in report.assets" :key="asset.nama" class="flex items-center gap-3 py-3">
                         <span class="grid size-8 shrink-0 place-items-center bg-gold text-sm font-black text-black">{{ index + 1 }}</span>
-                        <span class="min-w-0 flex-1 truncate font-semibold text-[var(--ink)]">{{ asset.nama }}</span>
-                        <strong class="shrink-0 text-[var(--navy)]">{{ asset.total_dipinjam }} unit</strong>
+                        <span class="min-w-0 flex-1 truncate font-semibold text-[var(--color-text-primary)]">{{ asset.nama }}</span>
+                        <strong class="shrink-0 text-[var(--color-brand-primary)]">{{ asset.total_dipinjam }} unit</strong>
                     </li>
                 </ol>
-                <p v-else class="mt-3 border-2 border-dashed border-[var(--line)] p-4 text-sm text-slate-600">Belum ada data aset pada periode ini.</p>
+                <p v-else class="mt-3 rounded-lg border border-dashed border-[var(--color-border-strong)] p-4 text-sm text-slate-600">Belum ada data aset pada periode ini.</p>
             </section>
 
-            <section class="report-duration bg-[var(--teal)] p-5 text-white">
+            <section class="report-duration bg-[var(--color-accent)] p-5 text-white">
                 <p class="text-xs font-bold uppercase tracking-wide">Rata-rata durasi</p>
                 <strong class="mt-3 block text-5xl font-black">{{ report.duration }}</strong>
                 <span class="mt-1 block text-sm font-semibold">hari per peminjaman selesai</span>
@@ -129,7 +129,7 @@ onBeforeUnmount(() => window.clearTimeout(refreshTimer))
         </div>
 
         <section class="mt-6">
-            <h3 class="font-bold text-[var(--ink)]">Rincian aktivitas</h3>
+            <h3 class="font-bold text-[var(--color-text-primary)]">Rincian aktivitas</h3>
             <div class="table-wrap mt-3">
                 <table class="data-table report-table">
                     <thead><tr><th>Waktu</th><th>Menunggu</th><th>Diproses</th><th>Selesai</th><th>Ditolak</th></tr></thead>
@@ -148,8 +148,8 @@ onBeforeUnmount(() => window.clearTimeout(refreshTimer))
 
 <style scoped>
 .report-panel { overflow: hidden; }
-.report-status-card { border: 2px solid var(--line); padding: 1rem; color: #000; }
+.report-status-card { border: 1px solid var(--color-border); border-radius: var(--radius-control); padding: 1rem; color: #0f172a; }
 .report-section { min-width: 0; }
-.report-duration { border: 2px solid var(--line); box-shadow: 3px 3px 0 var(--line); }
+.report-duration { border-radius: var(--radius-surface); box-shadow: var(--shadow-surface); }
 .report-table td { font-variant-numeric: tabular-nums; }
 </style>

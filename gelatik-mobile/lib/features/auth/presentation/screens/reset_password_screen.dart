@@ -10,7 +10,8 @@ import '../../repositories/auth_repository.dart';
 import 'login_screen.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
-  const ResetPasswordScreen({super.key});
+  final String resetToken;
+  const ResetPasswordScreen({super.key, required this.resetToken});
 
   @override
   ConsumerState<ResetPasswordScreen> createState() =>
@@ -18,8 +19,6 @@ class ResetPasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
-  final _emailController = TextEditingController();
-  final _tokenController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmationController = TextEditingController();
   bool _loading = false;
@@ -27,21 +26,17 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _tokenController.dispose();
     _passwordController.dispose();
     _confirmationController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (_emailController.text.trim().isEmpty ||
-        _tokenController.text.trim().isEmpty ||
-        _passwordController.text.length < 8 ||
+    if (_passwordController.text.length < 8 ||
         _passwordController.text != _confirmationController.text) {
       setState(
         () => _error =
-            'Lengkapi email, token, dan password minimal 8 karakter yang sama.',
+            'Gunakan password minimal 8 karakter dan pastikan konfirmasinya sama.',
       );
       return;
     }
@@ -53,8 +48,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       final message = await ref
           .read(authRepositoryProvider)
           .resetPassword(
-            email: _emailController.text.trim(),
-            token: _tokenController.text.trim(),
+            resetToken: widget.resetToken,
             password: _passwordController.text,
             passwordConfirmation: _confirmationController.text,
           );
@@ -83,17 +77,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           AppCard(
             child: Column(
               children: [
-                AppTextField(
-                  labelText: 'Email akun',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 14),
-                AppTextField(
-                  labelText: 'Token reset',
-                  controller: _tokenController,
-                ),
-                const SizedBox(height: 14),
                 AppTextField(
                   labelText: 'Password baru',
                   controller: _passwordController,

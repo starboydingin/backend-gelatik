@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\DashboardService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -18,12 +19,12 @@ class DashboardController extends Controller
     /** GET /api/dashboard */
     public function index(Request $request)
     {
-        $internal = $this->dashboardService->getStatistikInternal();
-        $simki = $this->dashboardService->getSimkiData();
-
-        $data = array_merge($internal, [
-            'simki' => $simki,
-        ]);
+        $user = $request->user();
+        $data = Cache::remember(
+            "dashboard:user:{$user->id}",
+            now()->addSeconds(30),
+            fn (): array => $this->dashboardService->getUserDashboard($user),
+        );
 
         return response()->json(['success' => true, 'data' => $data]);
     }

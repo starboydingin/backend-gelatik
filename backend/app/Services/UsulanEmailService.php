@@ -5,13 +5,23 @@ namespace App\Services;
 use App\Events\UsulanEmailCreated;
 use App\Events\UsulanEmailStatusChanged;
 use App\Models\PegawaiBelumPunyaEmail;
+use App\Models\Notification;
 use App\Models\User;
 use App\Models\UsulanEmail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use App\Services\NodeServiceClient;
+use App\Services\RealtimeEventPayload;
 
 class UsulanEmailService
 {
+    public function __construct(
+        private AdminAuditService $audit,
+        private AdminNotificationService $adminNotifications,
+    )
+    {
+    }
+
     /**
      * Catat verifikasi dokumen BKD tanpa mengambil keputusan final.
      * Status tetap diajukan agar Admin Operator masih dapat membuat email resmi.
@@ -28,6 +38,13 @@ class UsulanEmailService
             'catatan' => $catatan,
             'updated_by' => $verifikator->id,
         ]);
+
+        $this->audit->record(
+            $verifikator,
+            'usulan_email.document_verified',
+            "Memverifikasi dokumen usulan email #{$usulan->id}.",
+            $usulan,
+        );
 
         return $usulan->fresh();
     }
@@ -74,7 +91,13 @@ class UsulanEmailService
             'created_by' => $user->id,
         ]);
 
-        // Dispatch Event untuk notifikasi ke BKD
+        $this->adminNotifications->announce(
+            'usulan_email.created',
+            (int) $usulan->id,
+            'Usulan Email Resmi Baru',
+            'Pengajuan email resmi baru telah masuk.',
+            'usulan_email',
+        );
         event(new UsulanEmailCreated($usulan));
 
         return $usulan;
@@ -126,6 +149,40 @@ class UsulanEmailService
         }
 
         $usulan->update($updateData);
+
+        $action = $disetujui ? 'usulan_email.approved' : 'usulan_email.rejected';
+        $description = $disetujui
+            ? "Menyetujui usulan email #{$usulan->id}."
+            : "Menolak usulan email #{$usulan->id}.";
+        $this->audit->record(
+            $verifikator,
+            $action,
+            $description,
+            $usulan,
+            ['status_lama' => $oldStatus, 'status_baru' => $statusBaru],
+        );
+
+        $ownerId = (int) ($usulan->created_by ?? 0);
+        if ($ownerId > 0) {
+            Notification::create([
+                'user_id' => $ownerId,
+                'judul' => 'Status usulan email diperbarui',
+                'message' => "Status usulan email #{$usulan->id} berubah menjadi {$statusBaru}.",
+                'type' => 'usulan_email_status',
+                'item_id' => $usulan->id,
+                'read' => false,
+            ]);
+
+            app(NodeServiceClient::class)->broadcastToUser(
+                $ownerId,
+                'usulan_email.status_changed',
+                RealtimeEventPayload::make('usulan_email.status_changed', (int) $usulan->id, [
+                    'status' => $statusBaru,
+                    'old_status' => $oldStatus,
+                    'message' => 'Status usulan email Anda telah diubah menjadi '.$statusBaru,
+                ]),
+            );
+        }
 
         // Dispatch Event untuk notifikasi ke user pemohon (Socket.io, WA, FCM)
         event(new UsulanEmailStatusChanged($usulan, $oldStatus, $statusBaru));

@@ -4,14 +4,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Semantic aliases. The real light/dark switch is handled by CSS
-        // variables so it snaps immediately instead of fading between colors.
-        brand: { 50: '#CCFBF1', 100: '#CCFBF1', 200: '#99F6E4', 300: '#5EEAD4', 400: '#2DD4BF', 500: '#0F766E', 600: '#0F766E', 700: '#0F766E', 800: '#0F766E', 900: '#0F766E', 950: '#0F766E' },
-        action: '#10B981', navy: '#000000', gold: '#F59E0B', canvas: '#FFFFFF', stroke: '#000000',
+        brand: { 50: '#EFF6FF', 100: '#DBEAFE', 200: '#BFDBFE', 300: '#93C5FD', 400: '#60A5FA', 500: '#3B82F6', 600: '#2563EB', 700: '#1E3A8A', 800: '#172E6E', 900: '#102451', 950: '#0A1633' },
+        action: '#1E3A8A', navy: '#1E3A8A', gold: '#F59E0B', canvas: '#F8FAFC', stroke: '#E2E8F0',
         success: '#16A34A', warning: '#F59E0B', danger: '#DC2626', info: '#0284C7',
       },
-      fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'sans-serif'], brand: ['Montserrat', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
-      boxShadow: { brutal: '5px 5px 0 #000000', 'brutal-sm': '3px 3px 0 #000000' },
+      fontFamily: { sans: ['Urbanist', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'sans-serif'], brand: ['Urbanist', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+      boxShadow: { soft: '0 1px 2px rgb(15 23 42 / 0.06), 0 8px 24px rgb(15 23 42 / 0.06)' },
+      borderRadius: { '2xl': '1rem' },
     },
   },
   plugins: [],

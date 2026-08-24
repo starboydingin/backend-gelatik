@@ -13,31 +13,33 @@ const services = [
         title: 'Peminjaman aset TIK',
         text: 'Ajukan perangkat, ruang rapat virtual, dan dukungan operasional acara.',
         icon: WrenchScrewdriverIcon,
-        accent: 'bg-[var(--navy)] text-white',
+        accent: 'bg-blue-50 text-blue-800',
     },
     {
         title: 'Konsultasi TIK',
         text: 'Sampaikan kebutuhan jaringan, aplikasi, hosting, domain, atau tanda tangan elektronik.',
         icon: ChatBubbleLeftRightIcon,
-        accent: 'bg-[var(--teal)] text-black',
+        accent: 'bg-teal-50 text-teal-800',
     },
     {
         title: 'Email resmi ASN',
         text: 'Ajukan dan pantau pembuatan alamat email kedinasan secara transparan.',
         icon: EnvelopeIcon,
-        accent: 'bg-[var(--gold)] text-black',
+        accent: 'bg-amber-50 text-amber-800',
     },
 ]
 </script>
 <template>
-    <div class="min-h-screen overflow-hidden bg-[var(--paper)] text-[var(--ink)]">
-        <nav class="relative z-10 mx-auto flex max-w-7xl items-center justify-between border-b-[2px] border-[var(--line)] px-5 py-4">
-            <BrandMark />
-            <div class="flex gap-2">
-                <RouterLink to="/login" class="btn-secondary">Masuk</RouterLink
-                ><RouterLink to="/register" class="btn-primary hidden sm:inline-flex"
-                    >Buat akun</RouterLink
-                >
+    <div class="landing-page no-scrollbar h-dvh overflow-y-auto bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
+        <nav class="relative z-10 w-full border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+            <div class="mx-auto flex w-full max-w-[1600px] items-center justify-between px-5 py-4 sm:px-7 lg:px-10">
+                <BrandMark />
+                <div class="flex gap-2">
+                    <RouterLink to="/login" class="btn-secondary">Masuk</RouterLink
+                    ><RouterLink to="/register" class="btn-primary hidden sm:inline-flex"
+                        >Buat akun</RouterLink
+                    >
+                </div>
             </div>
         </nav>
         <main>
@@ -48,18 +50,18 @@ const services = [
                 <img
                     :src="siger"
                     alt=""
-                    class="pointer-events-none absolute right-5 -top-8 z-0 hidden h-[17rem] w-[17rem] object-contain lg:block"
+                    class="pointer-events-none absolute right-5 top-2 z-0 hidden h-52 w-52 object-contain opacity-90 lg:block lg:-translate-y-3"
                 />
                 <div class="relative">
-                    <span class="badge bg-[var(--gold)] text-black"
+                    <span class="badge bg-amber-100 text-amber-900"
                         >Portal layanan digital terpadu</span
                     >
                     <h1
-                        class="relative mt-6 max-w-3xl font-brand text-5xl font-black uppercase leading-[.9] tracking-[-.1em] md:text-7xl"
+                        class="relative mt-6 max-w-3xl font-brand text-5xl font-bold leading-[.98] tracking-tight md:text-7xl"
                     >
-                        Layanan TIK Lampung, <span class="bg-[var(--teal)] px-2 text-black">langsung.</span>
+                        Layanan TIK Lampung, <span class="text-[var(--color-accent)]">lebih mudah.</span>
                     </h1>
-                    <p class="mt-7 max-w-xl border-l-[8px] border-[var(--navy)] pl-4 text-lg font-semibold leading-8">
+                    <p class="mt-7 max-w-xl border-l-4 border-[var(--color-brand-primary)] pl-4 text-lg leading-8 text-[var(--color-text-secondary)]">
                         Ajukan kebutuhan, pantau progres, dan terhubung dengan tim Diskominfotik
                         dalam satu portal yang aman dan mudah digunakan.
                     </p>
@@ -68,7 +70,7 @@ const services = [
                         ><a href="#layanan" class="btn-secondary">Lihat layanan</a>
                     </div>
                     <div
-                        class="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-y-[3px] border-[var(--line)] py-4 text-sm font-black uppercase"
+                        class="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-y border-[var(--color-border)] py-4 text-sm font-semibold text-[var(--color-text-secondary)]"
                     >
                         <span class="inline-flex items-center gap-2"><CheckIcon class="size-4 stroke-[3]" />Status transparan</span>
                         ><span class="inline-flex items-center gap-2"><CheckIcon class="size-4 stroke-[3]" />Notifikasi terpadu</span>
@@ -76,13 +78,13 @@ const services = [
                     </div>
                 </div>
                 <div
-                    class="relative z-10 w-full border-[4px] border-[var(--line)] border-l-[14px] border-l-[var(--teal)] bg-[var(--paper)] p-7 shadow-[9px_9px_0_var(--line)] md:p-9 lg:translate-y-3"
+                    class="relative z-10 w-full rounded-2xl border border-[var(--color-border)] border-t-4 border-t-[var(--color-brand-primary)] bg-[var(--color-surface)] p-7 shadow-[var(--shadow-surface)] md:p-9 lg:translate-y-3"
                 >
                     <p class="eyebrow">Alur layanan</p>
-                    <h2 class="mt-2 font-brand text-3xl font-black uppercase leading-none tracking-[-.07em]">
+                    <h2 class="mt-2 font-brand text-3xl font-bold leading-tight tracking-tight">
                         Satu akun untuk seluruh proses
                     </h2>
-                    <ol class="mt-7 divide-y-[3px] divide-[var(--line)]">
+                    <ol class="mt-7 divide-y divide-[var(--color-border)]">
                         <li
                             v-for="(step, index) in [
                                 [
@@ -102,34 +104,34 @@ const services = [
                             class="flex gap-4 py-5 first:pt-0 last:pb-0"
                         >
                             <span
-                                class="grid size-10 shrink-0 place-items-center border-2 border-[var(--line)] bg-[var(--gold)] text-sm font-black text-black"
+                                class="grid size-10 shrink-0 place-items-center rounded-lg bg-amber-100 text-sm font-bold text-amber-900"
                                 >{{ index + 1 }}</span
                             >
                             <div>
-                                <h3 class="font-black uppercase">{{ step[0] }}</h3>
-                                <p class="mt-1 text-sm font-semibold leading-6">{{ step[1] }}</p>
+                                <h3 class="font-bold">{{ step[0] }}</h3>
+                                <p class="mt-1 text-sm leading-6 text-[var(--color-text-secondary)]">{{ step[1] }}</p>
                             </div>
                         </li>
                     </ol>
                 </div>
             </section>
-            <section id="layanan" class="border-y-[2px] border-[var(--line)] bg-[var(--paper)] py-20">
+            <section id="layanan" class="border-y border-[var(--color-border)] bg-[var(--color-surface)] py-20">
                 <div class="mx-auto max-w-7xl px-5">
-                    <p class="text-sm font-black uppercase tracking-widest text-[var(--teal)]">
+                    <p class="eyebrow">
                         Layanan utama
                     </p>
-                    <h2 class="mt-2 max-w-2xl font-brand text-4xl font-black uppercase leading-[.9] tracking-[-.08em]">
+                    <h2 class="mt-2 max-w-2xl font-brand text-4xl font-bold leading-tight tracking-tight">
                         Semua kebutuhan TIK dalam satu pintu
                     </h2>
                     <div class="mt-10 grid gap-6 md:grid-cols-3">
                         <article v-for="(service, index) in services" :key="service.title" class="card group">
-                            <div class="mb-5 grid h-28 w-28 place-items-center border-[3px] border-[var(--line)]" :class="service.accent">
+                            <div class="mb-5 grid size-16 place-items-center rounded-xl" :class="service.accent">
                                 <component :is="service.icon" class="size-12 stroke-[2.5]" />
                             </div>
                             <p class="eyebrow">Layanan 0{{ index + 1 }}</p>
-                            <h3 class="mt-2 font-brand text-2xl font-black uppercase leading-none tracking-[-.06em]">{{ service.title }}</h3>
-                            <p class="mt-3 font-semibold leading-7">{{ service.text }}</p>
-                            <RouterLink to="/login" class="mt-6 inline-flex items-center gap-2 pb-1 text-sm font-black uppercase text-[var(--navy)] hover:translate-x-1">
+                            <h3 class="mt-2 font-brand text-2xl font-bold leading-tight">{{ service.title }}</h3>
+                            <p class="mt-3 leading-7 text-[var(--color-text-secondary)]">{{ service.text }}</p>
+                            <RouterLink to="/login" class="mt-6 inline-flex items-center gap-2 pb-1 text-sm font-bold text-[var(--color-brand-primary)] hover:translate-x-1">
                                 Buka layanan <ArrowRightIcon class="size-4 stroke-[3]" />
                             </RouterLink>
                         </article>
@@ -137,9 +139,9 @@ const services = [
                 </div>
             </section>
         </main>
-        <footer class="border-t-[2px] border-[var(--line)] bg-[var(--paper)]">
+        <footer class="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
             <div
-                class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-8 text-sm font-black uppercase"
+                class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-8 text-sm font-semibold text-[var(--color-text-secondary)]"
             >
                 <p>&copy; {{ new Date().getFullYear() }} Diskominfotik Provinsi Lampung</p>
                 <p>Gelatik &mdash; Gerbang Layanan TIK</p>
@@ -147,3 +149,16 @@ const services = [
         </footer>
     </div>
 </template>
+
+<style scoped>
+/* Landing owns its viewport: it stays full-page at every size while content
+   remains scrollable for short screens without exposing a browser scrollbar. */
+.landing-page {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.landing-page::-webkit-scrollbar {
+    display: none;
+}
+</style>

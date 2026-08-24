@@ -56,8 +56,10 @@ class InternetNotifier extends StateNotifier<InternetState> {
     if (state.isLoading || state.routersLoaded) return;
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      final overview = await repository.getInternetOverview();
       state = state.copyWith(
-        listRouter: await repository.getRouters(),
+        bandwidthInfo: Map<String, dynamic>.from(overview['bandwidth'] as Map),
+        listRouter: List<Map<String, dynamic>>.from(overview['routers'] as List),
         isLoading: false,
         routersLoaded: true,
       );
