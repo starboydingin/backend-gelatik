@@ -54,7 +54,12 @@ class KonsultasiController extends Controller
     /** GET /api/konsul/{id} */
     public function show(Request $request, $id)
     {
-        $konsultasi = Konsultasi::with(['user', 'topik', 'responses.user'])->findOrFail($id);
+        // Notifications are historical records. A user or administrator must
+        // still be able to open the submitted consultation after it has been
+        // soft-deleted, but it remains read-only in the client.
+        $konsultasi = Konsultasi::withTrashed()
+            ->with(['user', 'topik', 'responses.user'])
+            ->findOrFail($id);
         Gate::authorize('view', $konsultasi);
 
         return response()->json(['success' => true, 'data' => $konsultasi]);

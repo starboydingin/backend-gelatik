@@ -18,7 +18,9 @@ const error = ref('')
 const reply = ref('')
 const replyFile = ref(null)
 const nextStatus = ref('')
+const archived = computed(() => Boolean(record.value?.deleted_at))
 const availableStatuses = computed(() => {
+    if (archived.value) return []
     const current = String(record.value?.status || '').toLowerCase()
     if (current === 'menunggu') return ['Diproses', 'Ditolak', 'Selesai']
     if (current === 'diproses') return ['Selesai', 'Ditolak']
@@ -82,6 +84,11 @@ onMounted(load)
         <AlertMessage :message="error" />
         <LoadingState v-if="loading" />
         <template v-else-if="record">
+            <AlertMessage
+                v-if="archived"
+                message="Konsultasi ini telah diarsipkan. Detail tetap tersedia sebagai riwayat, tetapi tidak dapat diubah atau ditanggapi lagi."
+                type="success"
+            />
             <section class="card">
                 <div class="flex flex-wrap items-start justify-between gap-4">
                     <div>
@@ -96,7 +103,7 @@ onMounted(load)
                     <div><dt class="label">Topik</dt><dd>{{ record.topik?.topik || record.topik?.judul || '-' }}</dd></div>
                     <div class="sm:col-span-2"><dt class="label">Keterangan</dt><dd class="whitespace-pre-wrap leading-7">{{ record.pesan || record.deskripsi || '-' }}</dd></div>
                 </dl>
-                <button v-if="record.file" class="btn-secondary mt-5" @click="preview(`/konsul/${record.id}/attachment`)">Lihat lampiran</button>
+                <button v-if="record.file && !archived" class="btn-secondary mt-5" @click="preview(`/konsul/${record.id}/attachment`)">Lihat lampiran</button>
             </section>
 
             <section class="card">
@@ -106,13 +113,13 @@ onMounted(load)
                     <article v-for="response in record.responses || []" :key="response.id" class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4">
                         <div class="flex flex-wrap justify-between gap-2"><strong>{{ response.user?.name || 'Petugas' }}</strong><small>{{ formatDateTime(response.created_at) }}</small></div>
                         <p class="mt-2 whitespace-pre-wrap leading-7">{{ response.pesan || response.isi_respon || response.jawaban || '-' }}</p>
-                        <button v-if="response.file" class="btn-secondary mt-3 min-h-9 px-3" @click="preview(`/konsul/${record.id}/responses/${response.id}/attachment`)">Lihat lampiran balasan</button>
+                        <button v-if="response.file && !archived" class="btn-secondary mt-3 min-h-9 px-3" @click="preview(`/konsul/${record.id}/responses/${response.id}/attachment`)">Lihat lampiran balasan</button>
                     </article>
                     <p v-if="!(record.responses || []).length" class="text-slate-500">Belum ada tanggapan.</p>
                 </div>
             </section>
 
-            <section v-if="admin" class="card grid gap-6 lg:grid-cols-2">
+            <section v-if="admin && !archived" class="card grid gap-6 lg:grid-cols-2">
                 <form @submit.prevent="sendReply">
                     <p class="eyebrow">Balasan petugas</p>
                     <label class="mt-4 block"><span class="label">Tanggapan</span><textarea v-model="reply" class="input min-h-32" required /></label>
