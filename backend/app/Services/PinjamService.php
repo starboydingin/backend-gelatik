@@ -177,7 +177,7 @@ class PinjamService
                 ['status_lama' => $oldStatus, 'status_baru' => $statusBaru],
             );
 
-            Notification::create([
+            $notification = Notification::create([
                 'user_id' => $pinjam->user_id,
                 'judul' => 'Status peminjaman diperbarui',
                 'message' => "Status peminjaman aset #{$pinjam->id} berubah menjadi {$statusBaru}.",
@@ -185,6 +185,7 @@ class PinjamService
                 'item_id' => $pinjam->id,
                 'read' => false,
             ]);
+            app(NotificationRealtimeService::class)->toUser($notification);
 
             app(NodeServiceClient::class)->broadcastToUser(
                 $pinjam->user_id,

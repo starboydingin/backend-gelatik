@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 
 const EVENT_CONTRACTS = Object.freeze({
+    'notification': ['status'],
     'pinjam.created': ['status'],
     'pinjam.status_changed': ['status', 'old_status'],
     'konsultasi.created': ['status'],

@@ -45,7 +45,10 @@ class _GelatikAppState extends ConsumerState<GelatikApp>
 
   void _showRealtimeFeedback(RealtimeEvent event) {
     final message = event.message;
-    if (!mounted || message == null) return;
+    // One durable `notification` event is emitted for each inbox update.
+    // Business events still refresh feature data, but must not duplicate this
+    // visible feedback on the user device.
+    if (!mounted || event.type != 'notification' || message == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final messenger = _scaffoldMessengerKey.currentState;

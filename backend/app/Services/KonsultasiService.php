@@ -92,7 +92,7 @@ class KonsultasiService
                 "Membalas konsultasi “{$konsultasi->judul}”.",
                 $konsultasi,
             );
-            Notification::create([
+            $notification = Notification::create([
                 'user_id' => $konsultasi->user_id,
                 'judul' => 'Balasan baru dari admin',
                 'message' => 'Admin membalas konsultasi: ' . $konsultasi->judul,
@@ -100,6 +100,7 @@ class KonsultasiService
                 'item_id' => $konsultasi->id,
                 'read' => false,
             ]);
+            app(NotificationRealtimeService::class)->toUser($notification);
 
             // Keep the user's open web/mobile session in sync immediately.
             // WhatsApp and FCM are still handled asynchronously by the event
@@ -153,7 +154,7 @@ class KonsultasiService
                 ['status_lama' => $oldStatus, 'status_baru' => $statusBaru],
             );
 
-            Notification::create([
+            $notification = Notification::create([
                 'user_id' => $konsultasi->user_id,
                 'judul' => 'Status konsultasi diperbarui',
                 'message' => "Status konsultasi \"{$konsultasi->judul}\" berubah menjadi {$statusBaru}.",
@@ -161,6 +162,7 @@ class KonsultasiService
                 'item_id' => $konsultasi->id,
                 'read' => false,
             ]);
+            app(NotificationRealtimeService::class)->toUser($notification);
 
             app(NodeServiceClient::class)->broadcastToUser(
                 $konsultasi->user_id,

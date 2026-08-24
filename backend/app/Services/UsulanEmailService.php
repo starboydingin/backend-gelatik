@@ -164,7 +164,7 @@ class UsulanEmailService
 
         $ownerId = (int) ($usulan->created_by ?? 0);
         if ($ownerId > 0) {
-            Notification::create([
+            $notification = Notification::create([
                 'user_id' => $ownerId,
                 'judul' => 'Status usulan email diperbarui',
                 'message' => "Status usulan email #{$usulan->id} berubah menjadi {$statusBaru}.",
@@ -172,6 +172,7 @@ class UsulanEmailService
                 'item_id' => $usulan->id,
                 'read' => false,
             ]);
+            app(NotificationRealtimeService::class)->toUser($notification);
 
             app(NodeServiceClient::class)->broadcastToUser(
                 $ownerId,

@@ -88,6 +88,20 @@ test('valid event payload is normalized to the minimal contract', () => {
     });
 });
 
+test('durable notification payload is normalized for inbox refreshes', () => {
+    const payload = normalizePayload('notification', {
+        event_id: 'evt-12345679',
+        type: 'notification',
+        entity_id: 12,
+        status: 'new',
+        created_at: '2026-08-24T00:00:00.000Z',
+        message: 'Ada pembaruan layanan.',
+    });
+    assert.equal(payload.type, 'notification');
+    assert.equal(payload.entity_id, 12);
+    assert.equal(payload.status, 'new');
+});
+
 test('malformed or sensitive payload is rejected safely', () => {
     assert.throws(() => normalizePayload('pinjam.status_changed', { entity_id: 1 }), /status/);
     assert.throws(() => normalizePayload('pinjam.status_changed', {

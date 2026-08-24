@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { BellIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 import { api, payload, rows, errorMessage } from '../../lib/api'
@@ -51,10 +51,10 @@ const stats = computed(() => [
         ).length,
     },
 ])
-async function load() {
+async function load({ fresh = false } = {}) {
     loading.value = true
     try {
-        list.value = rows(payload(await api.get('/notifications')))
+        list.value = rows(payload(await api.get('/notifications', { cache: !fresh })))
     } catch (requestError) {
         error.value = errorMessage(requestError)
     } finally {
@@ -78,7 +78,14 @@ async function all() {
     await api.post('/notifications/read-all')
     await load()
 }
-onMounted(load)
+function realtimeRefresh(event) {
+    if (event.detail?.type === 'notification') load({ fresh: true })
+}
+onMounted(() => {
+    load()
+    window.addEventListener('gelatik:notification', realtimeRefresh)
+})
+onUnmounted(() => window.removeEventListener('gelatik:notification', realtimeRefresh))
 </script>
 <template>
     <div class="page-stack">

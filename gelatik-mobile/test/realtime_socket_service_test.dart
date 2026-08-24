@@ -93,11 +93,20 @@ void main() {
     };
     transport.emit('pinjam.status_changed', payload);
     transport.emit('pinjam.status_changed', payload);
+    transport.emit('notification', {
+      'event_id': 'evt-12345679',
+      'type': 'notification',
+      'entity_id': 12,
+      'status': 'new',
+      'created_at': '2026-08-24T00:00:00.000Z',
+      'message': 'Ada pembaruan layanan.',
+    });
     transport.emit('pinjam.status_changed', {'entity_id': 7});
     await Future<void>.delayed(Duration.zero);
 
-    expect(events, hasLength(1));
-    expect(events.single.entityId, 7);
+    expect(events, hasLength(2));
+    expect(events.first.entityId, 7);
+    expect(events.last.type, 'notification');
     await subscription.cancel();
     await service.dispose();
   });

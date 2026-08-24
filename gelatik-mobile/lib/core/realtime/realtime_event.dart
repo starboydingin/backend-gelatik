@@ -1,5 +1,6 @@
 class RealtimeEvent {
   static const supportedTypes = <String>{
+    'notification',
     'pinjam.created',
     'pinjam.status_changed',
     'konsultasi.created',

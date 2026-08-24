@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\NotificationRead;
 use App\Models\User;
+use App\Services\NotificationRealtimeService;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
@@ -122,6 +123,11 @@ class NotificationController extends Controller
             'item_id' => $validated['item_id'] ?? 0,
             'read' => false,
         ]);
+
+        $realtime = app(NotificationRealtimeService::class);
+        $targetUser === 0
+            ? $realtime->toAdmins($notification)
+            : $realtime->toUser($notification);
 
         return response()->json(['success' => true, 'message' => 'Notifikasi berhasil dibuat.', 'data' => $notification], 201);
     }

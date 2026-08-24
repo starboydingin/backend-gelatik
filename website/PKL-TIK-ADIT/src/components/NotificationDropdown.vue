@@ -37,7 +37,8 @@ async function openItem(item) {
         error.value = errorMessage(requestError)
     }
 }
-function realtimeRefresh() {
+function realtimeRefresh(event) {
+    if (event.detail?.type !== 'notification') return
     load({ fresh: true })
 }
 onMounted(() => {

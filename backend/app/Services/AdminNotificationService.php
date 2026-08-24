@@ -31,6 +31,8 @@ class AdminNotificationService
         Cache::forget('dashboard:admin:admin');
         Cache::forget('dashboard:admin:superadmin');
 
+        app(NotificationRealtimeService::class)->toAdmins($notification);
+
         app(NodeServiceClient::class)->broadcastToRole(
             'admin',
             $event,
