@@ -17,7 +17,10 @@ use Illuminate\Support\Str;
 
 class ChatbotService
 {
-    private const CONSULTATION_OFFER_AFTER = 3;
+    // Offer help on the second unresolved statement, but create a
+    // consultation only after the user explicitly confirms and completes the
+    // minimal incident details.
+    private const CONSULTATION_OFFER_AFTER = 2;
 
     public function __construct(private KonsultasiService $konsultasiService)
     {
@@ -914,13 +917,41 @@ class ChatbotService
 
     private function normalizeSentence(?string $value): string
     {
+        $plain = Str::lower($this->plainText($value));
+        $plain = str_replace([
+            "can't", 'cannot', "won't", "doesn't", "isn't", "aren't",
+            "didn't", "haven't", "i'm", "you're", "we're", "it's",
+        ], [
+            'cannot', 'cannot', 'will not', 'does not', 'is not', 'are not',
+            'did not', 'have not', 'i am', 'you are', 'we are', 'it is',
+        ], $plain);
+
         $normalized = preg_replace(
             '/[^\p{L}\p{N}]+/u',
             ' ',
-            Str::lower($this->plainText($value)),
+            $plain,
         ) ?? '';
 
-        return trim(preg_replace('/\s+/u', ' ', $normalized) ?? $normalized);
+        $slang = [
+            // Indonesian informal variants frequently used in follow-ups.
+            'gk' => 'tidak', 'ga' => 'tidak', 'gak' => 'tidak',
+            'nggak' => 'tidak', 'ngga' => 'tidak', 'enggak' => 'tidak',
+            'engga' => 'tidak', 'kagak' => 'tidak', 'tak' => 'tidak',
+            'blm' => 'belum', 'udh' => 'sudah', 'udah' => 'sudah',
+            'klo' => 'kalau', 'kl' => 'kalau', 'aja' => 'saja',
+            'gw' => 'saya', 'gue' => 'saya', 'gua' => 'saya', 'sy' => 'saya',
+            'lu' => 'anda', 'lo' => 'anda', 'elu' => 'anda', 'bgt' => 'banget',
+            // Common English shorthand that survives punctuation cleanup.
+            'cant' => 'cannot', 'wont' => 'will not', 'doesnt' => 'does not',
+            'isnt' => 'is not', 'arent' => 'are not', 'didnt' => 'did not',
+        ];
+
+        $tokens = preg_split('/\s+/u', trim($normalized), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return implode(' ', array_map(
+            fn (string $token): string => $slang[$token] ?? $token,
+            $tokens,
+        ));
     }
 
     private function callGemini(array $messages)
