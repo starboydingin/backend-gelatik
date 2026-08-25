@@ -65,6 +65,11 @@ class EmailNotifier extends StateNotifier<EmailState> {
     );
   }
 
+  Future<void> refreshFromRealtime() => _load(
+    () => repository.getUsulan(),
+    (value) => state.copyWith(listUsulanEmail: value, usulanLoaded: true),
+  );
+
   Future<void> _load<T>(
     Future<T> Function() operation,
     EmailState Function(T) apply,

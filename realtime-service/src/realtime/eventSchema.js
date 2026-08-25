@@ -8,6 +8,8 @@ const EVENT_CONTRACTS = Object.freeze({
     'konsultasi.responded': ['status', 'response_id'],
     'konsultasi.status_changed': ['status', 'old_status'],
     'kritik_saran.created': [],
+    'data.sync': ['status'],
+    'insights.sync': ['status'],
 });
 
 const ALLOWED_EVENTS = new Set([
@@ -96,10 +98,14 @@ function normalizePayload(eventName, payload) {
         (typeof payload.message !== 'string' || payload.message.length > 500)) {
         throw new Error('message must be a string of at most 500 characters');
     }
+    if (payload.resource !== undefined &&
+        (typeof payload.resource !== 'string' || payload.resource.length > 80)) {
+        throw new Error('resource must be a string of at most 80 characters');
+    }
 
     const allowedFields = [
         'event_id', 'type', 'entity_id', 'status', 'old_status',
-        'response_id', 'created_at', 'message',
+        'response_id', 'created_at', 'message', 'resource',
     ];
     return Object.fromEntries(
         allowedFields

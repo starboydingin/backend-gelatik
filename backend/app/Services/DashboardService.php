@@ -172,7 +172,7 @@ class DashboardService
      */
     private function getServiceInsights(): array
     {
-        return Cache::remember('dashboard:service-insights', now()->addSeconds(60), function (): array {
+        return Cache::flexible('dashboard:service-insights', [30, 120], function (): array {
             $activity = collect(range(29, 0))->mapWithKeys(
                 fn (int $days): array => [now()->subDays($days)->toDateString() => [
                     'tanggal' => now()->subDays($days)->toDateString(),

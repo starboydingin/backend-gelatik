@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/realtime/realtime_event.dart';
+import '../../../../core/realtime/realtime_socket_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
@@ -8,7 +12,9 @@ import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../repositories/rating_repository.dart';
 
 class RatingScreen extends ConsumerStatefulWidget {
-  const RatingScreen({super.key});
+  final int feedbackId;
+
+  const RatingScreen({super.key, required this.feedbackId});
 
   @override
   ConsumerState<RatingScreen> createState() => _RatingScreenState();
@@ -19,11 +25,23 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
   bool _hadRating = false;
   bool _loading = true;
   bool _saving = false;
+  StreamSubscription<RealtimeEvent>? _realtimeSubscription;
 
   @override
   void initState() {
     super.initState();
     Future.microtask(_load);
+    _realtimeSubscription = ref
+        .read(realtimeSocketServiceProvider)
+        .events
+        .where((event) => event.type == 'data.sync' || event.type == 'insights.sync')
+        .listen((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _realtimeSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -50,7 +68,11 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
     try {
       await ref
           .read(ratingRepositoryProvider)
-          .saveRating(_value, exists: _hadRating);
+          .saveRating(
+            _value,
+            exists: _hadRating,
+            feedbackId: widget.feedbackId,
+          );
       if (!mounted) {
         return;
       }

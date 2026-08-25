@@ -51,14 +51,14 @@ class _KritikSaranScreenState extends ConsumerState<KritikSaranScreen> {
       return;
     }
 
-    final success = await ref
+    final feedbackId = await ref
         .read(kritikSaranProvider.notifier)
         .submitKritikSaran(kritik: kritikText, saran: saranText);
 
     if (!mounted) return;
 
-    if (success) {
-      _showSuccessDialog();
+    if (feedbackId != null) {
+      _showSuccessDialog(feedbackId);
     } else {
       final message = ref.read(kritikSaranProvider).errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -67,7 +67,7 @@ class _KritikSaranScreenState extends ConsumerState<KritikSaranScreen> {
     }
   }
 
-  void _showSuccessDialog() {
+  void _showSuccessDialog(int feedbackId) {
     final actionEmerald = AppColors.actionEmerald(context);
     final primaryTeal = AppColors.primaryTeal(context);
 
@@ -123,7 +123,9 @@ class _KritikSaranScreenState extends ConsumerState<KritikSaranScreen> {
                   onPressed: () {
                     Navigator.of(dialogContext).pop(); // Close Dialog
                     Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const RatingScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => RatingScreen(feedbackId: feedbackId),
+                      ),
                     );
                   },
                 ),

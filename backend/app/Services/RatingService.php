@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Rating;
+use App\Models\KritikSaran;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -13,8 +14,9 @@ class RatingService
     /**
      * Beri rating pertama kali oleh user
      */
-    public function beriRating(User $user, int $nilai): Rating
+    public function beriRating(User $user, int $nilai, int $feedbackId): Rating
     {
+        $this->ensureFeedbackContext($user, $feedbackId);
         if ($nilai < 1 || $nilai > 5) {
             throw ValidationException::withMessages(['rating' => 'Nilai rating harus antara 1 sampai 5.']);
         }
@@ -38,8 +40,9 @@ class RatingService
     /**
      * Update rating existing milik user
      */
-    public function updateRating(User $user, int $nilaiBaru): Rating
+    public function updateRating(User $user, int $nilaiBaru, int $feedbackId): Rating
     {
+        $this->ensureFeedbackContext($user, $feedbackId);
         if ($nilaiBaru < 1 || $nilaiBaru > 5) {
             throw ValidationException::withMessages(['rating' => 'Nilai rating harus antara 1 sampai 5.']);
         }
@@ -86,5 +89,19 @@ class RatingService
         Cache::forget('dashboard:service-insights');
         Cache::forget('dashboard:admin:admin');
         Cache::forget('dashboard:admin:superadmin');
+    }
+
+    /** A rating is accepted only from a feedback flow owned by this account. */
+    private function ensureFeedbackContext(User $user, int $feedbackId): void
+    {
+        $exists = KritikSaran::query()
+            ->whereKey($feedbackId)
+            ->where('user_id', $user->id)
+            ->exists();
+        if (! $exists) {
+            throw ValidationException::withMessages([
+                'feedback_id' => 'Rating hanya dapat diberikan setelah Anda mengirim kritik dan saran.',
+            ]);
+        }
     }
 }

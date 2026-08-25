@@ -21,27 +21,27 @@ class KritikSaranNotifier extends StateNotifier<KritikSaranState> {
   KritikSaranNotifier({required this.repository})
     : super(const KritikSaranState());
 
-  Future<bool> submitKritikSaran({
+  Future<int?> submitKritikSaran({
     required String kritik,
     required String saran,
   }) async {
-    if (state.isLoading) return false;
+    if (state.isLoading) return null;
 
     state = const KritikSaranState(isLoading: true);
     try {
-      await repository.submit(kritik: kritik, saran: saran);
+      final feedbackId = await repository.submit(kritik: kritik, saran: saran);
       state = const KritikSaranState(
         successMessage: 'Kritik & Saran berhasil dikirimkan!',
       );
-      return true;
+      return feedbackId;
     } on ApiException catch (error) {
       state = KritikSaranState(errorMessage: error.message);
-      return false;
+      return null;
     } catch (_) {
       state = const KritikSaranState(
         errorMessage: 'Kritik dan saran gagal dikirim. Silakan coba lagi.',
       );
-      return false;
+      return null;
     }
   }
 }

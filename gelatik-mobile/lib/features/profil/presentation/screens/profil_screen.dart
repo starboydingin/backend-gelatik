@@ -17,7 +17,7 @@ import 'edit_profil_screen.dart';
 import 'change_password_screen.dart';
 import 'notifikasi_whatsapp_screen.dart';
 import 'activity_log_screen.dart';
-import '../../../rating/presentation/screens/rating_screen.dart';
+import '../../../kritik_saran/presentation/screens/kritik_saran_history_screen.dart';
 
 /// ProfilScreen — Modul M-J Profil Pengguna Gelatik Mobile
 class ProfilScreen extends ConsumerWidget {
@@ -320,6 +320,20 @@ class ProfilScreen extends ConsumerWidget {
 
                   _buildMenuItem(
                     context: context,
+                    icon: Icons.history_rounded,
+                    iconColor: accentGold,
+                    title: 'Riwayat Kritik & Saran',
+                    subtitle: 'Lihat masukan dan tanggapan petugas',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const KritikSaranHistoryScreen(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  _buildMenuItem(
+                    context: context,
                     icon: Icons.badge_outlined,
                     iconColor: primaryTeal,
                     title: 'Informasi Akun',
@@ -386,18 +400,6 @@ class ProfilScreen extends ConsumerWidget {
                       MaterialPageRoute(
                         builder: (_) => const NotificationsScreen(),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  _buildMenuItem(
-                    context: context,
-                    icon: Icons.star_outline_rounded,
-                    iconColor: accentGold,
-                    title: 'Rating Layanan',
-                    subtitle: 'Beri penilaian untuk layanan Gelatik',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const RatingScreen()),
                     ),
                   ),
                   const SizedBox(height: 10),

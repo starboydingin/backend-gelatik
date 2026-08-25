@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { StarIcon } from '@heroicons/vue/24/solid'
 import { api, payload, errorMessage } from '../../lib/api'
 import AlertMessage from '../../components/AlertMessage.vue'
@@ -9,7 +10,10 @@ const rating = ref(null),
     hover = ref(0),
     error = ref(''),
     message = ref(''),
-    saving = ref(false)
+    saving = ref(false),
+    route = useRoute(),
+    router = useRouter()
+const feedbackId = computed(() => Number(route.query.feedback_id))
 const value = computed(() => hover.value || selected.value)
 const hasExistingRating = computed(() => {
     const score = Number(rating.value?.rating ?? rating.value?.nilai)
@@ -40,16 +44,16 @@ async function submit() {
     try {
         const endpoint = hasExistingRating.value ? '/rating/update' : '/rating'
         try {
-            rating.value = payload(await api.post(endpoint, { rating: selected.value }))
+            rating.value = payload(await api.post(endpoint, { rating: selected.value, feedback_id: feedbackId.value }))
         } catch (requestError) {
             const detail = String(requestError.response?.data?.message || requestError.response?.data?.errors?.rating?.[0] || '')
             if (endpoint === '/rating/update' && /belum pernah/i.test(detail)) {
-                rating.value = payload(await api.post('/rating', { rating: selected.value }))
+                rating.value = payload(await api.post('/rating', { rating: selected.value, feedback_id: feedbackId.value }))
             } else {
                 throw requestError
             }
         }
-        message.value = 'Rating berhasil disimpan.'
+        await router.replace('/app/umpan-balik')
     } catch (requestError) {
         error.value = errorMessage(requestError)
     } finally {

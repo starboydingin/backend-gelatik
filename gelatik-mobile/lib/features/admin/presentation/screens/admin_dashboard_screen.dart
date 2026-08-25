@@ -43,6 +43,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         .events
         .where(
           (event) => event.type == 'notification' ||
+              event.type == 'data.sync' ||
+              event.type == 'insights.sync' ||
               event.type.startsWith('konsultasi.') ||
               event.type.startsWith('pinjam.') ||
               event.type.startsWith('usulan_email.'),

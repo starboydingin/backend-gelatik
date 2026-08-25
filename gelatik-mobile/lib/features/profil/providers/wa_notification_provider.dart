@@ -89,6 +89,9 @@ class WaNotificationNotifier extends StateNotifier<WaNotificationState> {
     }
   }
 
+  /// Mengambil ulang preferensi dari server saat perangkat lain mengubahnya.
+  Future<void> refreshFromRealtime() => loadSubscription();
+
   /// Simpan nomor terbaru untuk user yang sedang login melalui API upsert.
   Future<bool> saveSubscription({
     required String waNumber,

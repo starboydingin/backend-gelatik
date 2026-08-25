@@ -258,7 +258,15 @@ class PinjamService
             throw new \InvalidArgumentException('Minimal harus tersisa 1 item dalam pengajuan peminjaman.');
         }
 
-        PinjamItem::where('pinjam_id', $pinjam->id)->where('item_id', $itemId)->delete();
+        $deleted = PinjamItem::where('pinjam_id', $pinjam->id)->where('item_id', $itemId)->delete();
+        if ($deleted > 0) {
+            // Query-builder deletes do not invoke the model observer. Publish
+            // the same metadata-only invalidations explicitly so the other
+            // session of this user, admins, and aggregate insight stay fresh.
+            $sync = app(RealtimeDataSyncService::class);
+            $sync->userAndAdmins((int) $pinjam->user_id, 'peminjaman', (int) $pinjam->id);
+            $sync->insights('peminjaman');
+        }
 
         return $pinjam->fresh(['pinjamItems.masterItem']);
     }

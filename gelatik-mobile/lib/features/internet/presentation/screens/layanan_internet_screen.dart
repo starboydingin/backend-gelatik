@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/realtime/realtime_event.dart';
+import '../../../../core/realtime/realtime_socket_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/status_badge.dart';
@@ -17,10 +21,23 @@ class LayananInternetScreen extends ConsumerStatefulWidget {
 }
 
 class _LayananInternetScreenState extends ConsumerState<LayananInternetScreen> {
+  StreamSubscription<RealtimeEvent>? _realtimeSubscription;
+
   @override
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(internetProvider.notifier).loadRouters());
+    _realtimeSubscription = ref
+        .read(realtimeSocketServiceProvider)
+        .events
+        .where((event) => event.type == 'data.sync')
+        .listen((_) => ref.read(internetProvider.notifier).refreshFromRealtime());
+  }
+
+  @override
+  void dispose() {
+    _realtimeSubscription?.cancel();
+    super.dispose();
   }
 
   @override

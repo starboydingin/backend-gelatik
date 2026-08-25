@@ -28,6 +28,13 @@ class _NotifikasiWhatsAppScreenState
   bool _initialized = false;
   bool _numberEdited = false;
 
+  void _syncSubscriptionFields() {
+    if (!mounted || _numberEdited) return;
+    final subscription = ref.read(waNotificationProvider).subscription;
+    _waController.text = subscription.waNumber;
+    _isSubscribed = subscription.isSubscribed;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -38,12 +45,7 @@ class _NotifikasiWhatsAppScreenState
     if (!ref.read(authProvider).isLoggedIn) return;
     await ref.read(waNotificationProvider.notifier).loadSubscription();
     if (!mounted || _numberEdited) return;
-
-    final subscription = ref.read(waNotificationProvider).subscription;
-    setState(() {
-      _waController.text = subscription.waNumber;
-      _isSubscribed = subscription.isSubscribed;
-    });
+    setState(_syncSubscriptionFields);
   }
 
   @override
@@ -121,6 +123,11 @@ class _NotifikasiWhatsAppScreenState
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<WaNotificationState>(waNotificationProvider, (previous, next) {
+      if (previous?.subscription == next.subscription || _numberEdited) return;
+      setState(_syncSubscriptionFields);
+    });
+
     final theme = Theme.of(context);
     final actionEmerald = AppColors.actionEmerald(context);
     final strokeColor = AppColors.cardStroke(context);

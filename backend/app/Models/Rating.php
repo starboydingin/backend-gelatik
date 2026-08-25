@@ -8,7 +8,7 @@ class Rating extends Model
 {
     protected $table = 'ratings';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     protected $fillable = [
         'id',

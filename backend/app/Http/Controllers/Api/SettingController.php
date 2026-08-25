@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\RealtimeDataSyncService;
 
 class SettingController extends Controller
 {
@@ -39,6 +40,7 @@ class SettingController extends Controller
         }
 
         $settings = DB::table('m_settings')->get();
+        app(RealtimeDataSyncService::class)->admins('settings', 1);
 
         return response()->json([
             'success' => true,

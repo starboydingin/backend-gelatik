@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/realtime/realtime_event.dart';
+import '../../../../core/realtime/realtime_socket_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
@@ -20,11 +24,23 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   List<CalendarEvent> _events = const [];
   bool _loading = true;
   String? _error;
+  StreamSubscription<RealtimeEvent>? _realtimeSubscription;
 
   @override
   void initState() {
     super.initState();
     Future.microtask(_load);
+    _realtimeSubscription = ref
+        .read(realtimeSocketServiceProvider)
+        .events
+        .where((event) => event.type == 'data.sync' || event.type == 'insights.sync')
+        .listen((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _realtimeSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {

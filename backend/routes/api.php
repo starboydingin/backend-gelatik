@@ -70,6 +70,7 @@ Route::middleware('auth:api')->group(function () {
 
     // Riwayat kritik & saran milik akun yang sedang masuk.
     Route::get('/kritik-saran/mine', [KritikSaranController::class, 'mine']);
+    Route::get('/kritik-saran/mine/{id}', [KritikSaranController::class, 'showMine']);
 
     // Peminjaman Aset TIK
     Route::get('/pinjam', [PinjamController::class, 'index']);

@@ -13,20 +13,25 @@ class KritikSaranRepository {
   ///
   /// The backend determines an optional authenticated user from the bearer
   /// token; no user identifier is sent by the client.
-  Future<void> submit({required String kritik, required String saran}) async {
+  Future<int> submit({required String kritik, required String saran}) async {
     try {
       final response = await apiClient.dio.post(
         '/kritik-saran',
         data: {'kritik': kritik, 'saran': saran},
       );
       final data = response.data;
+      final feedback = data is Map ? data['data'] : null;
+      final id = feedback is Map ? int.tryParse('${feedback['id'] ?? ''}') : null;
       if (response.statusCode != 201 ||
           data is! Map ||
-          data['success'] != true) {
+          data['success'] != true ||
+          id == null ||
+          id < 1) {
         throw ApiException(
           message: 'Format respons kritik dan saran tidak valid.',
         );
       }
+      return id;
     } on DioException catch (error) {
       throw ApiException.fromDioException(error);
     }
@@ -34,6 +39,23 @@ class KritikSaranRepository {
 
   Future<List<Map<String, dynamic>>> getAdminFeedback() =>
       _getList('/admin/kritik-saran');
+
+  Future<List<Map<String, dynamic>>> getMyFeedback() =>
+      _getList('/kritik-saran/mine');
+
+  Future<Map<String, dynamic>> getMyFeedbackDetail(int id) async {
+    try {
+      final response = await apiClient.dio.get('/kritik-saran/mine/$id');
+      final body = response.data;
+      final data = body is Map ? body['data'] : null;
+      if (data is! Map) {
+        throw ApiException(message: 'Detail kritik dan saran tidak valid.');
+      }
+      return Map<String, dynamic>.from(data);
+    } on DioException catch (error) {
+      throw ApiException.fromDioException(error);
+    }
+  }
 
   Future<void> reply({required int id, required String balasan}) async {
     try {

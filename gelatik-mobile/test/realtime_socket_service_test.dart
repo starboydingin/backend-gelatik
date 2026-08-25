@@ -104,8 +104,9 @@ void main() {
     transport.emit('pinjam.status_changed', {'entity_id': 7});
     await Future<void>.delayed(Duration.zero);
 
-    expect(events, hasLength(2));
-    expect(events.first.entityId, 7);
+    expect(events, hasLength(4));
+    expect(events.where((event) => event.type == 'data.sync'), hasLength(2));
+    expect(events[2].entityId, 7);
     expect(events.last.type, 'notification');
     await subscription.cancel();
     await service.dispose();

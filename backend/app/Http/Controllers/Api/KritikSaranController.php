@@ -65,7 +65,20 @@ class KritikSaranController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => $this->kritikSaranService->getForUser($request->user()),
+            'data' => $this->kritikSaranService->getForUser(
+                $request->user(),
+                $request->string('q')->trim()->value() ?: null,
+                $request->string('status')->trim()->lower()->value() ?: null,
+            ),
+        ]);
+    }
+
+    /** GET /api/kritik-saran/mine/{id} */
+    public function showMine(Request $request, int $id)
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->kritikSaranService->findForUser($request->user(), $id),
         ]);
     }
 

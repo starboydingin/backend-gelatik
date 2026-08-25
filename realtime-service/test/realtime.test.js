@@ -102,6 +102,26 @@ test('durable notification payload is normalized for inbox refreshes', () => {
     assert.equal(payload.status, 'new');
 });
 
+test('metadata-only data sync payload is accepted without application data', () => {
+    const payload = normalizePayload('data.sync', {
+        event_id: 'evt-12345680',
+        type: 'data.sync',
+        entity_id: 12,
+        status: 'updated',
+        resource: 'peminjaman',
+        created_at: '2026-08-25T00:00:00.000Z',
+        user_name: 'discarded',
+    });
+    assert.deepEqual(payload, {
+        event_id: 'evt-12345680',
+        type: 'data.sync',
+        entity_id: 12,
+        status: 'updated',
+        created_at: '2026-08-25T00:00:00.000Z',
+        resource: 'peminjaman',
+    });
+});
+
 test('malformed or sensitive payload is rejected safely', () => {
     assert.throws(() => normalizePayload('pinjam.status_changed', { entity_id: 1 }), /status/);
     assert.throws(() => normalizePayload('pinjam.status_changed', {

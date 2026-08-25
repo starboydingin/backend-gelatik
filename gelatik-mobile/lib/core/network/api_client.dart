@@ -7,6 +7,8 @@ import '../storage/secure_storage_service.dart';
 class ApiClient {
   final Dio dio;
   final SecureStorageService secureStorageService;
+  final _ShortLivedGetCacheInterceptor _getCache =
+      _ShortLivedGetCacheInterceptor();
 
   static String get defaultBaseUrl {
     if (!kIsWeb && Platform.isAndroid) {
@@ -42,7 +44,7 @@ class ApiClient {
         },
       ),
     );
-    dio.interceptors.add(_ShortLivedGetCacheInterceptor());
+    dio.interceptors.add(_getCache);
 
     if (kDebugMode) {
       dio.interceptors.add(
@@ -58,13 +60,17 @@ class ApiClient {
       );
     }
   }
+
+  /// Clears only GET cache entries affected by a realtime resource signal.
+  void invalidateCacheForResource(String resource) =>
+      _getCache.invalidateResource(resource);
 }
 
 class _ShortLivedGetCacheInterceptor extends Interceptor {
   // Navigation uses the most recent in-memory response first. Realtime,
   // pull-to-refresh, and post-mutation reads opt out with `skipShortCache`,
   // so this improves perceived speed without hiding fresh business updates.
-  final Duration ttl = const Duration(seconds: 90);
+  static const _defaultTtl = Duration(seconds: 60);
   final Duration staleIfError = const Duration(minutes: 5);
   final Map<String, _CachedGetResponse> _responses = {};
 
@@ -81,7 +87,8 @@ class _ShortLivedGetCacheInterceptor extends Interceptor {
     }
 
     final cached = _responses[_key(options)];
-    if (cached != null && DateTime.now().difference(cached.savedAt) <= ttl) {
+    if (cached != null &&
+        DateTime.now().difference(cached.savedAt) <= _ttlFor(options)) {
       return handler.resolve(cached.toResponse(options, fromStaleCache: false));
     }
     handler.next(options);
@@ -122,6 +129,67 @@ class _ShortLivedGetCacheInterceptor extends Interceptor {
         .join('&');
     final token = options.headers['Authorization']?.toString() ?? '';
     return '${options.baseUrl}${options.path}?$normalizedQuery|$token';
+  }
+
+  Duration _ttlFor(RequestOptions options) {
+    final requested = options.extra['cacheTtlSeconds'];
+    if (requested is int && requested > 0) {
+      return Duration(seconds: requested);
+    }
+    final path = options.path;
+    if (path == '/dashboard' || path == '/admin/dashboard') {
+      return const Duration(seconds: 30);
+    }
+    if (path.startsWith('/notifications') || path.startsWith('/chatbot')) {
+      return const Duration(seconds: 20);
+    }
+    if (RegExp(r'^/(faq|topik|items?|opd|pengumuman|slider|list-router-opd)')
+        .hasMatch(path)) {
+      return const Duration(minutes: 5);
+    }
+    return _defaultTtl;
+  }
+
+  void invalidateResource(String rawResource) {
+    final resource = rawResource.trim().toLowerCase().replaceAll('-', '_');
+    if (resource.isEmpty || resource == 'session') {
+      _responses.clear();
+      return;
+    }
+    final prefixes = <String>[
+      if (resource == 'peminjaman') '/pinjam',
+      if (resource == 'peminjaman') '/dashboard',
+      if (resource == 'konsultasi') '/konsul',
+      if (resource == 'konsultasi') '/dashboard',
+      if (resource == 'usulan_email') '/pengajuan-email',
+      if (resource == 'usulan_email') '/pegawai',
+      if (resource == 'usulan_email') '/dashboard',
+      if (resource == 'notification') '/notifications',
+      if (resource == 'notification') '/dashboard',
+      if (resource == 'kritik_saran') '/kritik-saran',
+      if (resource == 'kritik_saran') '/notifications',
+      if (resource == 'rating') '/rating',
+      if (resource == 'rating') '/dashboard',
+      if (resource == 'user') '/me',
+      if (resource == 'user') '/dashboard',
+      if (resource == 'whatsapp_subscription') '/notifikasi/wa',
+      if (resource == 'faq') '/faq',
+      if (resource == 'mastertopik') '/topik',
+      if (resource == 'mastertopik') '/faq',
+      if (resource == 'masteritem') '/items',
+      if (resource == 'masteritem') '/item',
+      if (resource == 'router' || resource == 'routerlist') '/list-router-opd',
+      if (resource == 'pengumuman' || resource == 'slider') '/pengumuman',
+      if (resource == 'pengumuman' || resource == 'slider') '/dashboard',
+      if (resource == 'insights') '/dashboard',
+    ];
+    if (prefixes.isEmpty) {
+      _responses.clear();
+      return;
+    }
+    _responses.removeWhere(
+      (key, _) => prefixes.any((prefix) => key.contains(prefix)),
+    );
   }
 }
 

@@ -2,32 +2,55 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../network/api_client.dart';
 import '../../features/home/providers/home_provider.dart';
 import '../../features/konsultasi/providers/konsultasi_provider.dart';
 import '../../features/peminjaman/providers/peminjaman_provider.dart';
+import '../../features/email/providers/email_provider.dart';
+import '../../features/auth/providers/auth_provider.dart';
+import '../../features/internet/providers/internet_provider.dart';
+import '../../features/info_alat/providers/info_alat_provider.dart';
+import '../../features/profil/providers/wa_notification_provider.dart';
 import 'realtime_event.dart';
 import 'realtime_socket_service.dart';
 
 class RealtimeCoordinator {
   final RealtimeSocketService service;
+  final ApiClient apiClient;
   final PeminjamanNotifier peminjaman;
   final KonsultasiNotifier konsultasi;
+  final EmailNotifier email;
+  final AuthNotifier auth;
+  final InternetNotifier internet;
+  final InfoAlatNotifier infoAlat;
+  final WaNotificationNotifier waNotification;
   final HomeNotifier home;
   final _timers = <String, Timer>{};
   late final StreamSubscription<RealtimeEvent> _subscription;
 
   RealtimeCoordinator({
     required this.service,
+    required this.apiClient,
     required this.peminjaman,
     required this.konsultasi,
+    required this.email,
+    required this.auth,
+    required this.internet,
+    required this.infoAlat,
+    required this.waNotification,
     required this.home,
   }) {
     _subscription = service.events.listen(_onEvent);
   }
 
   void _onEvent(RealtimeEvent event) {
+    apiClient.invalidateCacheForResource(_resourceFor(event));
     if (event.type == 'notification') {
       _schedule('notification', () => home.refreshFromRealtime());
+    } else if (event.type == 'data.sync') {
+      _syncData(event);
+    } else if (event.type == 'insights.sync') {
+      _schedule('insights', () => home.refreshFromRealtime());
     } else if (event.type.startsWith('pinjam.')) {
       _schedule('pinjam', () async {
         await peminjaman.refreshFromRealtime(event.entityId);
@@ -39,7 +62,90 @@ class RealtimeCoordinator {
         await home.refreshFromRealtime();
       });
     } else if (event.type.startsWith('usulan_email.')) {
-      _schedule('usulan_email', () => home.refreshFromRealtime());
+      _schedule('usulan_email', () async {
+        await email.refreshFromRealtime();
+        await home.refreshFromRealtime();
+      });
+    }
+  }
+
+  String _resourceFor(RealtimeEvent event) {
+    if (event.type == 'insights.sync') return 'insights';
+    final resource = event.resource?.trim();
+    if (resource != null && resource.isNotEmpty) return resource;
+    if (event.type.startsWith('pinjam.')) return 'peminjaman';
+    if (event.type.startsWith('konsultasi.')) return 'konsultasi';
+    if (event.type.startsWith('usulan_email.')) return 'usulan_email';
+    if (event.type == 'notification') return 'notification';
+    if (event.type == 'insights.sync') return 'insights';
+    return '';
+  }
+
+  void _syncData(RealtimeEvent event) {
+    final resource = event.resource?.toLowerCase() ?? '';
+    switch (resource) {
+      case 'peminjaman':
+        _schedule('sync:peminjaman', () async {
+          await peminjaman.refreshFromRealtime(event.entityId);
+          await home.refreshFromRealtime();
+        });
+        return;
+      case 'konsultasi':
+        _schedule('sync:konsultasi', () async {
+          await konsultasi.refreshFromRealtime(event.entityId);
+          await home.refreshFromRealtime();
+        });
+        return;
+      case 'usulan_email':
+        _schedule('sync:usulan_email', () async {
+          await email.refreshFromRealtime();
+          await home.refreshFromRealtime();
+        });
+        return;
+      case 'user':
+        _schedule('sync:user', () async {
+          await auth.refreshFromRealtime();
+          await home.refreshFromRealtime();
+        });
+        return;
+      case 'rating':
+      case 'notification':
+      case 'kritik_saran':
+        _schedule('sync:$resource', () => home.refreshFromRealtime());
+        return;
+      case 'whatsapp_subscription':
+        _schedule('sync:$resource', () async {
+          await waNotification.refreshFromRealtime();
+          await home.refreshFromRealtime();
+        });
+        return;
+      case 'faq':
+      case 'mastertopik':
+        _schedule('sync:$resource', () async {
+          await konsultasi.loadTopik(force: true);
+          await internet.refreshAllFromRealtime();
+        });
+        return;
+      case 'masteritem':
+        _schedule('sync:$resource', () => infoAlat.loadItems(force: true));
+        return;
+      case 'router':
+      case 'routerlist':
+        _schedule('sync:$resource', () => internet.refreshAllFromRealtime());
+        return;
+      case 'pengumuman':
+      case 'slider':
+      case 'insights':
+        _schedule('sync:$resource', () => home.refreshFromRealtime());
+        return;
+      default:
+        _schedule('sync:reference', () async {
+          await konsultasi.loadTopik(force: true);
+          await infoAlat.loadItems(force: true);
+          await internet.refreshAllFromRealtime();
+          await home.refreshFromRealtime();
+        });
+        return;
     }
   }
 
@@ -62,8 +168,14 @@ class RealtimeCoordinator {
 final realtimeCoordinatorProvider = Provider<RealtimeCoordinator>((ref) {
   final coordinator = RealtimeCoordinator(
     service: ref.watch(realtimeSocketServiceProvider),
+    apiClient: ref.watch(apiClientProvider),
     peminjaman: ref.watch(peminjamanProvider.notifier),
     konsultasi: ref.watch(konsultasiProvider.notifier),
+    email: ref.watch(emailProvider.notifier),
+    auth: ref.watch(authProvider.notifier),
+    internet: ref.watch(internetProvider.notifier),
+    infoAlat: ref.watch(infoAlatProvider.notifier),
+    waNotification: ref.watch(waNotificationProvider.notifier),
     home: ref.watch(homeProvider.notifier),
   );
   ref.onDispose(coordinator.dispose);

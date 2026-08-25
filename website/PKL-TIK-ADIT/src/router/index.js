@@ -42,7 +42,11 @@ const routes = [
             { path: 'notifikasi', component: () => import('../views/user/NotificationsView.vue') },
             { path: 'faq', component: () => import('../views/user/FaqView.vue') },
             { path: 'router', component: () => import('../views/user/RouterView.vue') },
-            { path: 'rating', component: () => import('../views/user/RatingView.vue') },
+            {
+                path: 'rating',
+                component: () => import('../views/user/RatingView.vue'),
+                meta: { feedbackFlow: true },
+            },
             { path: 'whatsapp', component: () => import('../views/user/WhatsappView.vue') },
             { path: 'chatbot', component: () => import('../views/user/ChatbotView.vue') },
             { path: 'profil', component: () => import('../views/user/ProfileView.vue') },
@@ -124,5 +128,7 @@ router.beforeEach(async (to) => {
         if (!auth.isAdmin) return '/app/dashboard'
     }
     if (to.meta.userPortal && auth.isAdmin) return '/admin/dashboard'
+    if (to.meta.feedbackFlow && !/^\d+$/.test(String(to.query.feedback_id || '')))
+        return '/app/umpan-balik'
 })
 export default router

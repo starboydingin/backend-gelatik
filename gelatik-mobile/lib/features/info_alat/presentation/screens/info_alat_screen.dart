@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/realtime/realtime_event.dart';
+import '../../../../core/realtime/realtime_socket_service.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/empty_state.dart';
@@ -27,6 +29,7 @@ class InfoAlatScreen extends ConsumerStatefulWidget {
 class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
+  StreamSubscription<RealtimeEvent>? _realtimeSubscription;
 
   @override
   void initState() {
@@ -35,11 +38,17 @@ class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
       if (!mounted) return;
       ref.read(infoAlatProvider.notifier).loadItems();
     });
+    _realtimeSubscription = ref
+        .read(realtimeSocketServiceProvider)
+        .events
+        .where((event) => event.type == 'data.sync')
+        .listen((_) => ref.read(infoAlatProvider.notifier).refresh());
   }
 
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _realtimeSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }

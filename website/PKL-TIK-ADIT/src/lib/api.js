@@ -12,8 +12,33 @@ const readCache = new Map()
 // Read data is safe to retain briefly: every successful mutation clears this
 // cache, while a longer TTL prevents the same page from repeatedly competing
 // for the local Laravel worker during normal navigation.
-const defaultReadTtl = 90_000
+const defaultReadTtl = 60_000
 const staleIfErrorTtl = 5 * 60_000
+const cachePolicies = [
+    { match: /^(\/dashboard|\/admin\/dashboard)$/, ttl: 30_000 },
+    { match: /^\/notifications/, ttl: 20_000 },
+    { match: /^\/chatbot/, ttl: 20_000 },
+    { match: /^(\/faq|\/topik|\/items?|\/opd|\/pengumuman|\/slider|\/list-router-opd)/, ttl: 5 * 60_000 },
+]
+const resourceEndpointPrefixes = {
+    peminjaman: ['/pinjam', '/dashboard', '/laporan/peminjaman'],
+    konsultasi: ['/konsul', '/dashboard', '/laporan/konsultasi'],
+    usulan_email: ['/pengajuan-email', '/pegawai', '/dashboard', '/laporan/usulan-email'],
+    notification: ['/notifications', '/dashboard'],
+    kritik_saran: ['/kritik-saran', '/notifications'],
+    rating: ['/rating', '/dashboard'],
+    user: ['/me', '/dashboard'],
+    whatsapp_subscription: ['/notifikasi/wa', '/dashboard'],
+    faq: ['/faq'],
+    mastertopik: ['/topik', '/faq'],
+    masteritem: ['/items', '/item', '/dashboard'],
+    router: ['/list-router-opd'],
+    routerlist: ['/list-router-opd'],
+    pengumuman: ['/pengumuman', '/dashboard'],
+    slider: ['/slider', '/dashboard'],
+    settings: ['/admin/settings', '/dashboard'],
+    insights: ['/dashboard'],
+}
 const cacheKey = (url, config = {}) =>
     JSON.stringify([url, config.params || {}, sessionStorage.getItem('gelatik_token') || ''])
 const rawGet = api.get.bind(api)
@@ -47,10 +72,54 @@ export async function cachedGet(url, config = {}, ttl = defaultReadTtl) {
     }
 }
 
+function cachedTtl(url, explicitTtl) {
+    if (Number.isFinite(explicitTtl)) return explicitTtl
+    return cachePolicies.find((policy) => policy.match.test(url))?.ttl || defaultReadTtl
+}
+
+export function realtimeResource(payload = {}) {
+    const type = String(payload.type || '').toLowerCase()
+    if (type === 'insights.sync') return 'insights'
+    const fromPayload = String(payload.resource || '').trim().toLowerCase()
+    if (fromPayload) return fromPayload.replace(/[\s-]/g, '_')
+    if (type.startsWith('pinjam.')) return 'peminjaman'
+    if (type.startsWith('konsultasi.')) return 'konsultasi'
+    if (type.startsWith('usulan_email.')) return 'usulan_email'
+    if (type === 'notification') return 'notification'
+    if (type === 'insights.sync') return 'insights'
+    return ''
+}
+
 export function invalidateApiCache(prefix = '') {
     for (const key of readCache.keys()) {
-        if (!prefix || key.includes(`\"${prefix}\"`)) readCache.delete(key)
+        if (!prefix) {
+            readCache.delete(key)
+            continue
+        }
+        try {
+            const [url] = JSON.parse(key)
+            if (url === prefix || url.startsWith(`${prefix}/`)) readCache.delete(key)
+        } catch {
+            // A malformed in-memory key must never retain potentially stale data.
+            readCache.delete(key)
+        }
     }
+}
+
+/** Invalidate only REST reads that can be affected by a realtime event. */
+export function invalidateRealtimeResource(payload = {}) {
+    const resource = realtimeResource(payload)
+    if (!resource || resource === 'session') {
+        invalidateApiCache()
+        return resource
+    }
+    const prefixes = resourceEndpointPrefixes[resource]
+    if (!prefixes) {
+        invalidateApiCache()
+        return resource
+    }
+    for (const prefix of prefixes) invalidateApiCache(prefix)
+    return resource
 }
 
 export function clearApiCache() {
@@ -60,8 +129,8 @@ export function clearApiCache() {
 // Existing pages can keep using api.get(). Dynamic data uses a short TTL;
 // pages that need a longer cache still call cachedGet(url, config, ttl).
 api.get = (url, config = {}) => {
-    const { cache = true, cacheTtl = defaultReadTtl, ...requestConfig } = config
-    return cache ? cachedGet(url, requestConfig, cacheTtl) : rawGet(url, requestConfig)
+    const { cache = true, cacheTtl, ...requestConfig } = config
+    return cache ? cachedGet(url, requestConfig, cachedTtl(url, cacheTtl)) : rawGet(url, requestConfig)
 }
 
 api.interceptors.request.use((config) => {

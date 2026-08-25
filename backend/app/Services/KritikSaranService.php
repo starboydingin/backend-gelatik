@@ -40,12 +40,28 @@ class KritikSaranService
         return KritikSaran::with(['user', 'responder:id,name,role'])->latest()->paginate(15);
     }
 
-    public function getForUser(User $user)
+    public function getForUser(User $user, ?string $keyword = null, ?string $status = null)
     {
         return KritikSaran::with('responder:id,name,role')
             ->where('user_id', $user->id)
+            ->when($keyword, function ($query, string $value) {
+                $query->where(function ($nested) use ($value): void {
+                    $nested->where('kritik', 'like', "%{$value}%")
+                        ->orWhere('saran', 'like', "%{$value}%")
+                        ->orWhere('balasan', 'like', "%{$value}%");
+                });
+            })
+            ->when($status === 'answered', fn ($query) => $query->whereNotNull('balasan'))
+            ->when($status === 'waiting', fn ($query) => $query->whereNull('balasan'))
             ->latest()
             ->paginate(15);
+    }
+
+    public function findForUser(User $user, int $id): KritikSaran
+    {
+        return KritikSaran::with('responder:id,name,role')
+            ->where('user_id', $user->id)
+            ->findOrFail($id);
     }
 
     public function balas(KritikSaran $kritikSaran, User $responder, string $balasan): KritikSaran
@@ -79,6 +95,16 @@ class KritikSaranService
      */
     public function bulkDelete(array $ids): int
     {
-        return KritikSaran::whereIn('id', $ids)->delete();
+        $items = KritikSaran::whereIn('id', $ids)->get(['id', 'user_id']);
+        $deleted = KritikSaran::whereIn('id', $ids)->delete();
+        foreach ($items as $item) {
+            app(RealtimeDataSyncService::class)->userAndAdmins(
+                (int) $item->user_id,
+                'kritik_saran',
+                (int) $item->id,
+            );
+        }
+
+        return $deleted;
     }
 }

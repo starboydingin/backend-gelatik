@@ -22,11 +22,16 @@ class RatingController extends Controller
         $request->validate([
             'rating' => 'required_without:nilai|integer|min:1|max:5',
             'nilai'  => 'nullable|integer|min:1|max:5',
+            'feedback_id' => 'required|integer|min:1',
         ]);
 
         $nilai = $request->rating ?? $request->nilai;
 
-        $rating = $this->ratingService->beriRating($request->user(), (int) $nilai);
+        $rating = $this->ratingService->beriRating(
+            $request->user(),
+            (int) $nilai,
+            (int) $request->input('feedback_id'),
+        );
 
         return response()->json([
             'success' => true,
@@ -41,11 +46,16 @@ class RatingController extends Controller
         $request->validate([
             'rating' => 'required_without:nilai|integer|min:1|max:5',
             'nilai'  => 'nullable|integer|min:1|max:5',
+            'feedback_id' => 'required|integer|min:1',
         ]);
 
         $nilai = $request->rating ?? $request->nilai;
 
-        $rating = $this->ratingService->updateRating($request->user(), (int) $nilai);
+        $rating = $this->ratingService->updateRating(
+            $request->user(),
+            (int) $nilai,
+            (int) $request->input('feedback_id'),
+        );
 
         return response()->json([
             'success' => true,

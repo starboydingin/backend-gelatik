@@ -17,6 +17,7 @@ import '../../../email/presentation/screens/usulan_email_detail_screen.dart';
 import '../../../email/repositories/email_repository.dart';
 import '../../../konsultasi/presentation/screens/konsultasi_detail_screen.dart';
 import '../../../konsultasi/repositories/konsultasi_repository.dart';
+import '../../../kritik_saran/presentation/screens/kritik_saran_detail_screen.dart';
 import '../../../peminjaman/presentation/screens/peminjaman_detail_screen.dart';
 import '../../../peminjaman/repositories/peminjaman_repository.dart';
 import '../../models/gelatik_notification.dart';
@@ -112,6 +113,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           );
           return;
         }
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => KritikSaranDetailScreen(feedbackId: resourceId),
+          ),
+        );
+        return;
       }
       if (resourceId != null && resourceType.contains('konsult')) {
         final detail = await ref

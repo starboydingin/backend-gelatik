@@ -26,7 +26,9 @@ class AdminDashboardController extends Controller
     {
         $superadmin = $request->user()->hasRole('superadmin');
         $scope = $superadmin ? 'superadmin' : 'admin';
-        $data = Cache::remember("dashboard:admin:{$scope}", now()->addSeconds(90), function () use ($superadmin, $scope): array {
+        // Stale-while-revalidate prevents an expensive aggregate from slowing
+        // down page entry when the cache has just expired.
+        $data = Cache::flexible("dashboard:admin:{$scope}", [30, 120], function () use ($superadmin, $scope): array {
             $adminActivity = collect();
             if ($superadmin) {
                 if (Schema::hasTable('admin_audit_logs')) {

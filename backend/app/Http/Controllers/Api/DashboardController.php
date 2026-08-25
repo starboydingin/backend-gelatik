@@ -20,9 +20,12 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $data = Cache::remember(
+        // Serve the previous aggregate briefly while Laravel refreshes it in
+        // the background. This keeps dashboard navigation responsive after a
+        // short cache expiry without weakening mutation invalidation.
+        $data = Cache::flexible(
             "dashboard:user:{$user->id}",
-            now()->addSeconds(90),
+            [30, 120],
             fn (): array => $this->dashboardService->getUserDashboard($user),
         );
 

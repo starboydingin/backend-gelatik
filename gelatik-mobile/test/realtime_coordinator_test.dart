@@ -5,10 +5,19 @@ import 'package:gelatik/core/realtime/realtime_socket_service.dart';
 import 'package:gelatik/core/storage/secure_storage_service.dart';
 import 'package:gelatik/features/home/models/home_dashboard_model.dart';
 import 'package:gelatik/features/home/providers/home_provider.dart';
+import 'package:gelatik/features/auth/providers/auth_provider.dart';
+import 'package:gelatik/features/email/providers/email_provider.dart';
+import 'package:gelatik/features/email/repositories/email_repository.dart';
+import 'package:gelatik/features/info_alat/providers/info_alat_provider.dart';
+import 'package:gelatik/features/info_alat/repositories/master_item_repository.dart';
+import 'package:gelatik/features/internet/providers/internet_provider.dart';
+import 'package:gelatik/features/internet/repositories/internet_repository.dart';
 import 'package:gelatik/features/konsultasi/providers/konsultasi_provider.dart';
 import 'package:gelatik/features/konsultasi/repositories/konsultasi_repository.dart';
 import 'package:gelatik/features/peminjaman/providers/peminjaman_provider.dart';
 import 'package:gelatik/features/peminjaman/repositories/peminjaman_repository.dart';
+import 'package:gelatik/features/profil/providers/wa_notification_provider.dart';
+import 'package:gelatik/features/profil/repositories/wa_notification_repository.dart';
 
 class _Storage extends SecureStorageService {
   @override
@@ -65,6 +74,45 @@ class _TrackingKonsultasi extends KonsultasiNotifier {
     refreshCalls++;
     lastEntityId = entityId;
   }
+
+  @override
+  Future<void> loadTopik({bool force = false}) async {}
+}
+
+class _TrackingEmail extends EmailNotifier {
+  _TrackingEmail() : super(repository: EmailRepository(apiClient: _client()));
+
+  @override
+  Future<void> refreshFromRealtime() async {}
+}
+
+class _TrackingAuth extends AuthNotifier {
+  @override
+  Future<void> refreshFromRealtime() async {}
+}
+
+class _TrackingInternet extends InternetNotifier {
+  _TrackingInternet()
+    : super(repository: InternetRepository(apiClient: _client()));
+
+  @override
+  Future<void> refreshAllFromRealtime() async {}
+}
+
+class _TrackingInfoAlat extends InfoAlatNotifier {
+  _TrackingInfoAlat()
+    : super(repository: MasterItemRepository(apiClient: _client()));
+
+  @override
+  Future<void> loadItems({bool force = false}) async {}
+}
+
+class _TrackingWaNotification extends WaNotificationNotifier {
+  _TrackingWaNotification()
+    : super(repository: WaNotificationRepository(apiClient: _client()));
+
+  @override
+  Future<void> refreshFromRealtime() async {}
 }
 
 class _TrackingHome extends HomeNotifier {
@@ -113,15 +161,28 @@ void main() {
       );
       final peminjaman = _TrackingPeminjaman();
       final konsultasi = _TrackingKonsultasi();
+      final email = _TrackingEmail();
+      final auth = _TrackingAuth();
+      final internet = _TrackingInternet();
+      final infoAlat = _TrackingInfoAlat();
+      final waNotification = _TrackingWaNotification();
       final home = _TrackingHome();
       final coordinator = RealtimeCoordinator(
         service: service,
+        apiClient: _client(),
         peminjaman: peminjaman,
         konsultasi: konsultasi,
+        email: email,
+        auth: auth,
+        internet: internet,
+        infoAlat: infoAlat,
+        waNotification: waNotification,
         home: home,
       );
 
       await service.connect();
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      home.refreshCalls = 0;
       final pinjam = _payload(
         eventId: 'pinjam-event-0001',
         type: 'pinjam.created',

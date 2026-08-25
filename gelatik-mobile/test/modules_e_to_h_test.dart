@@ -80,7 +80,7 @@ class _KritikSaranRepositoryFake extends KritikSaranRepository {
     : super(apiClient: ApiClient(secureStorageService: SecureStorageService()));
 
   @override
-  Future<void> submit({required String kritik, required String saran}) async {}
+  Future<int> submit({required String kritik, required String saran}) async => 1;
 }
 
 class _InternetRepositoryFake extends InternetRepository {

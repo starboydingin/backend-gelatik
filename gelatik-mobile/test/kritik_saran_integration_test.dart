@@ -35,16 +35,16 @@ ApiClient _client({
 }
 
 class _FakeRepository extends KritikSaranRepository {
-  final Future<void> Function(String kritik, String saran) handler;
+  final Future<int> Function(String kritik, String saran) handler;
   int calls = 0;
 
   _FakeRepository(this.handler)
     : super(apiClient: _client(handler: (_) => throw UnimplementedError()));
 
   @override
-  Future<void> submit({required String kritik, required String saran}) async {
+  Future<int> submit({required String kritik, required String saran}) async {
     calls++;
-    await handler(kritik, saran);
+    return handler(kritik, saran);
   }
 }
 
@@ -114,7 +114,7 @@ void main() {
   group('KritikSaranNotifier', () {
     test('moves from loading to success', () async {
       final notifier = KritikSaranNotifier(
-        repository: _FakeRepository((_, _) async {}),
+        repository: _FakeRepository((_, _) async => 1),
       );
 
       final submit = notifier.submitKritikSaran(
@@ -131,7 +131,7 @@ void main() {
     test(
       'exposes API errors and prevents duplicate in-flight submits',
       () async {
-        final completer = Completer<void>();
+        final completer = Completer<int>();
         final repository = _FakeRepository((_, _) => completer.future);
         final notifier = KritikSaranNotifier(repository: repository);
 
@@ -143,10 +143,10 @@ void main() {
           kritik: 'Kritik',
           saran: 'Saran',
         );
-        expect(await duplicate, isFalse);
+        expect(await duplicate, isNull);
         expect(repository.calls, 1);
-        completer.complete();
-        expect(await first, isTrue);
+        completer.complete(1);
+        expect(await first, 1);
 
         final failing = KritikSaranNotifier(
           repository: _FakeRepository(
@@ -156,7 +156,7 @@ void main() {
         );
         expect(
           await failing.submitKritikSaran(kritik: 'K', saran: 'S'),
-          isFalse,
+          isNull,
         );
         expect(failing.state.errorMessage, 'Tidak valid');
       },

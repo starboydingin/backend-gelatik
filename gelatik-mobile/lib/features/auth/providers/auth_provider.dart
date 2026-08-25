@@ -356,6 +356,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Refresh identity fields when this same account changes them from another
+  /// signed-in client. A transient background failure must not end the session.
+  Future<void> refreshFromRealtime() async {
+    final repo = authRepository;
+    if (repo == null || !state.isLoggedIn) return;
+    try {
+      final user = UserModel.fromJson(await repo.getMe());
+      state = state.copyWith(currentUser: user, clearErrors: true);
+    } catch (_) {
+      // A later foreground refresh retries the canonical profile endpoint.
+    }
+  }
+
   Map<String, String> _normalizeValidationErrors(Map<String, dynamic>? errors) {
     if (errors == null) return const {};
 

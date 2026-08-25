@@ -22,11 +22,15 @@ class RatingRepository {
     }
   }
 
-  Future<void> saveRating(int value, {required bool exists}) async {
+  Future<void> saveRating(
+    int value, {
+    required bool exists,
+    required int feedbackId,
+  }) async {
     try {
       await apiClient.dio.post(
         exists ? '/rating/update' : '/rating',
-        data: {'rating': value},
+        data: {'rating': value, 'feedback_id': feedbackId},
       );
     } on DioException catch (error) {
       throw ApiException.fromDioException(error);

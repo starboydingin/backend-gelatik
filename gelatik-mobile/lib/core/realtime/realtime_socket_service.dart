@@ -117,7 +117,10 @@ class RealtimeSocketService {
     _transport = transport;
     transport.on(
       'connect',
-      (_) => _setState(RealtimeConnectionState.connected),
+      (_) {
+        _setState(RealtimeConnectionState.connected);
+        _emitSessionResync();
+      },
     );
     transport.on(
       'reconnect_attempt',
@@ -175,6 +178,20 @@ class RealtimeSocketService {
       _seenEventIds.remove(_seenEventOrder.removeAt(0));
     }
     _events.add(event);
+  }
+
+  void _emitSessionResync() {
+    if (_events.isClosed) return;
+    _events.add(
+      RealtimeEvent(
+        eventId: 'session-${DateTime.now().microsecondsSinceEpoch}',
+        type: 'data.sync',
+        entityId: 1,
+        status: 'updated',
+        resource: 'session',
+        createdAt: DateTime.now().toUtc(),
+      ),
+    );
   }
 
   void _setState(RealtimeConnectionState value) {

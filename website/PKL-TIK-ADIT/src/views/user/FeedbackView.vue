@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ChatBubbleBottomCenterTextIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import { api, errorMessage } from '../../lib/api'
 import { formatDateTime } from '../../lib/date'
@@ -9,7 +10,10 @@ const form = ref({ kritik: '', saran: '' }),
     message = ref(''),
     error = ref(''),
     saving = ref(false),
-    history = ref([])
+    history = ref([]),
+    selectedDetail = ref(null),
+    route = useRoute(),
+    router = useRouter()
 
 async function loadHistory() {
     try {
@@ -19,13 +23,30 @@ async function loadHistory() {
         // Riwayat tidak boleh menghalangi pengguna mengirim masukan baru.
     }
 }
+async function loadDetail() {
+    const id = Number(route.query.detail)
+    if (!Number.isInteger(id) || id < 1) return
+    try {
+        selectedDetail.value = responseData(await api.get(`/kritik-saran/mine/${id}`, { cache: false }))
+    } catch (_) {
+        selectedDetail.value = null
+    }
+}
+function responseData(response) {
+    return response.data?.data || null
+}
 async function submit() {
     saving.value = true
     error.value = ''
     try {
-        await api.post('/kritik-saran', form.value)
-        message.value = 'Terima kasih. Masukan Anda berhasil dikirim.'
+        const created = await api.post('/kritik-saran', form.value)
+        const feedbackId = Number(created.data?.data?.id)
         form.value = { kritik: '', saran: '' }
+        if (Number.isInteger(feedbackId) && feedbackId > 0) {
+            await router.push({ path: '/app/rating', query: { feedback_id: feedbackId } })
+            return
+        }
+        message.value = 'Terima kasih. Masukan Anda berhasil dikirim.'
         await loadHistory()
     } catch (requestError) {
         error.value = errorMessage(requestError)
@@ -33,7 +54,9 @@ async function submit() {
         saving.value = false
     }
 }
-onMounted(loadHistory)
+onMounted(async () => {
+    await Promise.all([loadHistory(), loadDetail()])
+})
 </script>
 <template>
     <div class="page-stack">
@@ -43,6 +66,17 @@ onMounted(loadHistory)
             description="Sampaikan pengalaman Anda agar layanan TIK dapat terus diperbaiki."
         />
         <AlertMessage :message="error" /><AlertMessage :message="message" type="success" />
+        <section v-if="selectedDetail" class="card mx-auto max-w-5xl p-6 md:p-8">
+            <p class="eyebrow">Detail masukan</p>
+            <h2 class="mt-2 text-xl font-bold text-navy">Kritik & saran Anda</h2>
+            <p class="mt-5 text-sm"><strong>Kritik:</strong> {{ selectedDetail.kritik }}</p>
+            <p class="mt-2 text-sm"><strong>Saran:</strong> {{ selectedDetail.saran }}</p>
+            <div v-if="selectedDetail.balasan" class="mt-5 rounded-xl bg-brand-50 p-4 text-sm text-slate-700">
+                <strong class="text-navy">Tanggapan {{ selectedDetail.responder?.name || 'Petugas' }}</strong>
+                <p class="mt-2 whitespace-pre-line">{{ selectedDetail.balasan }}</p>
+            </div>
+            <p v-else class="mt-5 text-sm text-slate-500">Masukan Anda sedang ditinjau petugas.</p>
+        </section>
         <div class="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[.75fr_1.25fr]">
             <aside
                 class="flex flex-col items-start rounded-xl bg-[var(--color-brand-primary-strong)] p-6 text-white shadow-[var(--shadow-surface)] md:p-7"

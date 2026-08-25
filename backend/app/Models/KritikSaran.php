@@ -8,7 +8,7 @@ class KritikSaran extends Model
 {
     protected $table = 'kritik_sarans';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     protected $fillable = [
         'id',

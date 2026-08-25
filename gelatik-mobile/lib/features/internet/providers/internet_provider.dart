@@ -73,6 +73,55 @@ class InternetNotifier extends StateNotifier<InternetState> {
     }
   }
 
+  Future<void> refreshFromRealtime() async {
+    if (state.isLoading) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final overview = await repository.getInternetOverview();
+      state = state.copyWith(
+        bandwidthInfo: Map<String, dynamic>.from(overview['bandwidth'] as Map),
+        listRouter: List<Map<String, dynamic>>.from(overview['routers'] as List),
+        isLoading: false,
+        routersLoaded: true,
+      );
+    } on ApiException catch (error) {
+      state = state.copyWith(isLoading: false, errorMessage: error.message);
+    } on FormatException catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Format data Internet tidak valid.',
+      );
+    }
+  }
+
+  Future<void> refreshAllFromRealtime() async {
+    if (state.isLoading) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final results = await Future.wait([
+        repository.getInternetOverview(),
+        repository.getFaqInternet(),
+      ]);
+      final overview = results[0] as Map<String, dynamic>;
+      final faqs = results[1] as List<Map<String, dynamic>>;
+      state = state.copyWith(
+        bandwidthInfo: Map<String, dynamic>.from(overview['bandwidth'] as Map),
+        listRouter: List<Map<String, dynamic>>.from(overview['routers'] as List),
+        listFaq: faqs,
+        isLoading: false,
+        routersLoaded: true,
+        faqLoaded: true,
+      );
+    } on ApiException catch (error) {
+      state = state.copyWith(isLoading: false, errorMessage: error.message);
+    } on FormatException catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Format data Internet tidak valid.',
+      );
+    }
+  }
+
   Future<void> loadFaq() async {
     if (state.isLoading || state.faqLoaded) return;
     state = state.copyWith(isLoading: true, clearError: true);
