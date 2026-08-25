@@ -174,31 +174,64 @@ watch(
                 </div>
             </form>
         </div>
-        <section v-else class="card mx-auto max-w-5xl p-6 md:p-8">
-            <p class="eyebrow">Riwayat masukan</p>
-            <h2 class="mt-2 text-xl font-bold text-navy">Tanggapan untuk kritik & saran Anda</h2>
-            <div v-if="historyLoading" class="mt-6 flex items-center justify-center py-12">
+        <section v-else class="mx-auto w-full max-w-6xl">
+            <div class="mb-5">
+                <p class="eyebrow">Riwayat masukan</p>
+                <h2 class="mt-2 text-xl font-bold text-navy">
+                    Tanggapan untuk kritik & saran Anda
+                </h2>
+            </div>
+            <div v-if="historyLoading" class="card mt-6 flex items-center justify-center py-12">
                 <span
                     class="size-8 animate-spin rounded-full border-4 border-blue-100 border-t-blue-700"
                 />
                 <span class="ml-3 text-sm font-semibold text-slate-500">Memuat riwayat…</span>
             </div>
-            <div v-else-if="historyError" class="mt-6">
+            <div v-else-if="historyError" class="card mt-6 p-6">
                 <AlertMessage :message="historyError" />
                 <button type="button" class="btn-secondary mt-4" @click="loadHistory">
                     Coba lagi
                 </button>
             </div>
-            <div v-else-if="history.length" class="mt-5 divide-y divide-stroke">
-                <article v-for="item in history" :key="item.id" class="py-5 first:pt-0 last:pb-0">
-                    <p class="text-xs text-slate-500">
-                        Dikirim {{ formatDateTime(item.created_at) }}
-                    </p>
-                    <p class="mt-2 text-sm"><strong>Kritik:</strong> {{ item.kritik }}</p>
-                    <p class="mt-1 text-sm"><strong>Saran:</strong> {{ item.saran }}</p>
+            <div v-else-if="history.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <article v-for="item in history" :key="item.id" class="card flex min-h-80 flex-col">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="eyebrow">Masukan #{{ item.id }}</p>
+                            <p class="mt-1 text-xs text-slate-500">
+                                {{ formatDateTime(item.created_at) }}
+                            </p>
+                        </div>
+                        <span
+                            class="shrink-0 rounded-full px-3 py-1 text-[11px] font-bold"
+                            :class="
+                                item.balasan
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : 'bg-amber-50 text-amber-700'
+                            "
+                        >
+                            {{ item.balasan ? 'Sudah ditanggapi' : 'Menunggu tanggapan' }}
+                        </span>
+                    </div>
+                    <div class="mt-5 rounded-xl bg-slate-50 p-4">
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                            Kritik
+                        </p>
+                        <p class="mt-2 line-clamp-3 text-sm leading-6 text-slate-700">
+                            {{ item.kritik }}
+                        </p>
+                    </div>
+                    <div class="mt-3 rounded-xl border border-stroke p-4">
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                            Saran
+                        </p>
+                        <p class="mt-2 line-clamp-3 text-sm leading-6 text-slate-700">
+                            {{ item.saran }}
+                        </p>
+                    </div>
                     <div
                         v-if="item.balasan"
-                        class="mt-4 rounded-xl bg-brand-50 p-4 text-sm text-slate-700"
+                        class="mt-3 rounded-xl bg-brand-50 p-4 text-sm text-slate-700"
                     >
                         <strong class="text-navy"
                             >Balasan {{ item.responder?.name || 'Petugas' }}</strong
@@ -208,14 +241,23 @@ watch(
                             {{ formatDateTime(item.dibalas_pada) }}
                         </p>
                     </div>
-                    <p v-else class="mt-4 text-sm text-slate-500">
-                        Masukan Anda sedang ditinjau petugas.
+                    <p v-else class="mt-4 text-sm leading-6 text-slate-500">
+                        Masukan sedang ditinjau petugas. Tanggapan akan muncul di kartu ini.
                     </p>
+                    <RouterLink
+                        :to="{
+                            path: '/app/riwayat-kritik-saran',
+                            query: { detail: item.id },
+                        }"
+                        class="mt-auto pt-5 text-sm font-bold text-blue-800 hover:text-blue-600"
+                    >
+                        Lihat detail →
+                    </RouterLink>
                 </article>
             </div>
             <div
                 v-else-if="historyLoaded"
-                class="mt-6 rounded-xl border border-dashed border-stroke p-8 text-center"
+                class="card mt-6 rounded-xl border border-dashed border-stroke p-8 text-center"
             >
                 <p class="font-semibold text-navy">Belum ada riwayat kritik & saran</p>
                 <p class="mt-2 text-sm text-slate-500">
