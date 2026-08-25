@@ -116,27 +116,9 @@ const adminItems = [
     { label: 'Profil & Pengaturan', to: '/admin/pengaturan', icon: Cog6ToothIcon, group: 'Sistem' },
 ]
 const adminArea = computed(() => route.path.startsWith('/admin'))
-// Cached user views retain their loaded list/form state while a user moves
-// between services. The route key separates the user and admin workspaces.
-const cacheableViews = [
-    'UserDashboard',
-    'CalendarView',
-    'AnnouncementsView',
-    'PeminjamanView',
-    'KonsultasiView',
-    'EmailView',
-    'NotificationsView',
-    'FaqView',
-    'RouterView',
-    'RatingView',
-    'WhatsappView',
-    'ChatbotView',
-    'ProfileView',
-    'FeedbackView',
-]
 const items = computed(() => {
     if (!adminArea.value) return userItems
-    if (auth.roles.map((role) => role.toLowerCase()).includes('superadmin')) return adminItems
+    if (auth.roles.includes('superadmin')) return adminItems
     return adminItems.filter((item) => item.to !== '/admin/peran')
 })
 const mobileItems = computed(() =>
@@ -153,19 +135,37 @@ function routeUsesResource(resource) {
     if (resource === 'session') return true
     const path = route.path
     if (resource === 'insights') return path.endsWith('/dashboard')
-    if (resource === 'peminjaman') return path.includes('peminjaman') || path.includes('laporan-peminjaman') || path.endsWith('/kalender')
-    if (resource === 'konsultasi') return path.includes('konsultasi') || path.includes('laporan-konsultasi') || path.endsWith('/kalender')
-    if (resource === 'usulan_email') return path.includes('email-resmi') || path.includes('laporan-email')
+    if (resource === 'peminjaman')
+        return (
+            path.includes('peminjaman') ||
+            path.includes('laporan-peminjaman') ||
+            path.endsWith('/kalender')
+        )
+    if (resource === 'konsultasi')
+        return (
+            path.includes('konsultasi') ||
+            path.includes('laporan-konsultasi') ||
+            path.endsWith('/kalender')
+        )
+    if (resource === 'usulan_email')
+        return path.includes('email-resmi') || path.includes('laporan-email')
     if (resource === 'notification') return path.endsWith('/notifikasi')
     if (resource === 'kritik_saran' || resource === 'rating') {
-        return path.endsWith('/umpan-balik') || path.endsWith('/kritik-saran') || path.endsWith('/rating')
+        return (
+            path.endsWith('/umpan-balik') ||
+            path.endsWith('/kritik-saran') ||
+            path.endsWith('/rating')
+        )
     }
     if (resource === 'user') return path.endsWith('/profil')
     if (resource === 'whatsapp_subscription') return path.endsWith('/whatsapp')
-    if (resource === 'faq' || resource === 'mastertopik') return path.endsWith('/faq') || path.includes('konsultasi')
-    if (resource === 'masteritem') return path.includes('peminjaman') || path.includes('referensi-layanan')
+    if (resource === 'faq' || resource === 'mastertopik')
+        return path.endsWith('/faq') || path.includes('konsultasi')
+    if (resource === 'masteritem')
+        return path.includes('peminjaman') || path.includes('referensi-layanan')
     if (resource === 'router' || resource === 'routerlist') return path.endsWith('/router')
-    if (resource === 'pengumuman' || resource === 'slider') return path.endsWith('/pengumuman') || path.endsWith('/dashboard')
+    if (resource === 'pengumuman' || resource === 'slider')
+        return path.endsWith('/pengumuman') || path.endsWith('/dashboard')
     if (resource === 'settings') return path.endsWith('/pengaturan')
     return false
 }
@@ -203,7 +203,7 @@ onBeforeUnmount(() => {
         <template #sidebar
             ><div
                 v-if="open"
-                class="fixed inset-0 z-30 bg-slate-950/45 lg:hidden"
+                class="fixed inset-0 z-30 bg-slate-950/45 md:hidden"
                 @click="open = false" />
             <AppSidebar
                 :items="items"
@@ -214,16 +214,14 @@ onBeforeUnmount(() => {
                 @logout="logout"
         /></template>
         <template #header
-            ><AppHeader
-                :user="auth.user"
-                :subtitle="auth.roles.join(', ')"
-                :admin-area="adminArea"
+            ><AppHeader :user="auth.user" :subtitle="auth.roles.join(', ')" :admin-area="adminArea"
         /></template>
         <PageContainer>
             <RouterView v-slot="{ Component }">
-                <KeepAlive :include="cacheableViews" :max="16">
-                    <component :is="Component" :key="`${route.fullPath}:${syncRevision}`" />
-                </KeepAlive>
+                <!-- API reads remain cached per page. Do not cache route instances:
+                     a retained dashboard instance can mask the next route after a
+                     role change or a realtime refresh. -->
+                <component :is="Component" :key="`${route.fullPath}:${syncRevision}`" />
             </RouterView>
         </PageContainer>
         <template #mobile-navigation

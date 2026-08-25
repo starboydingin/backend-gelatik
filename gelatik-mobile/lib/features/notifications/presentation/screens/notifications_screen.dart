@@ -161,7 +161,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         if (isAdmin) {
           await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => AdminUsulanEmailDetailScreen(usulanId: resourceId),
+              builder: (_) =>
+                  AdminUsulanEmailDetailScreen(usulanId: resourceId),
             ),
           );
           return;
@@ -227,9 +228,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     ),
     body: RefreshIndicator(
       onRefresh: _load,
-      child: _loading
+      child: _loading && _items.isEmpty
           ? const Center(child: CircularProgressIndicator())
-          : _error != null
+          : _error != null && _items.isEmpty
           ? ListView(
               children: [
                 Padding(

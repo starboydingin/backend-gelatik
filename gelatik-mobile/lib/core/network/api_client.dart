@@ -73,15 +73,18 @@ class _ShortLivedGetCacheInterceptor extends Interceptor {
   static const _defaultTtl = Duration(seconds: 60);
   final Duration staleIfError = const Duration(minutes: 5);
   final Map<String, _CachedGetResponse> _responses = {};
+  int _cacheGeneration = 0;
 
   _ShortLivedGetCacheInterceptor();
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (options.method.toUpperCase() != 'GET') {
+      _cacheGeneration++;
       _responses.clear();
       return handler.next(options);
     }
+    options.extra['shortCacheGeneration'] = _cacheGeneration;
     if (options.extra['skipShortCache'] == true) {
       return handler.next(options);
     }
@@ -98,7 +101,7 @@ class _ShortLivedGetCacheInterceptor extends Interceptor {
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     final options = response.requestOptions;
     if (options.method.toUpperCase() == 'GET' &&
-        options.extra['skipShortCache'] != true &&
+        options.extra['shortCacheGeneration'] == _cacheGeneration &&
         (response.statusCode ?? 500) < 400) {
       _responses[_key(options)] = _CachedGetResponse.fromResponse(response);
     }
@@ -108,7 +111,8 @@ class _ShortLivedGetCacheInterceptor extends Interceptor {
   @override
   void onError(DioException error, ErrorInterceptorHandler handler) {
     final options = error.requestOptions;
-    final mayUseStale = options.method.toUpperCase() == 'GET' &&
+    final mayUseStale =
+        options.method.toUpperCase() == 'GET' &&
         (error.type == DioExceptionType.connectionError ||
             error.type == DioExceptionType.connectionTimeout ||
             error.type == DioExceptionType.receiveTimeout ||
@@ -143,14 +147,16 @@ class _ShortLivedGetCacheInterceptor extends Interceptor {
     if (path.startsWith('/notifications') || path.startsWith('/chatbot')) {
       return const Duration(seconds: 20);
     }
-    if (RegExp(r'^/(faq|topik|items?|opd|pengumuman|slider|list-router-opd)')
-        .hasMatch(path)) {
+    if (RegExp(
+      r'^/(faq|topik|items?|opd|pengumuman|slider|list-router-opd)',
+    ).hasMatch(path)) {
       return const Duration(minutes: 5);
     }
     return _defaultTtl;
   }
 
   void invalidateResource(String rawResource) {
+    _cacheGeneration++;
     final resource = rawResource.trim().toLowerCase().replaceAll('-', '_');
     if (resource.isEmpty || resource == 'session') {
       _responses.clear();
@@ -229,11 +235,7 @@ class _CachedGetResponse {
     statusCode: statusCode,
     statusMessage: statusMessage,
     headers: headers,
-    extra: {
-      ...extra,
-      'memoryCache': true,
-      'staleCache': fromStaleCache,
-    },
+    extra: {...extra, 'memoryCache': true, 'staleCache': fromStaleCache},
   );
 }
 

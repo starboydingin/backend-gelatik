@@ -119,9 +119,12 @@ class _PeminjamanListScreenState extends ConsumerState<PeminjamanListScreen> {
 
             // List View Items
             Expanded(
-              child: state.status == PeminjamanLoadStatus.loading
+              child:
+                  state.status == PeminjamanLoadStatus.loading &&
+                      filteredList.isEmpty
                   ? const Center(child: CircularProgressIndicator())
-                  : state.status == PeminjamanLoadStatus.error
+                  : state.status == PeminjamanLoadStatus.error &&
+                        filteredList.isEmpty
                   ? _PeminjamanErrorView(
                       message:
                           state.errorMessage ??

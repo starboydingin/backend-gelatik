@@ -105,7 +105,32 @@ class _AdminUsulanEmailListScreenState
 
             // List Usulan
             Expanded(
-              child: filteredList.isEmpty
+              child: state.isLoading && listUsulan.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : state.errorMessage != null && listUsulan.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              state.errorMessage!,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+                            FilledButton.icon(
+                              onPressed: () => ref
+                                  .read(emailProvider.notifier)
+                                  .refreshFromRealtime(),
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Coba lagi'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : filteredList.isEmpty
                   ? EmptyState(
                       title: 'Tidak Ada Usulan Email',
                       message:

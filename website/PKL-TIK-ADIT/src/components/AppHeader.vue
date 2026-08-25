@@ -46,7 +46,7 @@ const initials = computed(() => (String(route.meta?.initials || '') || '').trim(
         class="app-top-header sticky top-0 z-20 flex min-h-[76px] items-center gap-3 border-b px-4 md:gap-4 md:px-7"
     >
         <!-- Desktop branding lives only in the persistent left navigation. -->
-        <GelatikLogo compact class="shrink-0 lg:hidden" />
+        <GelatikLogo compact class="shrink-0 md:hidden" />
         <div class="min-w-0 flex-1">
             <p class="eyebrow truncate">{{ current[0] }}</p>
             <h1 class="truncate font-brand text-xl font-bold tracking-tight">{{ current[1] }}</h1>
@@ -66,8 +66,12 @@ const initials = computed(() => (String(route.meta?.initials || '') || '').trim(
                 }}</span
             >
             <div class="max-w-52 text-right">
-                <p class="truncate text-sm font-semibold text-[var(--color-text-primary)]">{{ user?.name }}</p>
-                <p class="truncate text-[11px] text-[var(--color-text-muted)]">{{ user?.nama_opd || subtitle }}</p>
+                <p class="truncate text-sm font-semibold text-[var(--color-text-primary)]">
+                    {{ user?.name }}
+                </p>
+                <p class="truncate text-[11px] text-[var(--color-text-muted)]">
+                    {{ user?.nama_opd || subtitle }}
+                </p>
             </div>
         </div>
     </header>

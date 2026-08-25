@@ -13,7 +13,6 @@ import 'package:gelatik/features/home/presentation/screens/home_screen.dart';
 import 'package:gelatik/features/home/providers/home_provider.dart';
 import 'package:gelatik/features/home/repositories/announcement_repository.dart';
 import 'package:gelatik/features/info_alat/models/master_item_model.dart';
-import 'package:gelatik/features/info_alat/presentation/screens/info_alat_screen.dart';
 import 'package:gelatik/features/info_alat/repositories/master_item_repository.dart';
 import 'package:gelatik/features/konsultasi/models/konsultasi_model.dart';
 import 'package:gelatik/features/konsultasi/presentation/screens/konsultasi_list_screen.dart';
@@ -425,6 +424,36 @@ void main() {
       expect(find.text('Admin'), findsNothing);
     });
 
+    testWidgets(
+      'renders an active announcement even when dashboard data is empty',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              activeAnnouncementsProvider.overrideWith(
+                (ref) async => const [
+                  Announcement(
+                    title: 'Pemeliharaan layanan',
+                    content: 'Layanan akan dipelihara malam ini.',
+                  ),
+                ],
+              ),
+              homeProvider.overrideWith(
+                (ref) => HomeNotifier.preview(_dashboard()),
+              ),
+            ],
+            child: const MaterialApp(home: HomeScreen()),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(find.text('Pengumuman terbaru'), findsOneWidget);
+        expect(find.text('Pemeliharaan layanan'), findsOneWidget);
+        expect(find.text('Layanan akan dipelihara malam ini.'), findsOneWidget);
+      },
+    );
+
     testWidgets('admin sees role-aware Admin tab', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -528,9 +557,14 @@ void main() {
         ProviderScope(
           overrides: [
             activeAnnouncementsProvider.overrideWith((ref) async => const []),
-            masterItemRepositoryProvider.overrideWithValue(items),
-            peminjamanRepositoryProvider.overrideWithValue(borrow),
-            konsultasiRepositoryProvider.overrideWithValue(consult),
+            homeProvider.overrideWith(
+              (ref) => HomeNotifier(
+                masterItemRepository: items,
+                peminjamanRepository: borrow,
+                konsultasiRepository: consult,
+                user: _user,
+              ),
+            ),
           ],
           child: const MaterialApp(home: HomeScreen()),
         ),
@@ -556,9 +590,14 @@ void main() {
         ProviderScope(
           overrides: [
             activeAnnouncementsProvider.overrideWith((ref) async => const []),
-            masterItemRepositoryProvider.overrideWithValue(items),
-            peminjamanRepositoryProvider.overrideWithValue(borrow),
-            konsultasiRepositoryProvider.overrideWithValue(consult),
+            homeProvider.overrideWith(
+              (ref) => HomeNotifier(
+                masterItemRepository: items,
+                peminjamanRepository: borrow,
+                konsultasiRepository: consult,
+                user: _user,
+              ),
+            ),
           ],
           child: const MaterialApp(home: HomeScreen()),
         ),
@@ -574,23 +613,16 @@ void main() {
       expect(consult.calls, 2);
     });
 
-    testWidgets('summary asset navigates to Master Item', (tester) async {
-      await _pumpNavigationHome(tester);
-      await tester.tap(find.text('Aset Tersedia'));
-      await tester.pumpAndSettle();
-      expect(find.byType(InfoAlatScreen), findsOneWidget);
-    });
-
     testWidgets('summary borrowing navigates to Peminjaman', (tester) async {
       await _pumpNavigationHome(tester);
-      await tester.tap(find.text('Total Pinjam'));
+      await tester.tap(find.text('Peminjaman aktif'));
       await tester.pumpAndSettle();
       expect(find.byType(PeminjamanListScreen), findsOneWidget);
     });
 
     testWidgets('summary consultation navigates to Konsultasi', (tester) async {
       await _pumpNavigationHome(tester);
-      await tester.tap(find.text('Total Konsultasi'));
+      await tester.tap(find.text('Konsultasi aktif'));
       await tester.pumpAndSettle();
       expect(find.byType(KonsultasiListScreen), findsOneWidget);
     });

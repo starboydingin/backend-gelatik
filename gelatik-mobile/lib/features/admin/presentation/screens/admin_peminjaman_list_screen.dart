@@ -111,9 +111,12 @@ class _AdminPeminjamanListScreenState
 
             // List Items
             Expanded(
-              child: state.status == PeminjamanLoadStatus.loading
+              child:
+                  state.status == PeminjamanLoadStatus.loading &&
+                      filteredList.isEmpty
                   ? const Center(child: CircularProgressIndicator())
-                  : state.status == PeminjamanLoadStatus.error
+                  : state.status == PeminjamanLoadStatus.error &&
+                        filteredList.isEmpty
                   ? Center(
                       child: Padding(
                         padding: const EdgeInsets.all(24),

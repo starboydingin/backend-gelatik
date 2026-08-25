@@ -31,10 +31,22 @@ class UserModel {
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final directRole = json['role']?.toString().trim();
     final roles = json['roles'];
-    final roleFromRelation =
-        roles is List && roles.isNotEmpty && roles.first is Map
-        ? (roles.first as Map)['name']?.toString().trim()
-        : null;
+    final roleNames = roles is List
+        ? roles
+              .map(
+                (role) => role is Map
+                    ? role['name']?.toString().trim().toLowerCase()
+                    : role?.toString().trim().toLowerCase(),
+              )
+              .whereType<String>()
+              .where((role) => role.isNotEmpty)
+              .toList(growable: false)
+        : const <String>[];
+    final roleFromRelation = roleNames.contains('superadmin')
+        ? 'superadmin'
+        : roleNames.contains('admin')
+        ? 'admin'
+        : roleNames.firstOrNull;
 
     return UserModel(
       id: _asInt(json['id']),

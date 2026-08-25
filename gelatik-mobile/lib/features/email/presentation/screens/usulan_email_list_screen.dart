@@ -52,7 +52,24 @@ class _UsulanEmailListScreenState extends ConsumerState<UsulanEmailListScreen> {
         actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
-        child: list.isEmpty
+        child: state.isLoading && list.isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : state.errorMessage != null && list.isEmpty
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(24),
+                children: [
+                  Text(state.errorMessage!, textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () =>
+                        ref.read(emailProvider.notifier).refreshFromRealtime(),
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Coba lagi'),
+                  ),
+                ],
+              )
+            : list.isEmpty
             ? EmptyState(
                 title: 'Belum Ada Usulan Email',
                 message: 'Belum ada transaksi pengajuan usulan email resmi.',

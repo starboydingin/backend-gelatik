@@ -34,11 +34,20 @@ const routes = [
             { path: 'kalender', component: () => import('../views/user/CalendarView.vue') },
             { path: 'pengumuman', component: () => import('../views/user/AnnouncementsView.vue') },
             { path: 'peminjaman', component: () => import('../views/shared/PeminjamanView.vue') },
-            { path: 'peminjaman/:id', component: () => import('../views/shared/PeminjamanDetailView.vue') },
+            {
+                path: 'peminjaman/:id',
+                component: () => import('../views/shared/PeminjamanDetailView.vue'),
+            },
             { path: 'konsultasi', component: () => import('../views/shared/KonsultasiView.vue') },
-            { path: 'konsultasi/:id', component: () => import('../views/shared/KonsultasiDetailView.vue') },
+            {
+                path: 'konsultasi/:id',
+                component: () => import('../views/shared/KonsultasiDetailView.vue'),
+            },
             { path: 'email-resmi', component: () => import('../views/shared/EmailView.vue') },
-            { path: 'email-resmi/:id', component: () => import('../views/shared/EmailDetailView.vue') },
+            {
+                path: 'email-resmi/:id',
+                component: () => import('../views/shared/EmailDetailView.vue'),
+            },
             { path: 'notifikasi', component: () => import('../views/user/NotificationsView.vue') },
             { path: 'faq', component: () => import('../views/user/FaqView.vue') },
             { path: 'router', component: () => import('../views/user/RouterView.vue') },
@@ -66,9 +75,15 @@ const routes = [
                 component: () => import('../views/admin/LoanManagementView.vue'),
             },
             { path: 'konsultasi', component: () => import('../views/shared/KonsultasiView.vue') },
-            { path: 'konsultasi/:id', component: () => import('../views/shared/KonsultasiDetailView.vue') },
+            {
+                path: 'konsultasi/:id',
+                component: () => import('../views/shared/KonsultasiDetailView.vue'),
+            },
             { path: 'email-resmi', component: () => import('../views/shared/EmailView.vue') },
-            { path: 'email-resmi/:id', component: () => import('../views/shared/EmailDetailView.vue') },
+            {
+                path: 'email-resmi/:id',
+                component: () => import('../views/shared/EmailDetailView.vue'),
+            },
             { path: 'pengguna', component: () => import('../views/admin/UsersView.vue') },
             { path: 'peran', component: () => import('../views/admin/RolesView.vue') },
             {
@@ -111,6 +126,33 @@ const router = createRouter({
     routes,
     scrollBehavior: () => ({ top: 0 }),
 })
+
+// Route components are lazy loaded. When a browser still holds an old HTML
+// shell after a new Vite build, its old chunk name no longer exists and a
+// navigation can appear to stay on the dashboard. Recover once per URL,
+// without hiding genuine routing errors in a reload loop.
+const staleRouteRecoveryKey = 'gelatik_stale_route_recovery'
+router.onError((error, to) => {
+    const message = String(error?.message || error || '')
+    const isStaleChunk =
+        /failed to fetch dynamically imported module|importing a module script failed|loading chunk/i.test(
+            message
+        )
+    if (!isStaleChunk) {
+        console.error('Navigasi halaman gagal dimuat.', error)
+        return
+    }
+
+    const recoveryTarget = to?.fullPath || window.location.pathname
+    if (sessionStorage.getItem(staleRouteRecoveryKey) === recoveryTarget) {
+        console.error('Berkas halaman terbaru masih belum dapat dimuat.', error)
+        return
+    }
+    sessionStorage.setItem(staleRouteRecoveryKey, recoveryTarget)
+    window.location.assign(recoveryTarget)
+})
+router.afterEach(() => sessionStorage.removeItem(staleRouteRecoveryKey))
+
 router.beforeEach(async (to) => {
     const auth = useAuthStore()
     if (to.meta.auth && !auth.authenticated)

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../network/api_client.dart';
 import '../../features/home/providers/home_provider.dart';
+import '../../features/home/repositories/announcement_repository.dart';
 import '../../features/konsultasi/providers/konsultasi_provider.dart';
 import '../../features/peminjaman/providers/peminjaman_provider.dart';
 import '../../features/email/providers/email_provider.dart';
@@ -25,6 +26,7 @@ class RealtimeCoordinator {
   final InfoAlatNotifier infoAlat;
   final WaNotificationNotifier waNotification;
   final HomeNotifier home;
+  final void Function()? onAnnouncementsChanged;
   final _timers = <String, Timer>{};
   late final StreamSubscription<RealtimeEvent> _subscription;
 
@@ -39,6 +41,7 @@ class RealtimeCoordinator {
     required this.infoAlat,
     required this.waNotification,
     required this.home,
+    this.onAnnouncementsChanged,
   }) {
     _subscription = service.events.listen(_onEvent);
   }
@@ -134,6 +137,11 @@ class RealtimeCoordinator {
         _schedule('sync:$resource', () => internet.refreshAllFromRealtime());
         return;
       case 'pengumuman':
+        // The dashboard may still be served from its short-lived cache. Refresh
+        // the independent feed so an announcement appears immediately.
+        onAnnouncementsChanged?.call();
+        _schedule('sync:$resource', () => home.refreshFromRealtime());
+        return;
       case 'slider':
       case 'insights':
         _schedule('sync:$resource', () => home.refreshFromRealtime());
@@ -177,6 +185,7 @@ final realtimeCoordinatorProvider = Provider<RealtimeCoordinator>((ref) {
     infoAlat: ref.watch(infoAlatProvider.notifier),
     waNotification: ref.watch(waNotificationProvider.notifier),
     home: ref.watch(homeProvider.notifier),
+    onAnnouncementsChanged: () => ref.invalidate(activeAnnouncementsProvider),
   );
   ref.onDispose(coordinator.dispose);
   return coordinator;

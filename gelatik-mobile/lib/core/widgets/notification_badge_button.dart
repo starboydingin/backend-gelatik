@@ -10,7 +10,9 @@ import '../realtime/realtime_socket_service.dart';
 /// Header notification entry point with a count sourced from the signed-in
 /// account. It refreshes when the durable realtime inbox event arrives.
 class NotificationBadgeButton extends ConsumerStatefulWidget {
-  const NotificationBadgeButton({super.key});
+  final int? initialUnread;
+
+  const NotificationBadgeButton({super.key, this.initialUnread});
 
   @override
   ConsumerState<NotificationBadgeButton> createState() =>
@@ -25,12 +27,22 @@ class _NotificationBadgeButtonState
   @override
   void initState() {
     super.initState();
-    Future.microtask(_refreshUnread);
+    _unread = widget.initialUnread ?? 0;
+    if (widget.initialUnread == null) Future.microtask(_refreshUnread);
     _subscription = ref
         .read(realtimeSocketServiceProvider)
         .events
         .where((event) => event.type == 'notification')
         .listen((_) => _refreshUnread());
+  }
+
+  @override
+  void didUpdateWidget(covariant NotificationBadgeButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialUnread != null &&
+        widget.initialUnread != oldWidget.initialUnread) {
+      _unread = widget.initialUnread!;
+    }
   }
 
   @override
@@ -45,7 +57,9 @@ class _NotificationBadgeButtonState
           .read(notificationRepositoryProvider)
           .getNotifications();
       if (mounted) {
-        setState(() => _unread = notifications.where((item) => !item.isRead).length);
+        setState(
+          () => _unread = notifications.where((item) => !item.isRead).length,
+        );
       }
     } catch (_) {
       // A failed badge refresh must never block the current screen.
@@ -56,9 +70,9 @@ class _NotificationBadgeButtonState
   Widget build(BuildContext context) => IconButton(
     tooltip: 'Notifikasi',
     onPressed: () async {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-      );
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
       await _refreshUnread();
     },
     icon: Badge.count(

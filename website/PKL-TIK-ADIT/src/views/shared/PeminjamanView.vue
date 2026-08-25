@@ -48,7 +48,11 @@ const route = useRoute(),
 function localDate(offsetDays = 0) {
     const date = new Date()
     date.setDate(date.getDate() + offsetDays)
-    return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
+    return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getDate()).padStart(2, '0'),
+    ].join('-')
 }
 const today = localDate()
 const minimumStartTime = computed(() => {
@@ -104,10 +108,13 @@ const displayedItems = computed(() =>
         )
     })
 )
-async function load() {
+async function load({ fresh = false } = {}) {
     loading.value = true
+    error.value = ''
     try {
-        const data = payload(await api.get('/pinjam', { params: { page: page.value }, cache: false }))
+        const data = payload(
+            await api.get('/pinjam', { params: { page: page.value }, cache: !fresh })
+        )
         items.value = rows(data)
         pagination.value = {
             current_page: Number(data?.current_page || 1),
@@ -196,7 +203,9 @@ async function addAsset() {
     const nextItem = { ...draft.value }
     try {
         if (editingId.value) {
-            const updated = payload(await api.post(`/pinjam/${editingId.value}`, { items: [nextItem] }))
+            const updated = payload(
+                await api.post(`/pinjam/${editingId.value}`, { items: [nextItem] })
+            )
             form.value.items = normalizeLoanItems(updated.pinjam_items)
             await load()
         } else {
@@ -342,7 +351,11 @@ onMounted(load)
                         required /></label
                 ><label v-if="form.jenis_durasi === 'jam' || form.jenis_durasi === 'menit'"
                     ><span class="label">Jam mulai</span
-                    ><input v-model="form.jam_mulai" type="time" class="input" :min="minimumStartTime" /></label
+                    ><input
+                        v-model="form.jam_mulai"
+                        type="time"
+                        class="input"
+                        :min="minimumStartTime" /></label
                 ><label
                     ><span class="label">Durasi</span>
                     <div class="flex gap-2">
@@ -363,9 +376,12 @@ onMounted(load)
                                 { value: 'jam', label: 'Jam' },
                                 { value: 'menit', label: 'Menit' },
                             ]"
-                        />
-                    </div></label
-                ><p v-if="estimatedEnd" class="md:col-span-2 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900">
+                        /></div
+                ></label>
+                <p
+                    v-if="estimatedEnd"
+                    class="md:col-span-2 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900"
+                >
                     Estimasi selesai: <strong>{{ estimatedEnd }}</strong>
                 </p>
                 ><label v-if="!editingId" class="md:col-span-2"
@@ -378,8 +394,11 @@ onMounted(load)
                         class="input"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                         @change="setDocument"
-                /></label
-                ><p v-if="editingId" class="md:col-span-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3 text-sm">
+                /></label>
+                <p
+                    v-if="editingId"
+                    class="md:col-span-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3 text-sm"
+                >
                     Dokumen pendukung tidak dapat diubah setelah pengajuan dikirim.
                 </p>
             </div>
@@ -390,21 +409,41 @@ onMounted(load)
                         <h3 class="mt-1 font-brand text-lg font-extrabold">Aset dalam pengajuan</h3>
                     </div>
                     <p class="text-sm font-medium text-slate-600">
-                        {{ editingId ? 'Perubahan aset langsung disimpan.' : 'Tambahkan minimal satu aset.' }}
+                        {{
+                            editingId
+                                ? 'Perubahan aset langsung disimpan.'
+                                : 'Tambahkan minimal satu aset.'
+                        }}
                     </p>
                 </div>
-                <div v-if="form.items.length" class="mt-4 divide-y divide-[var(--color-border)] overflow-hidden rounded-lg border border-[var(--color-border)]">
-                    <div v-for="(asset, i) in form.items" :key="`${asset.item_id}-${i}`" class="flex flex-wrap items-center justify-between gap-3 p-3">
+                <div
+                    v-if="form.items.length"
+                    class="mt-4 divide-y divide-[var(--color-border)] overflow-hidden rounded-lg border border-[var(--color-border)]"
+                >
+                    <div
+                        v-for="(asset, i) in form.items"
+                        :key="`${asset.item_id}-${i}`"
+                        class="flex flex-wrap items-center justify-between gap-3 p-3"
+                    >
                         <div>
-                            <strong>{{ asset.master_item?.nama || assetName(asset.item_id) }}</strong>
+                            <strong>{{
+                                asset.master_item?.nama || assetName(asset.item_id)
+                            }}</strong>
                             <p class="mt-1 text-sm text-slate-600">Jumlah: {{ asset.quantity }}</p>
                         </div>
-                        <button type="button" class="btn-danger min-h-9 px-3" @click="removeAsset(i)">
+                        <button
+                            type="button"
+                            class="btn-danger min-h-9 px-3"
+                            @click="removeAsset(i)"
+                        >
                             Hapus aset
                         </button>
                     </div>
                 </div>
-                <p v-else class="mt-4 rounded-lg border border-dashed border-[var(--color-border-strong)] p-3 text-sm font-medium">
+                <p
+                    v-else
+                    class="mt-4 rounded-lg border border-dashed border-[var(--color-border-strong)] p-3 text-sm font-medium"
+                >
                     Belum ada aset yang dipilih.
                 </p>
             </section>
@@ -415,10 +454,12 @@ onMounted(load)
                     label="Aset"
                     placeholder="Cari aset yang akan dipinjam"
                     search-placeholder="Cari nama aset…"
-                    :options="assets.map((asset) => ({
-                        value: asset.id,
-                        label: `${asset.nama || asset.nama_item || asset.name} (stok ${asset.stok ?? '-'})`,
-                    }))"
+                    :options="
+                        assets.map((asset) => ({
+                            value: asset.id,
+                            label: `${asset.nama || asset.nama_item || asset.name} (stok ${asset.stok ?? '-'})`,
+                        }))
+                    "
                 />
                 ><label class="w-28"
                     ><span class="label">Jumlah</span
@@ -450,20 +491,91 @@ onMounted(load)
         <div v-else>
             <EmptyState v-if="!items.length" />
             <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <article v-for="item in displayedItems" :key="item.id" class="card flex min-h-64 flex-col">
-                    <div class="flex items-start justify-between gap-3"><p class="eyebrow">Peminjaman #{{ item.id }}</p><StatusBadge :status="item.status" /></div>
-                    <h2 class="mt-3 line-clamp-2 text-lg font-bold">{{ item.keterangan || 'Peminjaman aset TIK' }}</h2>
-                    <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt class="label">Pemohon</dt><dd>{{ item.user?.name || item.nama_pic || '-' }}</dd></div><div><dt class="label">Jadwal</dt><dd>{{ formatLoanSchedule(item.tanggal_mulai, item.jam_mulai) }}</dd></div><div class="sm:col-span-2"><dt class="label">Aset</dt><dd>{{ item.pinjam_items?.length || 0 }} jenis aset</dd></div></dl>
+                <article
+                    v-for="item in displayedItems"
+                    :key="item.id"
+                    class="card flex min-h-64 flex-col"
+                >
+                    <div class="flex items-start justify-between gap-3">
+                        <p class="eyebrow">Peminjaman #{{ item.id }}</p>
+                        <StatusBadge :status="item.status" />
+                    </div>
+                    <h2 class="mt-3 line-clamp-2 text-lg font-bold">
+                        {{ item.keterangan || 'Peminjaman aset TIK' }}
+                    </h2>
+                    <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                        <div>
+                            <dt class="label">Pemohon</dt>
+                            <dd>{{ item.user?.name || item.nama_pic || '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="label">Jadwal</dt>
+                            <dd>{{ formatLoanSchedule(item.tanggal_mulai, item.jam_mulai) }}</dd>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <dt class="label">Aset</dt>
+                            <dd>{{ item.pinjam_items?.length || 0 }} jenis aset</dd>
+                        </div>
+                    </dl>
                     <div class="mt-auto flex flex-wrap gap-2 pt-5">
-                        <button class="btn-secondary min-h-9 px-3" @click="showSummary(item)">Ringkasan</button>
-                        <RouterLink class="btn-secondary min-h-9 px-3" :to="admin ? `/admin/peminjaman/${item.id}/kelola` : `/app/peminjaman/${item.id}`">{{ admin ? 'Kelola' : 'Detail' }}</RouterLink>
-                        <button v-if="!admin && String(item.status).toLowerCase() === 'menunggu'" class="btn-secondary min-h-9 px-3" @click="edit(item)">Edit</button>
-                        <button v-if="!admin && String(item.status).toLowerCase() === 'menunggu'" class="btn-danger min-h-9 px-3" @click="remove(item.id)">Hapus</button>
+                        <button class="btn-secondary min-h-9 px-3" @click="showSummary(item)">
+                            Ringkasan
+                        </button>
+                        <RouterLink
+                            class="btn-secondary min-h-9 px-3"
+                            :to="
+                                admin
+                                    ? `/admin/peminjaman/${item.id}/kelola`
+                                    : `/app/peminjaman/${item.id}`
+                            "
+                            >{{ admin ? 'Kelola' : 'Detail' }}</RouterLink
+                        >
+                        <button
+                            v-if="!admin && String(item.status).toLowerCase() === 'menunggu'"
+                            class="btn-secondary min-h-9 px-3"
+                            @click="edit(item)"
+                        >
+                            Edit
+                        </button>
+                        <button
+                            v-if="!admin && String(item.status).toLowerCase() === 'menunggu'"
+                            class="btn-danger min-h-9 px-3"
+                            @click="remove(item.id)"
+                        >
+                            Hapus
+                        </button>
                     </div>
                 </article>
             </div>
-            <PaginationControls :current-page="pagination.current_page" :last-page="pagination.last_page" :total="pagination.total" @change="changePage" />
+            <PaginationControls
+                :current-page="pagination.current_page"
+                :last-page="pagination.last_page"
+                :total="pagination.total"
+                @change="changePage"
+            />
         </div>
-        <SummaryModal :open="Boolean(summary)" :title="summary?.keterangan || `Peminjaman #${summary?.id}`" @close="summary = null"><dl v-if="summary" class="grid gap-4 sm:grid-cols-2"><div><dt class="label">Status</dt><dd><StatusBadge :status="summary.status" /></dd></div><div><dt class="label">Jadwal</dt><dd>{{ formatLoanSchedule(summary.tanggal_mulai, summary.jam_mulai) }}</dd></div><div><dt class="label">Pemohon</dt><dd>{{ summary.user?.name || summary.nama_pic || '-' }}</dd></div><div><dt class="label">Jumlah aset</dt><dd>{{ summary.pinjam_items?.length || 0 }} jenis</dd></div></dl></SummaryModal>
+        <SummaryModal
+            :open="Boolean(summary)"
+            :title="summary?.keterangan || `Peminjaman #${summary?.id}`"
+            @close="summary = null"
+            ><dl v-if="summary" class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <dt class="label">Status</dt>
+                    <dd><StatusBadge :status="summary.status" /></dd>
+                </div>
+                <div>
+                    <dt class="label">Jadwal</dt>
+                    <dd>{{ formatLoanSchedule(summary.tanggal_mulai, summary.jam_mulai) }}</dd>
+                </div>
+                <div>
+                    <dt class="label">Pemohon</dt>
+                    <dd>{{ summary.user?.name || summary.nama_pic || '-' }}</dd>
+                </div>
+                <div>
+                    <dt class="label">Jumlah aset</dt>
+                    <dd>{{ summary.pinjam_items?.length || 0 }} jenis</dd>
+                </div>
+            </dl></SummaryModal
+        >
     </div>
 </template>

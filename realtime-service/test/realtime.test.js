@@ -8,6 +8,8 @@ const {
     createAuthMiddleware,
     createBroadcaster,
     createConnectionRegistry,
+    extractToken,
+    getRole,
     getRoleRooms,
     getRoomsForIdentity,
 } = require('../src/socket/socketHandler');
@@ -31,6 +33,15 @@ test('socket without token is rejected', async () => {
         (nextError) => { error = nextError; },
     );
     assert.equal(error.message, 'unauthorized');
+});
+
+test('socket token accepts raw and legacy Bearer formats without duplicating the scheme', () => {
+    assert.equal(extractToken({ handshake: { auth: { token: 'passport-token' } } }), 'passport-token');
+    assert.equal(
+        extractToken({ handshake: { auth: { token: 'Bearer passport-token' } } }),
+        'passport-token',
+    );
+    assert.equal(extractToken({ handshake: { auth: { token: 'Bearer   ' } } }), null);
 });
 
 test('invalid token and backend verification failures are rejected', async () => {
@@ -64,6 +75,11 @@ test('admin room is restricted to admin and superadmin identities', () => {
     assert.deepEqual(getRoomsForIdentity({ id: 3, role: 'user' }), ['user_3']);
     assert.deepEqual(getRoleRooms('admin'), ['role_admin', 'role_superadmin']);
     assert.throws(() => getRoleRooms('user'));
+});
+
+test('privileged role wins even when the API relation is not ordered', () => {
+    assert.equal(getRole({ roles: [{ name: 'user' }, { name: 'superadmin' }] }), 'superadmin');
+    assert.equal(getRole({ role: 'user', roles: ['admin'] }), 'admin');
 });
 
 test('valid event payload is normalized to the minimal contract', () => {

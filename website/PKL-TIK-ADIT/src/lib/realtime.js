@@ -5,6 +5,7 @@ const enabled = import.meta.env.VITE_ENABLE_REALTIME === 'true'
 const realtimeUrl = import.meta.env.VITE_REALTIME_URL
 let socket = null
 let syncTimer = null
+let hasConnected = false
 const notificationEvents = [
     'notification',
     'konsultasi.created',
@@ -42,8 +43,10 @@ function notify(payload) {
 
 function resyncAfterConnect() {
     // Socket.IO reconnects do not replay missed events. Re-fetch the current
-    // user's authorized data once the transport is available again.
-    dispatchDataSync({ type: 'data.sync', resource: 'session' })
+    // user's authorized data after a reconnect. The first connection must not
+    // remount a page whose initial request is still running.
+    if (hasConnected) dispatchDataSync({ type: 'data.sync', resource: 'session' })
+    hasConnected = true
 }
 
 /**
@@ -54,7 +57,9 @@ export function connectRealtime(token) {
     if (!enabled || !realtimeUrl || socket) return socket
 
     socket = io(realtimeUrl, {
-        auth: token ? { token: `Bearer ${token}` } : undefined,
+        // Socket service adds the HTTP Bearer scheme when verifying this token
+        // against Laravel. Sending the raw access token avoids "Bearer Bearer".
+        auth: token ? { token } : undefined,
         transports: ['websocket', 'polling'],
     })
 
@@ -69,6 +74,7 @@ export function disconnectRealtime() {
     socket?.off('connect', resyncAfterConnect)
     socket?.disconnect()
     socket = null
+    hasConnected = false
     if (syncTimer) window.clearTimeout(syncTimer)
     syncTimer = null
 }

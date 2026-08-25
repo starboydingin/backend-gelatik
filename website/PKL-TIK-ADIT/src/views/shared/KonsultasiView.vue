@@ -62,10 +62,13 @@ const displayedList = computed(() =>
         )
     })
 )
-async function load() {
+async function load({ fresh = false } = {}) {
     loading.value = true
+    error.value = ''
     try {
-        const data = payload(await api.get('/konsul', { params: { page: page.value }, cache: false }))
+        const data = payload(
+            await api.get('/konsul', { params: { page: page.value }, cache: !fresh })
+        )
         list.value = rows(data)
         pagination.value = {
             current_page: Number(data?.current_page || 1),
@@ -124,7 +127,7 @@ async function submit() {
             })
             editingId.value = null
             showForm.value = false
-            await load()
+            await load({ fresh: true })
             return
         }
         const body = new FormData()
@@ -135,7 +138,7 @@ async function submit() {
         await api.post('/konsul', body)
         showForm.value = false
         form.value = { judul: '', topik_id: '', deskripsi: '', file: null }
-        await load()
+        await load({ fresh: true })
     } catch (e) {
         error.value = errorMessage(e)
     }
@@ -144,7 +147,7 @@ async function remove(id) {
     if (!confirm('Hapus konsultasi ini?')) return
     try {
         await api.delete(`/konsul/${id}`)
-        await load()
+        await load({ fresh: true })
     } catch (e) {
         error.value = errorMessage(e)
     }
@@ -165,7 +168,9 @@ onMounted(load)
         <AlertMessage :message="error" />
         <form v-if="showForm" class="card mb-6" @submit.prevent="submit">
             <div class="flex justify-between">
-                <h2 class="text-lg font-bold">{{ editingId ? 'Edit konsultasi' : 'Konsultasi baru' }}</h2>
+                <h2 class="text-lg font-bold">
+                    {{ editingId ? 'Edit konsultasi' : 'Konsultasi baru' }}
+                </h2>
                 <button type="button" @click="showForm = false">✕</button>
             </div>
             <div class="mt-5 grid gap-4 md:grid-cols-2">
@@ -177,7 +182,9 @@ onMounted(load)
                     label="Topik"
                     placeholder="Pilih topik"
                     search-placeholder="Cari topik konsultasi…"
-                    :options="topics.map((topic) => ({ value: topic.id, label: topicLabel(topic) }))"
+                    :options="
+                        topics.map((topic) => ({ value: topic.id, label: topicLabel(topic) }))
+                    "
                 />
                 ><label v-if="!editingId" class="md:col-span-2"
                     ><span class="label">Penjelasan</span
@@ -203,14 +210,20 @@ onMounted(load)
                         :key="topic.id"
                         type="button"
                         class="btn-secondary min-h-10 justify-start px-3 text-left normal-case"
-                        :class="String(form.topik_id) === String(topic.id) ? '!border-[var(--color-brand-primary)] !bg-[var(--color-brand-primary)] !text-white' : ''"
+                        :class="
+                            String(form.topik_id) === String(topic.id)
+                                ? '!border-[var(--color-brand-primary)] !bg-[var(--color-brand-primary)] !text-white'
+                                : ''
+                        "
                         @click="form.topik_id = topic.id"
                     >
                         {{ topicLabel(topic) }}
                     </button>
                 </div>
             </section>
-            <button class="btn-primary mt-5">{{ editingId ? 'Simpan perubahan' : 'Kirim konsultasi' }}</button>
+            <button class="btn-primary mt-5">
+                {{ editingId ? 'Simpan perubahan' : 'Kirim konsultasi' }}
+            </button>
         </form>
         <div class="card grid gap-3 p-4 md:grid-cols-[1fr_220px]">
             <input v-model="search" class="input" placeholder="Cari judul konsultasi…" /><select
@@ -228,16 +241,85 @@ onMounted(load)
         <div v-else>
             <EmptyState v-if="!list.length" />
             <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <article v-for="item in displayedList" :key="item.id" class="card flex min-h-64 flex-col">
-                    <div class="flex items-start justify-between gap-3"><p class="eyebrow">Konsultasi #{{ item.id }}</p><StatusBadge :status="item.status" /></div>
-                    <h2 class="mt-3 line-clamp-2 text-lg font-bold">{{ item.judul || topicLabel(item.topik || {}) }}</h2>
-                    <p class="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{{ item.pesan || item.deskripsi || item.pertanyaan || '-' }}</p>
-                    <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt class="label">Pemohon</dt><dd>{{ item.user?.name || '-' }}</dd></div><div><dt class="label">Diajukan</dt><dd>{{ formatDateTime(item.created_at) }}</dd></div></dl>
-                    <div class="mt-auto flex flex-wrap gap-2 pt-5"><button class="btn-secondary min-h-9 px-3" @click="showSummary(item)">Ringkasan</button><RouterLink class="btn-secondary min-h-9 px-3" :to="`${admin ? '/admin' : '/app'}/konsultasi/${item.id}`">Detail</RouterLink><button v-if="!admin && String(item.status).toLowerCase() === 'menunggu'" class="btn-secondary min-h-9 px-3" @click="edit(item)">Edit</button><button v-if="!admin && String(item.status).toLowerCase() === 'menunggu'" class="btn-danger min-h-9 px-3" @click="remove(item.id)">Hapus</button></div>
+                <article
+                    v-for="item in displayedList"
+                    :key="item.id"
+                    class="card flex min-h-64 flex-col"
+                >
+                    <div class="flex items-start justify-between gap-3">
+                        <p class="eyebrow">Konsultasi #{{ item.id }}</p>
+                        <StatusBadge :status="item.status" />
+                    </div>
+                    <h2 class="mt-3 line-clamp-2 text-lg font-bold">
+                        {{ item.judul || topicLabel(item.topik || {}) }}
+                    </h2>
+                    <p class="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">
+                        {{ item.pesan || item.deskripsi || item.pertanyaan || '-' }}
+                    </p>
+                    <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                        <div>
+                            <dt class="label">Pemohon</dt>
+                            <dd>{{ item.user?.name || '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="label">Diajukan</dt>
+                            <dd>{{ formatDateTime(item.created_at) }}</dd>
+                        </div>
+                    </dl>
+                    <div class="mt-auto flex flex-wrap gap-2 pt-5">
+                        <button class="btn-secondary min-h-9 px-3" @click="showSummary(item)">
+                            Ringkasan</button
+                        ><RouterLink
+                            class="btn-secondary min-h-9 px-3"
+                            :to="`${admin ? '/admin' : '/app'}/konsultasi/${item.id}`"
+                            >Detail</RouterLink
+                        ><button
+                            v-if="!admin && String(item.status).toLowerCase() === 'menunggu'"
+                            class="btn-secondary min-h-9 px-3"
+                            @click="edit(item)"
+                        >
+                            Edit</button
+                        ><button
+                            v-if="!admin && String(item.status).toLowerCase() === 'menunggu'"
+                            class="btn-danger min-h-9 px-3"
+                            @click="remove(item.id)"
+                        >
+                            Hapus
+                        </button>
+                    </div>
                 </article>
             </div>
-            <PaginationControls :current-page="pagination.current_page" :last-page="pagination.last_page" :total="pagination.total" @change="changePage" />
+            <PaginationControls
+                :current-page="pagination.current_page"
+                :last-page="pagination.last_page"
+                :total="pagination.total"
+                @change="changePage"
+            />
         </div>
-        <SummaryModal :open="Boolean(summary)" :title="summary?.judul || `Konsultasi #${summary?.id}`" @close="summary = null"><dl v-if="summary" class="grid gap-4 sm:grid-cols-2"><div><dt class="label">Status</dt><dd><StatusBadge :status="summary.status" /></dd></div><div><dt class="label">Topik</dt><dd>{{ topicLabel(summary.topik || {}) }}</dd></div><div class="sm:col-span-2"><dt class="label">Keterangan</dt><dd class="line-clamp-5 whitespace-pre-wrap">{{ summary.pesan || summary.deskripsi || '-' }}</dd></div><div class="sm:col-span-2"><dt class="label">Balasan</dt><dd>{{ summary.responses?.length || 0 }} tanggapan</dd></div></dl></SummaryModal>
+        <SummaryModal
+            :open="Boolean(summary)"
+            :title="summary?.judul || `Konsultasi #${summary?.id}`"
+            @close="summary = null"
+            ><dl v-if="summary" class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <dt class="label">Status</dt>
+                    <dd><StatusBadge :status="summary.status" /></dd>
+                </div>
+                <div>
+                    <dt class="label">Topik</dt>
+                    <dd>{{ topicLabel(summary.topik || {}) }}</dd>
+                </div>
+                <div class="sm:col-span-2">
+                    <dt class="label">Keterangan</dt>
+                    <dd class="line-clamp-5 whitespace-pre-wrap">
+                        {{ summary.pesan || summary.deskripsi || '-' }}
+                    </dd>
+                </div>
+                <div class="sm:col-span-2">
+                    <dt class="label">Balasan</dt>
+                    <dd>{{ summary.responses?.length || 0 }} tanggapan</dd>
+                </div>
+            </dl></SummaryModal
+        >
     </div>
 </template>

@@ -63,7 +63,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(homeProvider);
     final data = state.data;
-    final announcement = data.announcements.firstOrNull;
+    // `/pengumuman` is the authoritative, independent source for the banner.
+    // The dashboard response is cached for fast navigation, so use its value
+    // only while the active-announcement request is still loading or fails.
+    final activeAnnouncements = ref.watch(activeAnnouncementsProvider);
+    final announcement = activeAnnouncements.when(
+      data: (announcements) => announcements.firstOrNull,
+      loading: () => data.announcements.firstOrNull,
+      error: (_, _) => data.announcements.firstOrNull,
+    );
     final screenWidth = MediaQuery.sizeOf(context).width;
     final horizontalPadding = screenWidth >= 960
         ? (screenWidth - 920) / 2
@@ -71,16 +79,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       appBar: GelatikPageHeader(
         title: 'Beranda',
-        actions: [const NotificationBadgeButton(), const SizedBox(width: 8)],
+        actions: [
+          NotificationBadgeButton(
+            initialUnread: data.unreadNotificationCount ?? 0,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () => ref.read(homeProvider.notifier).refresh(),
+          onRefresh: () async {
+            // Pull-to-refresh must re-query both the dashboard and the
+            // announcement feed instead of reusing a previous provider value.
+            ref.invalidate(activeAnnouncementsProvider);
+            await ref.read(homeProvider.notifier).refresh();
+          },
           child: ListView(
             key: const Key('home-scroll'),
             physics: const AlwaysScrollableScrollPhysics(),
+            // Keep only a small area ahead of the viewport. The sections below
+            // are built lazily instead of constructing most of Home at once.
             // ignore: deprecated_member_use
-            cacheExtent: 2400,
+            cacheExtent: 480,
             padding: EdgeInsets.fromLTRB(
               horizontalPadding,
               20,
@@ -797,125 +817,128 @@ class _RatingInsightCard extends StatelessWidget {
     final ratingDistribution = distribution ?? const <int, int>{};
 
     return AppCard(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'KUALITAS LAYANAN',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.1,
-            color: AppColors.primaryTeal(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'KUALITAS LAYANAN',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.1,
+              color: AppColors.primaryTeal(context),
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Rating pengguna',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 20),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 4),
+          const Text(
+            'Rating pengguna',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          average.toStringAsFixed(1),
+                          style: TextStyle(
+                            fontSize: 52,
+                            height: .9,
+                            color: AppColors.accentNavy(context),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.only(left: 3, bottom: 4),
+                          child: Text(
+                            '/5',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _RatingStars(value: average),
+                  ],
+                ),
+              ),
+              Container(
+                constraints: const BoxConstraints(minWidth: 122),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 13,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.accentNavy(context).withValues(alpha: .08),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '$count',
+                      style: TextStyle(
+                        fontSize: 23,
+                        color: AppColors.accentNavy(context),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'penilaian pengguna',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.accentNavy(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          ...List.generate(5, (index) {
+            final score = 5 - index;
+            final votes = ratingDistribution[score] ?? 0;
+            final percentage = count == 0 ? 0.0 : votes / count;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        average.toStringAsFixed(1),
-                        style: TextStyle(
-                          fontSize: 52,
-                          height: .9,
-                          color: AppColors.accentNavy(context),
-                          fontWeight: FontWeight.w800,
+                  SizedBox(width: 76, child: Text('$score bintang')),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: percentage,
+                        minHeight: 12,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        valueColor: AlwaysStoppedAnimation(
+                          AppColors.accentGold(context),
                         ),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 3, bottom: 4),
-                        child: Text(
-                          '/5',
-                          style: TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _RatingStars(value: average),
-                ],
-              ),
-            ),
-            Container(
-              constraints: const BoxConstraints(minWidth: 122),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              decoration: BoxDecoration(
-                color: AppColors.accentNavy(context).withValues(alpha: .08),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '$count',
-                    style: TextStyle(
-                      fontSize: 23,
-                      color: AppColors.accentNavy(context),
-                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'penilaian pengguna',
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.accentNavy(context),
-                    ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 20,
+                    child: Text('$votes', textAlign: TextAlign.right),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 22),
-        ...List.generate(5, (index) {
-          final score = 5 - index;
-          final votes = ratingDistribution[score] ?? 0;
-          final percentage = count == 0 ? 0.0 : votes / count;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(
-              children: [
-                SizedBox(width: 76, child: Text('$score bintang')),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: percentage,
-                      minHeight: 12,
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      valueColor: AlwaysStoppedAnimation(
-                        AppColors.accentGold(context),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 20,
-                  child: Text('$votes', textAlign: TextAlign.right),
-                ),
-              ],
-            ),
-          );
-        }),
-      ],
-    ),
+            );
+          }),
+        ],
+      ),
     );
   }
 }

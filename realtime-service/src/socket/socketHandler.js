@@ -10,13 +10,17 @@ function getAllowedOrigins() {
 }
 
 function getRole(identity) {
-    if (typeof identity?.role === 'string') return identity.role.toLowerCase();
-    if (Array.isArray(identity?.roles) && typeof identity.roles[0] === 'string') {
-        return identity.roles[0].toLowerCase();
-    }
-    if (Array.isArray(identity?.roles) && identity.roles[0]?.name) {
-        return String(identity.roles[0].name).toLowerCase();
-    }
+    const direct = typeof identity?.role === 'string' ? identity.role.toLowerCase() : '';
+    const assigned = Array.isArray(identity?.roles)
+        ? identity.roles
+            .map((role) => typeof role === 'string' ? role : role?.name)
+            .map((role) => String(role || '').trim().toLowerCase())
+            .filter(Boolean)
+        : [];
+    const roles = [direct, ...assigned].filter(Boolean);
+    if (roles.includes('superadmin')) return 'superadmin';
+    if (roles.includes('admin')) return 'admin';
+    if (roles.length) return roles[0];
     return 'user';
 }
 
@@ -40,7 +44,9 @@ function getRoleRooms(target) {
 
 function extractToken(socket) {
     const token = socket?.handshake?.auth?.token;
-    return typeof token === 'string' && token.trim() ? token.trim() : null;
+    if (typeof token !== 'string') return null;
+    const normalized = token.trim().replace(/^Bearer(?:\s+|$)/i, '').trim();
+    return normalized || null;
 }
 
 async function verifyLaravelToken(token) {
@@ -158,4 +164,5 @@ module.exports = {
     getRoomsForIdentity,
     getSocketConnectionsCount,
     initSocket,
+    extractToken,
 };

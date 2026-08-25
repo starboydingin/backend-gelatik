@@ -15,8 +15,8 @@ const groups = computed(() => [...new Set(props.items.map((item) => item.group))
 
 <template>
     <aside
-        class="app-sidebar fixed inset-y-0 left-0 z-40 flex w-[286px] flex-col text-white transition-transform lg:sticky lg:top-0 lg:h-screen"
-        :class="open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+        class="app-sidebar fixed inset-y-0 left-0 z-40 flex w-[286px] flex-col text-white transition-transform md:sticky md:top-0 md:h-screen"
+        :class="open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     >
         <div class="app-sidebar-brand flex h-[76px] items-center border-b px-5">
             <GelatikLogo compact inverse />

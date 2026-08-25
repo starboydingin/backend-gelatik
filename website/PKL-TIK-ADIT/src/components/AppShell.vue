@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen bg-canvas lg:flex">
+    <div class="min-h-screen bg-canvas md:flex">
         <slot name="sidebar" />
         <div class="min-w-0 flex-1">
             <slot name="header" />

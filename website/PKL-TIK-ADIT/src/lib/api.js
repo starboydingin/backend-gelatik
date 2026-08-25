@@ -9,6 +9,7 @@ export const api = axios.create({
 // Per-tab cache for GET requests. It makes returning to a page immediate while
 // keeping every account isolated and avoiding persistent sensitive data.
 const readCache = new Map()
+let cacheEpoch = 0
 // Read data is safe to retain briefly: every successful mutation clears this
 // cache, while a longer TTL prevents the same page from repeatedly competing
 // for the local Laravel worker during normal navigation.
@@ -18,7 +19,10 @@ const cachePolicies = [
     { match: /^(\/dashboard|\/admin\/dashboard)$/, ttl: 30_000 },
     { match: /^\/notifications/, ttl: 20_000 },
     { match: /^\/chatbot/, ttl: 20_000 },
-    { match: /^(\/faq|\/topik|\/items?|\/opd|\/pengumuman|\/slider|\/list-router-opd)/, ttl: 5 * 60_000 },
+    {
+        match: /^(\/faq|\/topik|\/items?|\/opd|\/pengumuman|\/slider|\/list-router-opd)/,
+        ttl: 5 * 60_000,
+    },
 ]
 const resourceEndpointPrefixes = {
     peminjaman: ['/pinjam', '/dashboard', '/laporan/peminjaman'],
@@ -48,11 +52,17 @@ export async function cachedGet(url, config = {}, ttl = defaultReadTtl) {
     const cached = readCache.get(key)
     if (cached && Date.now() - cached.createdAt < ttl) return cached.response
 
+    const requestEpoch = cacheEpoch
     const request = rawGet(url, config)
-    readCache.set(key, { createdAt: Date.now(), response: request })
+    const pendingEntry = { createdAt: Date.now(), response: request }
+    readCache.set(key, pendingEntry)
     try {
         const response = await request
-        readCache.set(key, { createdAt: Date.now(), response })
+        // A realtime event or mutation may invalidate this request while it is
+        // still in flight. Never let that older response repopulate the cache.
+        if (cacheEpoch === requestEpoch && readCache.get(key) === pendingEntry) {
+            readCache.set(key, { createdAt: Date.now(), response })
+        }
         return response
     } catch (error) {
         const mayUseStale =
@@ -60,6 +70,8 @@ export async function cachedGet(url, config = {}, ttl = defaultReadTtl) {
         const staleResponse = cached?.response
         const staleIsResolved = staleResponse && typeof staleResponse.then !== 'function'
         if (
+            cacheEpoch === requestEpoch &&
+            readCache.get(key) === pendingEntry &&
             mayUseStale &&
             staleIsResolved &&
             Date.now() - cached.createdAt < staleIfErrorTtl
@@ -67,7 +79,7 @@ export async function cachedGet(url, config = {}, ttl = defaultReadTtl) {
             readCache.set(key, cached)
             return staleResponse
         }
-        readCache.delete(key)
+        if (readCache.get(key) === pendingEntry) readCache.delete(key)
         throw error
     }
 }
@@ -80,7 +92,9 @@ function cachedTtl(url, explicitTtl) {
 export function realtimeResource(payload = {}) {
     const type = String(payload.type || '').toLowerCase()
     if (type === 'insights.sync') return 'insights'
-    const fromPayload = String(payload.resource || '').trim().toLowerCase()
+    const fromPayload = String(payload.resource || '')
+        .trim()
+        .toLowerCase()
     if (fromPayload) return fromPayload.replace(/[\s-]/g, '_')
     if (type.startsWith('pinjam.')) return 'peminjaman'
     if (type.startsWith('konsultasi.')) return 'konsultasi'
@@ -91,6 +105,7 @@ export function realtimeResource(payload = {}) {
 }
 
 export function invalidateApiCache(prefix = '') {
+    cacheEpoch += 1
     for (const key of readCache.keys()) {
         if (!prefix) {
             readCache.delete(key)
@@ -130,12 +145,19 @@ export function clearApiCache() {
 // pages that need a longer cache still call cachedGet(url, config, ttl).
 api.get = (url, config = {}) => {
     const { cache = true, cacheTtl, ...requestConfig } = config
-    return cache ? cachedGet(url, requestConfig, cachedTtl(url, cacheTtl)) : rawGet(url, requestConfig)
+    return cache
+        ? cachedGet(url, requestConfig, cachedTtl(url, cacheTtl))
+        : rawGet(url, requestConfig)
 }
 
 api.interceptors.request.use((config) => {
     const token = sessionStorage.getItem('gelatik_token')
     if (token) config.headers.Authorization = `Bearer ${token}`
+    if (!['get', 'head', 'options'].includes(config.method?.toLowerCase())) {
+        // Clear before a mutation as well as after it succeeds. This prevents
+        // an older GET that finishes during the write from being shown later.
+        clearApiCache()
+    }
     return config
 })
 
