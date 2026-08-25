@@ -387,7 +387,7 @@ class AuthorizationTest extends TestCase
 
         $created = $service->sendMessage(
             $this->userA,
-            "Nama: Adwika\nOPD: Dinas Kesehatan\nDetail Permasalahan: WiFi kantor tetap tidak terhubung setelah perangkat dan router dimulai ulang.",
+            'Nama: Adwika, OPD: Dinas Kesehatan, Detail Permasalahan: setelah mencoba beberapa cara, internet wifi masih tidak bisa',
             $first['session_id'],
         );
 
@@ -409,7 +409,7 @@ class AuthorizationTest extends TestCase
             ->value('pesan');
         $this->assertStringContainsString('Nama: Adwika', $consultationMessage);
         $this->assertStringContainsString('OPD: Dinas Kesehatan', $consultationMessage);
-        $this->assertStringContainsString('Detail Permasalahan: WiFi kantor', $consultationMessage);
+        $this->assertStringContainsString('Detail Permasalahan: setelah mencoba beberapa cara, internet wifi masih tidak bisa', $consultationMessage);
         $this->assertDatabaseHas('notification', [
             'user_id' => 0,
             'type' => 'konsultasi',

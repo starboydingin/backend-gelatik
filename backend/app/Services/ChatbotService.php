@@ -687,7 +687,7 @@ class ChatbotService
             'keterangan',
         ]);
         $containsTemplateField = preg_match(
-            '/^\s*(nama|opd|detail\s+permasalahan)\s*:/imu',
+            '/(?:^|[\r\n,;])\s*(nama|opd|detail\s+permasalahan)\s*:/imu',
             $message
         ) === 1;
         $confirmed = $containsTemplateField
@@ -704,14 +704,31 @@ class ChatbotService
 
     private function extractLabeledValue(string $message, array $labels): ?string
     {
-        foreach (preg_split('/\R/u', $message) ?: [] as $line) {
-            foreach ($labels as $label) {
-                if (preg_match('/^\s*'.preg_quote($label, '/').'\s*:\s*(.+)$/iu', $line, $matches)) {
-                    $value = trim($matches[1]);
+        $allLabels = [
+            'detail permasalahan',
+            'detail tambahan',
+            'lokasi opd',
+            'keterangan',
+            'detail',
+            'lokasi',
+            'nama',
+            'opd',
+        ];
+        $labelPattern = implode('|', array_map(
+            static fn (string $label): string => preg_quote($label, '/'),
+            $labels
+        ));
+        $allLabelPattern = implode('|', array_map(
+            static fn (string $label): string => preg_quote($label, '/'),
+            $allLabels
+        ));
+        $pattern = '/(?:^|[\r\n,;])\s*(?:'.$labelPattern.')\s*:\s*(.*?)'
+            .'(?=\s*(?:[\r\n,;]\s*(?:'.$allLabelPattern.')\s*:|$))/isu';
 
-                    return $value === '' ? null : Str::limit($value, 500, '');
-                }
-            }
+        if (preg_match($pattern, $message, $matches)) {
+            $value = trim($matches[1]);
+
+            return $value === '' ? null : Str::limit($value, 500, '');
         }
 
         return null;

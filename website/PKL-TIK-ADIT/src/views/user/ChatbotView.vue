@@ -34,6 +34,18 @@ const quickQuestions = [
     'Bagaimana cara mengajukan sertifikat elektronik TTE?',
     'Bagaimana cara mengajukan usulan email dinas?',
 ]
+const welcomeMessage =
+    'Halo, saya Asisten Konsultasi TIK Gelatik. Ada yang bisa saya bantu hari ini? Pilih salah satu pertanyaan cepat di bawah atau tulis pertanyaan Anda sendiri.'
+function ensureStarter() {
+    if (messages.value.some((item) => item.localStarter)) return
+    messages.value.push({
+        id: `starter-${Date.now()}`,
+        role: 'assistant',
+        localStarter: true,
+        createdAt: Date.now(),
+        message: welcomeMessage,
+    })
+}
 function appendStarterIfDue() {
     const lastLeftAt = Number(sessionStorage.getItem(visitKey) || 0)
     if (lastLeftAt && Date.now() - lastLeftAt < starterResetAfter) return
@@ -46,8 +58,7 @@ function appendStarterIfDue() {
         role: 'assistant',
         localStarter: true,
         createdAt: Date.now(),
-        message:
-            'Halo, saya Asisten Konsultasi TIK Gelatik. Ada yang bisa saya bantu hari ini? Pilih salah satu pertanyaan cepat di bawah atau tulis pertanyaan Anda sendiri.',
+        message: welcomeMessage,
     })
 }
 function resetInactivityTimer() {
@@ -62,8 +73,7 @@ function resetInactivityTimer() {
             role: 'assistant',
             localStarter: true,
             createdAt: Date.now(),
-            message:
-                'Halo, saya Asisten Konsultasi TIK Gelatik. Ada yang bisa saya bantu hari ini? Pilih salah satu pertanyaan cepat di bawah atau tulis pertanyaan Anda sendiri.',
+            message: welcomeMessage,
         })
     }, starterResetAfter)
 }
@@ -165,7 +175,9 @@ async function syncLatestConversation() {
         if (!nextSession) {
             sessionId.value = ''
             sessionStorage.removeItem(sessionStorageKey)
-            messages.value = messages.value.filter((item) => item.localStarter)
+            messages.value = []
+            sessionStorage.removeItem(visitKey)
+            ensureStarter()
             return
         }
         sessionId.value = nextSession
@@ -194,7 +206,9 @@ async function handleRealtimeChat(event) {
         realtimeSyncTimer = null
         sessionId.value = ''
         sessionStorage.removeItem(sessionStorageKey)
-        messages.value = messages.value.filter((item) => item.localStarter)
+        messages.value = []
+        sessionStorage.removeItem(visitKey)
+        ensureStarter()
         return
     }
     if (remoteSession) scheduleRealtimeSync()
