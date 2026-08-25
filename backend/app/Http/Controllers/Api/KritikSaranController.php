@@ -43,7 +43,8 @@ class KritikSaranController extends Controller
     public function search(Request $request)
     {
         $keyword = $request->q ?? $request->keyword ?? '';
-        $kritiks = KritikSaran::with('user')
+        $kritiks = KritikSaran::query()
+            ->select(['id', 'kritik', 'saran', 'created_at'])
             ->where('kritik', 'like', "%{$keyword}%")
             ->orWhere('saran', 'like', "%{$keyword}%")
             ->latest()
@@ -57,6 +58,35 @@ class KritikSaranController extends Controller
     {
         $data = $this->kritikSaranService->getAllForAdmin();
         return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    /** GET /api/kritik-saran/mine */
+    public function mine(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->kritikSaranService->getForUser($request->user()),
+        ]);
+    }
+
+    /** POST /api/admin/kritik-saran/{kritikSaran}/reply */
+    public function reply(Request $request, KritikSaran $kritikSaran)
+    {
+        $validated = $request->validate([
+            'balasan' => 'required|string|max:5000',
+        ]);
+
+        $result = $this->kritikSaranService->balas(
+            $kritikSaran,
+            $request->user(),
+            $validated['balasan'],
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Balasan kritik dan saran berhasil dikirim.',
+            'data' => $result,
+        ]);
     }
 
     /** POST /api/admin/kritik-saran/bulk-delete */

@@ -7,6 +7,7 @@ const EVENT_CONTRACTS = Object.freeze({
     'konsultasi.created': ['status'],
     'konsultasi.responded': ['status', 'response_id'],
     'konsultasi.status_changed': ['status', 'old_status'],
+    'kritik_saran.created': [],
 });
 
 const ALLOWED_EVENTS = new Set([

@@ -31,6 +31,36 @@ class KritikSaranRepository {
       throw ApiException.fromDioException(error);
     }
   }
+
+  Future<List<Map<String, dynamic>>> getAdminFeedback() =>
+      _getList('/admin/kritik-saran');
+
+  Future<void> reply({required int id, required String balasan}) async {
+    try {
+      await apiClient.dio.post(
+        '/admin/kritik-saran/$id/reply',
+        data: {'balasan': balasan},
+      );
+    } on DioException catch (error) {
+      throw ApiException.fromDioException(error);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _getList(String path) async {
+    try {
+      final response = await apiClient.dio.get(path);
+      final body = response.data;
+      final payload = body is Map ? body['data'] : null;
+      final rows = payload is Map ? payload['data'] : payload;
+      if (rows is! List) return const [];
+      return rows
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList(growable: false);
+    } on DioException catch (error) {
+      throw ApiException.fromDioException(error);
+    }
+  }
 }
 
 final kritikSaranRepositoryProvider = Provider<KritikSaranRepository>((ref) {

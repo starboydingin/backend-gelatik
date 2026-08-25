@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { api, payload, rows, errorMessage } from '../../lib/api'
+import { formatDateTime } from '../../lib/date'
 import PageHeader from '../../components/PageHeader.vue'
 import AlertMessage from '../../components/AlertMessage.vue'
 import EmptyState from '../../components/EmptyState.vue'
@@ -85,7 +86,7 @@ onMounted(load)
             <p class="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-600">
                 {{ item.konten }}
             </p>
-            <p class="mt-2 text-xs text-slate-400">{{ item.created_at }}</p>
+            <p class="mt-2 text-xs text-slate-400">{{ formatDateTime(item.created_at) }}</p>
             <div class="mt-3 flex gap-2">
                 <button class="btn-secondary min-h-9 px-3" @click="edit(item)">Ubah</button
                 ><button class="btn-danger min-h-9 px-3" @click="remove(item.id)">Hapus</button>

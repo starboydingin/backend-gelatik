@@ -107,7 +107,8 @@ onUnmounted(() => window.removeEventListener('gelatik:notification', realtimeRef
                     <option value="all">Semua jenis</option>
                     <option value="konsul">Konsultasi</option>
                     <option value="pinjam">Peminjaman</option>
-                    <option value="email">Email</option></select
+                    <option value="email">Email</option>
+                    <option value="kritik">Kritik & saran</option></select
                 ><select v-model="readStatus" class="input">
                     <option value="all">Semua status</option>
                     <option value="unread">Belum dibaca</option>

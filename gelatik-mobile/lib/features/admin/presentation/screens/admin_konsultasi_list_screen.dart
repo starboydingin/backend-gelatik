@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/empty_state.dart';
 import '../../../../core/widgets/status_badge.dart';
@@ -47,8 +47,6 @@ class _AdminKonsultasiListScreenState
       if (_selectedFilter == 'Selesai') return k.status == 'Selesai';
       return true;
     }).toList();
-
-    final dateFormat = DateFormat('dd MMM yyyy, HH:mm', 'id_ID');
 
     return Scaffold(
       appBar: AppBar(
@@ -233,7 +231,7 @@ class _AdminKonsultasiListScreenState
                                       ],
                                     ),
                                     Text(
-                                      dateFormat.format(item.createdAt),
+                                      GelatikDateFormatter.dateTime(item.createdAt),
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: mutedText,

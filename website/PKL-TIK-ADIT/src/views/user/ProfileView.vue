@@ -9,6 +9,7 @@ import {
     UserCircleIcon,
 } from '@heroicons/vue/24/outline'
 import { api, payload, rows, errorMessage } from '../../lib/api'
+import { formatDateTime } from '../../lib/date'
 import { useAuthStore } from '../../stores/auth'
 import PageHeader from '../../components/PageHeader.vue'
 import AlertMessage from '../../components/AlertMessage.vue'
@@ -165,7 +166,7 @@ async function loadActivity() {
                 <div v-else class="p-5 md:p-7">
                     <p v-if="loadingActivity" class="text-sm text-slate-500">Memuat log aktivitas…</p>
                     <p v-else-if="!activity.length" class="rounded-lg bg-slate-50 p-5 text-sm text-slate-500">Belum ada aktivitas yang tercatat pada akun ini.</p>
-                    <ol v-else class="space-y-4 border-l-2 border-brand-100 pl-5"><li v-for="entry in activity" :key="entry.id" class="relative"><span class="absolute -left-[1.86rem] top-1.5 size-3 rounded-full bg-brand-600 ring-4 ring-white" /><p class="font-semibold text-navy">{{ entry.description }}</p><p class="mt-1 text-xs text-slate-500">{{ new Date(entry.created_at).toLocaleString('id-ID') }}</p></li></ol>
+                    <ol v-else class="space-y-4 border-l-2 border-brand-100 pl-5"><li v-for="entry in activity" :key="entry.id" class="relative"><span class="absolute -left-[1.86rem] top-1.5 size-3 rounded-full bg-brand-600 ring-4 ring-white" /><p class="font-semibold text-navy">{{ entry.description }}</p><p class="mt-1 text-xs text-slate-500">{{ formatDateTime(entry.created_at) }}</p></li></ol>
                 </div>
             </section>
         </div>

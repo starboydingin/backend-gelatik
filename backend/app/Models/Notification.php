@@ -39,6 +39,8 @@ class Notification extends Model
             str_contains($content, 'peminjaman') => 'peminjaman',
             str_contains($type, 'usulan_email'), str_contains($type, 'email'),
             str_contains($content, 'usulan email'), str_contains($content, 'email resmi') => 'usulan_email',
+            str_contains($type, 'kritik_saran'), str_contains($type, 'feedback'),
+            str_contains($content, 'kritik'), str_contains($content, 'saran') => 'kritik_saran',
             default => null,
         };
     }

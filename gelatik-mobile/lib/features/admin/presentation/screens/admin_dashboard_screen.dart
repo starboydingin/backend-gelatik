@@ -16,6 +16,7 @@ import '../../../konsultasi/providers/konsultasi_provider.dart';
 import '../../../peminjaman/providers/peminjaman_provider.dart';
 import '../../repositories/admin_dashboard_repository.dart';
 import 'admin_konsultasi_list_screen.dart';
+import 'admin_feedback_screen.dart';
 import 'admin_peminjaman_list_screen.dart';
 import 'admin_usulan_email_list_screen.dart';
 
@@ -150,6 +151,21 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 Text(
                   _dashboardError!,
                   style: TextStyle(fontSize: 12, color: mutedText),
+                ),
+                const SizedBox(height: 12),
+                _buildAdminBentoCard(
+                  context: context,
+                  title: 'Kritik & Saran Pengguna',
+                  subtitle: 'Tinjau masukan dan kirim tanggapan ke pengguna',
+                  badgeText: 'Buka masukan pengguna',
+                  badgeColor: accentGold,
+                  icon: Icons.rate_review_outlined,
+                  iconColor: accentGold,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AdminFeedbackScreen()),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
               ],

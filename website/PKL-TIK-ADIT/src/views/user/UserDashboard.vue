@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { api, payload, errorMessage, rows } from '../../lib/api'
+import { formatDateTime } from '../../lib/date'
 import { useAuthStore } from '../../stores/auth'
 import AlertMessage from '../../components/AlertMessage.vue'
 import LoadingState from '../../components/LoadingState.vue'
@@ -59,16 +60,6 @@ const recentGroups = [
     { label: 'Peminjaman terbaru', key: 'peminjaman', to: '/app/peminjaman' },
     { label: 'Usulan email terbaru', key: 'usulan_email', to: '/app/email-resmi' },
 ]
-function formatDate(value) {
-    if (!value) return 'Tanggal belum tersedia'
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return 'Tanggal belum tersedia'
-    return new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-    }).format(date)
-}
 function recentTitle(item, type) {
     if (type === 'konsultasi') return item.judul || item.topik?.topik || `Konsultasi #${item.id}`
     if (type === 'peminjaman') return item.keterangan || `Peminjaman #${item.id}`
@@ -190,7 +181,7 @@ onMounted(async () => {
                                     </p>
                                     <p class="mt-1 truncate text-xs text-slate-500">
                                         {{ recentMeta(item, group.key) }} ·
-                                        {{ formatDate(item.created_at) }}
+                                        {{ formatDateTime(item.created_at) }}
                                     </p>
                                 </div>
                                 <StatusBadge :status="item.status" />

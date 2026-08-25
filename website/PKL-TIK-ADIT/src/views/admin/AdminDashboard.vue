@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { api, payload, errorMessage, rows } from '../../lib/api'
+import { formatDateTime } from '../../lib/date'
 import { useAuthStore } from '../../stores/auth'
 import LoadingState from '../../components/LoadingState.vue'
 import AlertMessage from '../../components/AlertMessage.vue'
@@ -75,28 +76,6 @@ const groups = [
     { label: 'Peminjaman terbaru', key: 'peminjaman', to: '/admin/peminjaman' },
     { label: 'Usulan email terbaru', key: 'usulan_email', to: '/admin/email-resmi' },
 ]
-function formatDate(value) {
-    if (!value) return 'Tanggal belum tersedia'
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return 'Tanggal belum tersedia'
-    return new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-    }).format(date)
-}
-function formatDateTime(value) {
-    if (!value) return 'Waktu belum tersedia'
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return 'Waktu belum tersedia'
-    return new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    }).format(date)
-}
 function auditRoleLabel(role) {
     if (role === 'superadmin') return 'Superadmin'
     if (role === 'admin') return 'Admin'
@@ -239,7 +218,7 @@ onMounted(async () => {
                                 </p>
                                 <p class="mt-1 truncate text-xs text-slate-500">
                                     {{ itemMeta(item, group.key) || 'Informasi akun' }} ·
-                                    {{ formatDate(item.created_at) }}
+                                    {{ formatDateTime(item.created_at) }}
                                 </p>
                             </div>
                             <StatusBadge

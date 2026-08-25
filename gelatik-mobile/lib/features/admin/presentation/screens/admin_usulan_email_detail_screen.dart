@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
@@ -286,8 +286,6 @@ class _AdminUsulanEmailDetailScreenState
       orElse: () => state.listUsulanEmail.first,
     );
 
-    final dateFormat = DateFormat('dd MMMM yyyy, HH:mm', 'id_ID');
-
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -355,7 +353,7 @@ class _AdminUsulanEmailDetailScreenState
                       _buildDetailRow(
                         context,
                         'Tanggal Verifikasi',
-                        dateFormat.format(usulan.tanggalVerifikasi!),
+                        GelatikDateFormatter.dateTime(usulan.tanggalVerifikasi!),
                       ),
                       const SizedBox(height: 10),
                       _buildDetailRow(

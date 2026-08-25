@@ -12,6 +12,7 @@ const notificationEvents = [
     'pinjam.status_changed',
     'usulan_email.created',
     'usulan_email.status_changed',
+    'kritik_saran.created',
     'chatbot.conversation.created',
     'chatbot.conversation.updated',
     'chatbot.conversation.deleted',

@@ -28,6 +28,9 @@ export function notificationRoute(notification, admin = false) {
     if (describes('usulan_email', 'email resmi', 'usulan email')) {
         return `${prefix}/email-resmi/${id}`
     }
+    if (describes('kritik_saran', 'kritik', 'saran', 'feedback')) {
+        return admin ? `${prefix}/kritik-saran` : `${prefix}/umpan-balik`
+    }
 
     return `${prefix}/notifikasi`
 }

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { api, errorMessage, payload } from '../../lib/api'
+import { formatDate as formatDateWib, formatDateTime } from '../../lib/date'
 import AlertMessage from '../../components/AlertMessage.vue'
 import LoadingState from '../../components/LoadingState.vue'
 import PageHeader from '../../components/PageHeader.vue'
@@ -23,15 +24,7 @@ const nextStatuses = computed(() => transitions[loan.value?.status] || [])
 const canConfirm = computed(() => nextStatuses.value.length > 0)
 
 function formatDate(value, withTime = false) {
-    if (!value) return '-'
-    const parsed = new Date(value)
-    if (Number.isNaN(parsed.getTime())) return value
-    return new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-        ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
-    }).format(parsed)
+    return withTime ? formatDateTime(value) : formatDateWib(value)
 }
 async function load() {
     loading.value = true

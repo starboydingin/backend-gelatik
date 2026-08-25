@@ -1,15 +1,24 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref } from 'vue'
 import { ChatBubbleBottomCenterTextIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import { api, errorMessage } from '../../lib/api'
+import { formatDateTime } from '../../lib/date'
 import AlertMessage from '../../components/AlertMessage.vue'
 import PageHeader from '../../components/PageHeader.vue'
-const router = useRouter()
 const form = ref({ kritik: '', saran: '' }),
     message = ref(''),
     error = ref(''),
-    saving = ref(false)
+    saving = ref(false),
+    history = ref([])
+
+async function loadHistory() {
+    try {
+        const response = await api.get('/kritik-saran/mine', { cache: false })
+        history.value = response.data?.data?.data || response.data?.data || []
+    } catch (_) {
+        // Riwayat tidak boleh menghalangi pengguna mengirim masukan baru.
+    }
+}
 async function submit() {
     saving.value = true
     error.value = ''
@@ -17,13 +26,14 @@ async function submit() {
         await api.post('/kritik-saran', form.value)
         message.value = 'Terima kasih. Masukan Anda berhasil dikirim.'
         form.value = { kritik: '', saran: '' }
-        await router.push('/app/rating')
+        await loadHistory()
     } catch (requestError) {
         error.value = errorMessage(requestError)
     } finally {
         saving.value = false
     }
 }
+onMounted(loadHistory)
 </script>
 <template>
     <div class="page-stack">
@@ -100,5 +110,22 @@ async function submit() {
                 </div>
             </form>
         </div>
+        <section v-if="history.length" class="card mx-auto max-w-5xl p-6 md:p-8">
+            <p class="eyebrow">Riwayat masukan</p>
+            <h2 class="mt-2 text-xl font-bold text-navy">Tanggapan untuk kritik & saran Anda</h2>
+            <div class="mt-5 divide-y divide-stroke">
+                <article v-for="item in history" :key="item.id" class="py-5 first:pt-0 last:pb-0">
+                    <p class="text-xs text-slate-500">Dikirim {{ formatDateTime(item.created_at) }}</p>
+                    <p class="mt-2 text-sm"><strong>Kritik:</strong> {{ item.kritik }}</p>
+                    <p class="mt-1 text-sm"><strong>Saran:</strong> {{ item.saran }}</p>
+                    <div v-if="item.balasan" class="mt-4 rounded-xl bg-brand-50 p-4 text-sm text-slate-700">
+                        <strong class="text-navy">Balasan {{ item.responder?.name || 'Petugas' }}</strong>
+                        <p class="mt-2 whitespace-pre-line">{{ item.balasan }}</p>
+                        <p class="mt-2 text-xs text-slate-500">{{ formatDateTime(item.dibalas_pada) }}</p>
+                    </div>
+                    <p v-else class="mt-4 text-sm text-slate-500">Masukan Anda sedang ditinjau petugas.</p>
+                </article>
+            </div>
+        </section>
     </div>
 </template>

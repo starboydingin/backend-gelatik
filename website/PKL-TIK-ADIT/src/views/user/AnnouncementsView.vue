@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { MegaphoneIcon } from '@heroicons/vue/24/outline'
 import { cachedGet, errorMessage, payload, rows } from '../../lib/api'
+import { formatDateTime } from '../../lib/date'
 import AlertMessage from '../../components/AlertMessage.vue'
 import EmptyState from '../../components/EmptyState.vue'
 import LoadingState from '../../components/LoadingState.vue'
@@ -41,7 +42,7 @@ onMounted(async () => {
                     <p class="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
                         {{ item.konten || item.deskripsi }}
                     </p>
-                    <p class="mt-3 text-xs text-slate-400">{{ item.created_at }}</p>
+                    <p class="mt-3 text-xs text-slate-400">{{ formatDateTime(item.created_at) }}</p>
                 </div>
             </article>
         </div>

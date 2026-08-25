@@ -11,6 +11,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../admin/presentation/screens/admin_peminjaman_detail_screen.dart';
 import '../../../admin/presentation/screens/admin_usulan_email_detail_screen.dart';
+import '../../../admin/presentation/screens/admin_feedback_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../email/presentation/screens/usulan_email_detail_screen.dart';
 import '../../../email/repositories/email_repository.dart';
@@ -104,6 +105,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final isAdmin = role == 'admin' || role == 'superadmin';
     try {
       final resourceType = item.resourceType?.toLowerCase() ?? '';
+      if (resourceId != null && resourceType.contains('kritik')) {
+        if (isAdmin) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const AdminFeedbackScreen()),
+          );
+          return;
+        }
+      }
       if (resourceId != null && resourceType.contains('konsult')) {
         final detail = await ref
             .read(konsultasiRepositoryProvider)

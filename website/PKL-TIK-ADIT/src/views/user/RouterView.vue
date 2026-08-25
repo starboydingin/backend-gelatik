@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { WifiIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 import { cachedGet, payload, rows, errorMessage } from '../../lib/api'
+import { formatDateTime } from '../../lib/date'
 import { useAuthStore } from '../../stores/auth'
 import AlertMessage from '../../components/AlertMessage.vue'
 import EmptyState from '../../components/EmptyState.vue'
@@ -149,7 +150,7 @@ onMounted(load)
                                     "
                                 />
                             </td>
-                            <td>{{ item.updated_at || '-' }}</td>
+                            <td>{{ formatDateTime(item.updated_at) }}</td>
                         </tr>
                     </tbody>
                 </table>

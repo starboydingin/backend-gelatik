@@ -68,6 +68,9 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/dashboard/calendar', [CalendarController::class, 'index']);
 
+    // Riwayat kritik & saran milik akun yang sedang masuk.
+    Route::get('/kritik-saran/mine', [KritikSaranController::class, 'mine']);
+
     // Peminjaman Aset TIK
     Route::get('/pinjam', [PinjamController::class, 'index']);
     Route::post('/pinjam', [PinjamController::class, 'store']);
@@ -169,6 +172,7 @@ Route::middleware('auth:api')->group(function () {
 
         // Admin: Kritik & Saran
         Route::get('/admin/kritik-saran', [KritikSaranController::class, 'index']);
+        Route::post('/admin/kritik-saran/{kritikSaran}/reply', [KritikSaranController::class, 'reply']);
         Route::post('/admin/kritik-saran/bulk-delete', [KritikSaranController::class, 'bulkDelete']);
 
         // Admin: User Management
