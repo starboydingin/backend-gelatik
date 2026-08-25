@@ -25,6 +25,7 @@ class ChatbotService
     public function __construct(
         private KonsultasiService $konsultasiService,
         private RealtimeDataSyncService $realtime,
+        private FaqService $faqService,
     ) {}
 
     private const SCOPE_REFUSAL = 'Maaf, saya hanya dapat membantu pertanyaan seputar konsultasi dan layanan TIK Gelatik, seperti WiFi/internet, email dinas, peminjaman aset, konsultasi, hosting, subdomain, TTE, atau status layanan. Silakan tuliskan pertanyaan terkait layanan TIK yang ingin Anda tanyakan.';
@@ -822,7 +823,7 @@ class ChatbotService
     private function resolveEscalationTopic(string $context): ?MasterTopik
     {
         $terms = $this->faqSearchTerms($context);
-        $topics = MasterTopik::aktif()->get();
+        $topics = $this->faqService->getAllTopik();
 
         return $topics
             ->sortByDesc(function (MasterTopik $topic) use ($terms): int {
@@ -845,7 +846,7 @@ class ChatbotService
             return '';
         }
 
-        $faqs = Faq::aktif()->with('topik')->get()
+        $faqs = $this->faqService->getChatbotKnowledge()
             ->map(function (Faq $faq) use ($terms): array {
                 $title = $this->plainText($faq->judul);
                 $detail = $this->plainText($faq->detail);
@@ -889,7 +890,7 @@ class ChatbotService
             return null;
         }
 
-        $faqs = Faq::aktif()->get()
+        $faqs = $this->faqService->getChatbotKnowledge()
             ->map(function (Faq $faq) use ($intent): array {
                 $title = $this->plainText($faq->judul);
                 $detail = $this->plainChatText($faq->detail);

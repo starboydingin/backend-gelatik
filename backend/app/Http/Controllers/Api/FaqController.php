@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Faq;
 use App\Services\FaqService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class FaqController extends Controller
 {
@@ -42,18 +41,19 @@ class FaqController extends Controller
     {
         $request->validate([
             'topik_id' => 'required|exists:master_topik,id',
-            'judul'    => 'required|string|max:255',
-            'detail'   => 'required|string',
-            'status'   => 'nullable|in:1,0',
+            'judul' => 'required|string|max:255',
+            'detail' => 'required|string',
+            'status' => 'nullable|in:1,0',
         ]);
 
         $faq = Faq::create([
-            'topik_id'   => $request->topik_id,
-            'judul'      => $request->judul,
-            'detail'     => $request->detail,
-            'status'     => $request->status ?? '1',
+            'topik_id' => $request->topik_id,
+            'judul' => $request->judul,
+            'detail' => $request->detail,
+            'status' => $request->status ?? '1',
             'created_by' => $request->user()->id ?? null,
         ]);
+        $this->faqService->flushReferenceCache();
 
         return response()->json(['success' => true, 'message' => 'FAQ berhasil ditambahkan.', 'data' => $faq->load('topik')], 201);
     }
@@ -62,6 +62,7 @@ class FaqController extends Controller
     public function show($id)
     {
         $faq = Faq::with('topik')->findOrFail($id);
+
         return response()->json(['success' => true, 'data' => $faq]);
     }
 
@@ -80,6 +81,7 @@ class FaqController extends Controller
         $faq->update($validated + [
             'updated_by' => $request->user()->id ?? null,
         ]);
+        $this->faqService->flushReferenceCache();
 
         return response()->json(['success' => true, 'message' => 'FAQ berhasil diupdate.', 'data' => $faq->load('topik')]);
     }
@@ -89,6 +91,7 @@ class FaqController extends Controller
     {
         $faq = Faq::findOrFail($id);
         $faq->delete();
+        $this->faqService->flushReferenceCache();
 
         return response()->json(['success' => true, 'message' => 'FAQ berhasil dihapus.']);
     }

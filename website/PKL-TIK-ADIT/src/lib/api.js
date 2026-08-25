@@ -50,7 +50,42 @@ const rawGet = api.get.bind(api)
 export async function cachedGet(url, config = {}, ttl = defaultReadTtl) {
     const key = cacheKey(url, config)
     const cached = readCache.get(key)
-    if (cached && Date.now() - cached.createdAt < ttl) return cached.response
+    const age = cached ? Date.now() - cached.createdAt : Number.POSITIVE_INFINITY
+    if (cached && age < ttl) return cached.response
+
+    const cachedIsResolved = cached?.response && typeof cached.response.then !== 'function'
+    if (cachedIsResolved && age < staleIfErrorTtl) {
+        if (!cached.refreshing) {
+            const requestEpoch = cacheEpoch
+            const refreshing = rawGet(url, config)
+                .then((response) => {
+                    if (
+                        cacheEpoch === requestEpoch &&
+                        readCache.get(key)?.refreshing === refreshing
+                    ) {
+                        readCache.set(key, { createdAt: Date.now(), response })
+                        if (typeof window !== 'undefined') {
+                            window.dispatchEvent(
+                                new CustomEvent('gelatik:cache-revalidated', { detail: { url } })
+                            )
+                        }
+                    }
+                    return response
+                })
+                .catch(() => {
+                    if (readCache.get(key)?.refreshing === refreshing) {
+                        readCache.set(key, cached)
+                    }
+                })
+            readCache.set(key, { ...cached, refreshing })
+        }
+
+        return cached.response
+    }
+
+    // An identical first-load request is already active. Reuse it rather than
+    // issuing another request from the layout, page, or store initializer.
+    if (cached?.response && typeof cached.response.then === 'function') return cached.response
 
     const requestEpoch = cacheEpoch
     const request = rawGet(url, config)

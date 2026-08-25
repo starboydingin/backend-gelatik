@@ -203,6 +203,11 @@ function reconcileAfterReconnect() {
     invalidateRealtimeResource({ resource })
     syncRevision.value += 1
 }
+function applyBackgroundRevalidation() {
+    // The stale response was already rendered immediately. Remount only the
+    // currently visible route so it consumes the freshly cached response.
+    syncRevision.value += 1
+}
 async function refreshActivePage(event) {
     const resource = realtimeResource(event?.detail || {})
     if (resource === 'user' && auth.authenticated) {
@@ -221,10 +226,12 @@ onMounted(() => {
     connectRealtime(auth.token)
     window.addEventListener('gelatik:data-sync', refreshActivePage)
     window.addEventListener('gelatik:reconnected', reconcileAfterReconnect)
+    window.addEventListener('gelatik:cache-revalidated', applyBackgroundRevalidation)
 })
 onBeforeUnmount(() => {
     window.removeEventListener('gelatik:data-sync', refreshActivePage)
     window.removeEventListener('gelatik:reconnected', reconcileAfterReconnect)
+    window.removeEventListener('gelatik:cache-revalidated', applyBackgroundRevalidation)
     disconnectRealtime()
 })
 </script>
