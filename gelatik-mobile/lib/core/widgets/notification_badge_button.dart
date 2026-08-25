@@ -23,23 +23,29 @@ class _NotificationBadgeButtonState
     extends ConsumerState<NotificationBadgeButton> {
   StreamSubscription? _subscription;
   int _unread = 0;
+  bool _hasMobileSnapshot = false;
 
   @override
   void initState() {
     super.initState();
     _unread = widget.initialUnread ?? 0;
-    if (widget.initialUnread == null) Future.microtask(_refreshUnread);
+    Future.microtask(_refreshUnread);
     _subscription = ref
         .read(realtimeSocketServiceProvider)
         .events
-        .where((event) => event.type == 'notification')
+        .where(
+          (event) =>
+              event.type == 'notification' ||
+              (event.type == 'data.sync' && event.resource == 'session'),
+        )
         .listen((_) => _refreshUnread());
   }
 
   @override
   void didUpdateWidget(covariant NotificationBadgeButton oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialUnread != null &&
+    if (!_hasMobileSnapshot &&
+        widget.initialUnread != null &&
         widget.initialUnread != oldWidget.initialUnread) {
       _unread = widget.initialUnread!;
     }
@@ -58,7 +64,10 @@ class _NotificationBadgeButtonState
           .getNotifications();
       if (mounted) {
         setState(
-          () => _unread = notifications.where((item) => !item.isRead).length,
+          () {
+            _unread = notifications.where((item) => !item.isRead).length;
+            _hasMobileSnapshot = true;
+          },
         );
       }
     } catch (_) {

@@ -3,14 +3,11 @@
 namespace App\Listeners;
 
 use App\Events\KonsultasiResponseCreated;
-use App\Models\WhatsappSubscription;
 use App\Services\FcmNotificationService;
 use App\Services\NodeServiceClient;
 use App\Services\RealtimeEventPayload;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class SendKonsultasiNotification implements ShouldQueue
 {
@@ -34,15 +31,15 @@ class SendKonsultasiNotification implements ShouldQueue
      */
     public function handle(KonsultasiResponseCreated $event): void
     {
-        $nodeService = new NodeServiceClient();
+        $nodeService = new NodeServiceClient;
         $deliveryFailure = null;
-        
+
         // 1. Broadcast via Socket.io (F-RT)
         $targetIsAdmin = (int) $event->response->user_id === (int) $event->konsultasi->user_id;
         $payload = RealtimeEventPayload::make('konsultasi.responded', (int) $event->konsultasi->id, [
             'status' => $event->konsultasi->status,
             'response_id' => (int) $event->response->id,
-            'message' => 'Anda mendapat balasan baru pada konsultasi: ' . $event->konsultasi->judul,
+            'message' => 'Anda mendapat balasan baru pada konsultasi: '.$event->konsultasi->judul,
         ]);
 
         if ($targetIsAdmin) {
@@ -53,41 +50,11 @@ class SendKonsultasiNotification implements ShouldQueue
             );
         }
 
-        // 2. WhatsApp Notification (F-WA)
+        // 2. FCM Push Notification (topic-based). WhatsApp is scheduled
+        // directly by KonsultasiService so it cannot be stranded in this
+        // listener when no queue worker is running.
         try {
-            $subscription = WhatsappSubscription::where('user_id', $event->konsultasi->user_id)
-                ->where('is_opt_in', true)
-                ->first();
-
-            if (! $targetIsAdmin && $subscription) {
-                $nama = $event->konsultasi->user ? $event->konsultasi->user->name : 'Pengguna';
-                $pesanRespon = $event->response ? ($event->response->pesan ?? '') : '';
-                $snippet = Str::limit(trim(strip_tags($pesanRespon)), 100);
-                $message = "Halo {$nama}, ada balasan baru untuk konsultasi Anda dengan judul '{$event->konsultasi->judul}'";
-                if (!empty($snippet)) {
-                    $message .= ": \"{$snippet}\"";
-                } else {
-                    $message .= ".";
-                }
-                
-                $nodeService->sendWhatsApp(
-                    $subscription->nomor_wa,
-                    $message,
-                    [
-                        'event_type' => 'konsultasi.responded',
-                        'reference_id' => $event->konsultasi->id,
-                        'user_id' => $event->konsultasi->user_id
-                    ]
-                );
-            }
-        } catch (\Exception $e) {
-            Log::error('SendKonsultasiNotification WA Error: ' . $e->getMessage());
-            $deliveryFailure = $e;
-        }
-
-        // 3. FCM Push Notification (topic-based)
-        try {
-            $fcm = new FcmNotificationService();
+            $fcm = new FcmNotificationService;
 
             if (! $targetIsAdmin) {
                 // Admin membalas → kirim FCM ke user pemilik konsultasi
@@ -112,7 +79,7 @@ class SendKonsultasiNotification implements ShouldQueue
                 );
             }
         } catch (\Exception $e) {
-            Log::error('SendKonsultasiNotification FCM Error: ' . $e->getMessage());
+            Log::error('SendKonsultasiNotification FCM Error: '.$e->getMessage());
             $deliveryFailure ??= $e;
         }
 

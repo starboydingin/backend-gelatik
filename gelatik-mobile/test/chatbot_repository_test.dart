@@ -73,7 +73,9 @@ void main() {
             'success': true,
             'session_id': 'session-1',
             'reply': 'Silakan buka menu Peminjaman.',
-            'provider': 'gemini',
+            'provider': 'consultation_created',
+            'escalated': true,
+            'konsultasi_id': 91,
           },
         },
       );
@@ -81,6 +83,8 @@ void main() {
         adapter,
       ).sendMessage(ChatbotMessageRequest(message: ' Pinjam alat '));
       expect(result.sessionId, 'session-1');
+      expect(result.escalated, isTrue);
+      expect(result.consultationId, 91);
       expect(adapter.lastRequest!.data, {'message': 'Pinjam alat'});
       expect(adapter.lastRequest!.data, isNot(contains('user_id')));
       expect(adapter.lastRequest!.receiveTimeout, const Duration(seconds: 15));

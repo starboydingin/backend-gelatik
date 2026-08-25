@@ -581,12 +581,35 @@ class AuthorizationTest extends TestCase
 
     public function test_only_admin_can_respond_to_konsultasi(): void
     {
+        \DB::table('whatsapp_subscriptions')->insert([
+            'user_id' => $this->userB->id,
+            'nomor_wa' => '081234567890',
+            'is_opt_in' => true,
+            'verified_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        Http::fake([
+            'http://127.0.0.1:4000/internal/wa/send' => Http::response([
+                'success' => true,
+                'status' => 'delivered',
+            ]),
+            '*' => Http::response(['success' => true]),
+        ]);
+
         $this->actingAsApi($this->userA);
         $this->postJson('/api/konsul/202/response', ['isi_respon' => 'Lintas user'])->assertForbidden();
         $this->postJson('/api/konsul/201/response', ['isi_respon' => 'Balasan pemilik'])->assertForbidden();
 
         $this->actingAsApi($this->admin);
         $this->postJson('/api/konsul/202/response', ['isi_respon' => 'Balasan admin'])->assertCreated();
+        Http::assertSent(fn ($request): bool => $request->url() === 'http://127.0.0.1:4000/internal/wa/send'
+            && $request['reference']['event_type'] === 'konsultasi.responded'
+            && (int) $request['reference']['user_id'] === $this->userB->id);
+        $this->assertDatabaseHas('whatsapp_subscriptions', [
+            'user_id' => $this->userB->id,
+            'last_delivery_status' => 'delivered',
+        ]);
     }
 
     public function test_konsultasi_create_and_response_receive_generated_ids(): void
@@ -1050,6 +1073,15 @@ class AuthorizationTest extends TestCase
             $table->string('type')->nullable();
             $table->unsignedBigInteger('item_id')->nullable();
             $table->boolean('read')->default(false);
+            $table->timestamps();
+        });
+        Schema::create('whatsapp_subscriptions', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->unique();
+            $table->string('nomor_wa');
+            $table->boolean('is_opt_in')->default(false);
+            $table->timestamp('verified_at')->nullable();
+            $table->string('last_delivery_status')->nullable();
             $table->timestamps();
         });
         Schema::create('usulan_email', function (Blueprint $table): void {

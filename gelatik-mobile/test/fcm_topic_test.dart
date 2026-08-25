@@ -12,6 +12,7 @@ import 'package:gelatik/features/auth/providers/auth_provider.dart';
 class FakeSecureStorageService implements SecureStorageService {
   String? _token;
   String? _chatbotSessionId;
+  final Map<int, Set<int>> _mobileNotificationReads = {};
 
   @override
   Future<void> saveToken(String token) async {
@@ -41,6 +42,16 @@ class FakeSecureStorageService implements SecureStorageService {
   Future<void> deleteChatbotSessionId() async {
     _chatbotSessionId = null;
   }
+
+  @override
+  Future<Set<int>?> getMobileNotificationReadIds(int userId) async =>
+      _mobileNotificationReads[userId];
+
+  @override
+  Future<void> saveMobileNotificationReadIds(
+    int userId,
+    Iterable<int> ids,
+  ) async => _mobileNotificationReads[userId] = ids.toSet();
 }
 
 class FakeAuthRepository extends AuthRepository {

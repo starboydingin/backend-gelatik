@@ -218,7 +218,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         TextButton(
           onPressed: _items.any((item) => !item.isRead)
               ? () async {
-                  await ref.read(notificationRepositoryProvider).markAllRead();
+                  await ref
+                      .read(notificationRepositoryProvider)
+                      .markAllRead(_items.map((item) => item.id));
                   await _load();
                 }
               : null,

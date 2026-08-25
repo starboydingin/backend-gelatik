@@ -55,17 +55,19 @@ router.post('/wa/send', async (req, res) => {
     }
 
     const result = await sendWhatsAppMessage(nomor_wa, message, deliveryKey);
-    try {
-        await axios.post(`${process.env.LARAVEL_BASE_URL}/api/internal/wa/webhook-delivery-status`, {
+    // Do not await the Laravel callback. The local `php artisan serve` process
+    // may itself be waiting for this response after sending the admin reply;
+    // awaiting the callback here would deadlock the single-process server.
+    void axios.post(`${process.env.LARAVEL_BASE_URL}/api/internal/wa/webhook-delivery-status`, {
             status: result.status,
             error: result.error,
             reference,
         }, {
             headers: { Authorization: `Bearer ${process.env.INTERNAL_SERVICE_API_KEY}` },
+            timeout: 5000,
+        }).catch((err) => {
+            console.error('Failed to send webhook status to Laravel:', err.message);
         });
-    } catch (err) {
-        console.error('Failed to send webhook status to Laravel:', err.message);
-    }
 
     if (result.status !== 'delivered') {
         return res.status(503).json({ success: false, error: 'WhatsApp delivery failed' });

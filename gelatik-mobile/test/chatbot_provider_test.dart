@@ -148,6 +148,29 @@ void main() {
       expect(storage.sessionId, 'session-1');
     });
 
+    test('tiket chatbot langsung menyegarkan konsultasi mobile', () async {
+      final refreshedIds = <int>[];
+      final repository = _FakeRepository()
+        ..response = const ChatbotResponseModel(
+          sessionId: 'session-1',
+          reply: 'Konsultasi sudah saya buatkan.',
+          provider: 'consultation_created',
+          escalated: true,
+          consultationId: 91,
+        );
+      final notifier = ChatbotNotifier(
+        repository: repository,
+        storage: _MemoryStorage(),
+        autoLoad: false,
+        onConsultationCreated: (id) async => refreshedIds.add(id),
+      );
+
+      await notifier.sendMessage('Nama: Adwika, OPD: Dinkes, Detail Permasalahan: WiFi mati');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(refreshedIds, [91]);
+    });
+
     test(
       '23. send failure menandai pesan failed dan history tetap terbaca',
       () async {

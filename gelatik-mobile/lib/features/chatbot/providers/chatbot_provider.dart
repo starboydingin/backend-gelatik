@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/realtime/realtime_socket_service.dart';
 import '../../../core/storage/secure_storage_service.dart';
+import '../../home/providers/home_provider.dart';
+import '../../konsultasi/providers/konsultasi_provider.dart';
 import '../models/chat_message_model.dart';
 import '../models/chatbot_request.dart';
 import '../repositories/chatbot_repository.dart';
@@ -65,6 +67,7 @@ class ChatbotState {
 class ChatbotNotifier extends StateNotifier<ChatbotState> {
   final ChatbotRepository repository;
   final SecureStorageService storage;
+  final Future<void> Function(int consultationId)? onConsultationCreated;
   int _generation = 0;
   int _localId = 0;
   Timer? _realtimeSyncTimer;
@@ -72,6 +75,7 @@ class ChatbotNotifier extends StateNotifier<ChatbotState> {
   ChatbotNotifier({
     required this.repository,
     required this.storage,
+    this.onConsultationCreated,
     bool autoLoad = true,
   }) : super(const ChatbotState()) {
     if (autoLoad) unawaited(loadHistory());
@@ -223,6 +227,11 @@ class ChatbotNotifier extends StateNotifier<ChatbotState> {
         sendInFlight: false,
         clearError: true,
       );
+      final consultationId = response.consultationId;
+      if (response.escalated && consultationId != null) {
+        final callback = onConsultationCreated;
+        if (callback != null) unawaited(callback(consultationId));
+      }
     } on ChatbotRepositoryException catch (error) {
       if (generation != _generation) {
         state = state.copyWith(sendInFlight: false);
@@ -311,6 +320,18 @@ final chatbotProvider =
       final notifier = ChatbotNotifier(
         repository: ref.watch(chatbotRepositoryProvider),
         storage: ref.watch(secureStorageServiceProvider),
+        onConsultationCreated: (consultationId) async {
+          ref
+              .read(chatbotRepositoryProvider)
+              .apiClient
+              .invalidateCacheForResource('konsultasi');
+          await Future.wait([
+            ref
+                .read(konsultasiProvider.notifier)
+                .refreshFromRealtime(consultationId),
+            ref.read(homeProvider.notifier).refreshFromRealtime(),
+          ]);
+        },
       );
       final subscription = ref
           .watch(realtimeSocketServiceProvider)

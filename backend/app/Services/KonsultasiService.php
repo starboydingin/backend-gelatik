@@ -100,8 +100,8 @@ class KonsultasiService
             app(NotificationRealtimeService::class)->toUser($notification);
 
             // Keep the user's open web/mobile session in sync immediately.
-            // WhatsApp and FCM are still handled asynchronously by the event
-            // listener below, so a gateway outage never blocks this reply.
+            // FCM remains queued below. WhatsApp is deferred until after the
+            // HTTP response, so neither gateway can block this reply.
             app(RealtimeDataSyncService::class)->eventToUser(
                 $konsultasi->user_id,
                 'konsultasi.responded',
@@ -110,6 +110,10 @@ class KonsultasiService
                     'response_id' => (int) $response->id,
                     'message' => 'Anda mendapat balasan baru pada konsultasi: '.$konsultasi->judul,
                 ]),
+            );
+            app(KonsultasiWhatsAppService::class)->afterAdminResponse(
+                $konsultasi,
+                $response,
             );
         }
 
