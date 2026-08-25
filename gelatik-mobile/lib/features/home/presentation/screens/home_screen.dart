@@ -782,7 +782,9 @@ class _UsageCard extends StatelessWidget {
 class _RatingInsightCard extends StatelessWidget {
   final double average;
   final int count;
-  final Map<int, int> distribution;
+  // Nullable untuk menjaga dashboard tetap aman bila state lama hasil hot
+  // reload belum memiliki statistik rating dari endpoint dashboard.
+  final Map<int, int>? distribution;
 
   const _RatingInsightCard({
     required this.average,
@@ -791,7 +793,10 @@ class _RatingInsightCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => AppCard(
+  Widget build(BuildContext context) {
+    final ratingDistribution = distribution ?? const <int, int>{};
+
+    return AppCard(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -878,7 +883,7 @@ class _RatingInsightCard extends StatelessWidget {
         const SizedBox(height: 22),
         ...List.generate(5, (index) {
           final score = 5 - index;
-          final votes = distribution[score] ?? 0;
+          final votes = ratingDistribution[score] ?? 0;
           final percentage = count == 0 ? 0.0 : votes / count;
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -911,7 +916,8 @@ class _RatingInsightCard extends StatelessWidget {
         }),
       ],
     ),
-  );
+    );
+  }
 }
 
 class _RatingStars extends StatelessWidget {

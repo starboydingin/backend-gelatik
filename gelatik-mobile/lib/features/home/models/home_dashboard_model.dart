@@ -26,7 +26,8 @@ class HomeDashboardModel {
   final List<ServiceUsageMetric> assetUsage;
   final double serviceRatingAverage;
   final int serviceRatingCount;
-  final Map<int, int> serviceRatingDistribution;
+  /// Statistik distribusi bisa belum tersedia pada respons dashboard lama.
+  final Map<int, int>? serviceRatingDistribution;
 
   const HomeDashboardModel({
     required this.userName,
