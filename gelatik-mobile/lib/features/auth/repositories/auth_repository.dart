@@ -162,6 +162,29 @@ class AuthRepository {
     }
   }
 
+  /// GET /api/me/activity-log. The API scopes rows to the authenticated
+  /// account, so a user can never infer another account's activity here.
+  Future<List<AccountActivityEntry>> getActivityLog() async {
+    try {
+      final response = await apiClient.dio.get('/me/activity-log');
+      final root = response.data;
+      final data = root is Map ? root['data'] : null;
+      if (data is! List) {
+        throw ApiException(message: 'Format log aktivitas tidak valid.');
+      }
+      return data
+          .whereType<Map>()
+          .map(
+            (entry) => AccountActivityEntry.fromJson(
+              Map<String, dynamic>.from(entry),
+            ),
+          )
+          .toList(growable: false);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   /// POST /api/forgot-password
   Future<Map<String, dynamic>> requestPasswordReset(String identifier) async {
     try {
@@ -233,6 +256,29 @@ class AuthRepository {
     } on DioException catch (_) {
       // Ignored or logged if token already invalidated on backend
     }
+  }
+}
+
+class AccountActivityEntry {
+  final String id;
+  final String action;
+  final String description;
+  final DateTime? createdAt;
+
+  const AccountActivityEntry({
+    required this.id,
+    required this.action,
+    required this.description,
+    required this.createdAt,
+  });
+
+  factory AccountActivityEntry.fromJson(Map<String, dynamic> json) {
+    return AccountActivityEntry(
+      id: json['id']?.toString() ?? '',
+      action: json['action']?.toString() ?? '',
+      description: json['description']?.toString() ?? 'Aktivitas akun',
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
+    );
   }
 }
 

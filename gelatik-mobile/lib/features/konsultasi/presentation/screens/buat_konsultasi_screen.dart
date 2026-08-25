@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_searchable_select.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../providers/konsultasi_provider.dart';
@@ -113,29 +114,31 @@ class _BuatKonsultasiScreenState extends ConsumerState<BuatKonsultasiScreen> {
                 if (state.isTopikLoading)
                   const LinearProgressIndicator()
                 else
-                  DropdownButtonFormField<int>(
+                  AppSearchableSelect<int>(
                     key: const Key('topik-dropdown'),
-                    initialValue: _topikId,
-                    decoration: InputDecoration(
-                      labelText: 'Topik Konsultasi',
-                      errorText: _topikError,
-                      prefixIcon: const Icon(Icons.topic_outlined),
-                    ),
-                    items: state.topiks
+                    labelText: 'Topik Konsultasi',
+                    hintText: 'Pilih topik yang sesuai',
+                    searchHint: 'Cari topik konsultasi…',
+                    value: _topikId,
+                    errorText: _topikError,
+                    prefixIcon: const Icon(Icons.topic_outlined),
+                    enabled: !state.isSubmitting,
+                    options: state.topiks
                         .where(
                           (topik) =>
                               topik.status == null || topik.status == '1',
                         )
                         .map(
-                          (topik) => DropdownMenuItem(
+                          (topik) => SearchableSelectOption<int>(
                             value: topik.id,
-                            child: Text(topik.nama),
+                            label: topik.nama,
                           ),
                         )
-                        .toList(),
-                    onChanged: state.isSubmitting
-                        ? null
-                        : (value) => setState(() => _topikId = value),
+                        .toList(growable: false),
+                    onChanged: (value) => setState(() {
+                      _topikId = value;
+                      _topikError = null;
+                    }),
                   ),
                 if (!state.isTopikLoading && state.topiks.isEmpty) ...[
                   const SizedBox(height: 8),

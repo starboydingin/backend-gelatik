@@ -11,6 +11,7 @@ import StatusSummary from '../../components/StatusSummary.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
 import SummaryModal from '../../components/SummaryModal.vue'
 import PaginationControls from '../../components/PaginationControls.vue'
+import SearchableSelect from '../../components/SearchableSelect.vue'
 import { formatLoanSchedule } from '../../lib/date'
 const route = useRoute(),
     auth = useAuthStore(),
@@ -54,6 +55,19 @@ const minimumStartTime = computed(() => {
     if (form.value.tanggal_mulai !== today) return undefined
     const now = new Date(Date.now() + 60_000)
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+})
+const estimatedEnd = computed(() => {
+    if (!form.value.tanggal_mulai) return ''
+    const start = new Date(`${form.value.tanggal_mulai}T${form.value.jam_mulai || '00:00'}:00`)
+    if (Number.isNaN(start.getTime())) return ''
+    const amount = Math.max(1, Number(form.value.durasi_peminjaman) || 1)
+    if (form.value.jenis_durasi === 'menit') start.setMinutes(start.getMinutes() + amount)
+    else if (form.value.jenis_durasi === 'jam') start.setHours(start.getHours() + amount)
+    else start.setDate(start.getDate() + amount)
+    return new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'long',
+        ...(form.value.jenis_durasi === 'harian' ? {} : { timeStyle: 'short' }),
+    }).format(start)
 })
 const statusItems = computed(() => [
     {
@@ -299,14 +313,14 @@ onMounted(load)
                         class="input bg-slate-50"
                         readonly
                         required /></label
-                ><label
-                    ><span class="label">Jenis identitas</span
-                    ><select v-model="form.jenis_identitas" class="input" @change="identityChanged">
-                        <option>KTP</option>
-                        <option>SIM</option>
-                        <option>Passport</option>
-                        <option>NIP</option>
-                    </select></label
+                ><SearchableSelect
+                    v-model="form.jenis_identitas"
+                    label="Jenis identitas"
+                    placeholder="Pilih jenis identitas"
+                    search-placeholder="Cari jenis identitas…"
+                    :options="['KTP', 'SIM', 'Passport', 'NIP']"
+                    @update:model-value="identityChanged"
+                />
                 ><label
                     ><span class="label">Nomor identitas</span
                     ><input
@@ -326,7 +340,7 @@ onMounted(load)
                         :min="today"
                         class="input"
                         required /></label
-                ><label
+                ><label v-if="form.jenis_durasi === 'jam' || form.jenis_durasi === 'menit'"
                     ><span class="label">Jam mulai</span
                     ><input v-model="form.jam_mulai" type="time" class="input" :min="minimumStartTime" /></label
                 ><label
@@ -338,12 +352,22 @@ onMounted(load)
                             min="1"
                             class="input"
                             required
-                        /><select v-model="form.jenis_durasi" class="input">
-                            <option value="harian">Hari</option>
-                            <option value="jam">Jam</option>
-                            <option value="menit">Menit</option>
-                        </select>
+                        /><SearchableSelect
+                            v-model="form.jenis_durasi"
+                            class="min-w-32 flex-1"
+                            label="Satuan"
+                            placeholder="Satuan"
+                            search-placeholder="Cari satuan…"
+                            :options="[
+                                { value: 'harian', label: 'Hari' },
+                                { value: 'jam', label: 'Jam' },
+                                { value: 'menit', label: 'Menit' },
+                            ]"
+                        />
                     </div></label
+                ><p v-if="estimatedEnd" class="md:col-span-2 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900">
+                    Estimasi selesai: <strong>{{ estimatedEnd }}</strong>
+                </p>
                 ><label v-if="!editingId" class="md:col-span-2"
                     ><span class="label">Keterangan</span
                     ><textarea v-model="form.keterangan" class="input min-h-24"></textarea></label
@@ -385,15 +409,17 @@ onMounted(load)
                 </p>
             </section>
             <div class="mt-4 flex flex-wrap items-end gap-3">
-                <label class="min-w-60 flex-1"
-                    ><span class="label">Aset</span
-                    ><select v-model="draft.item_id" class="input">
-                        <option value="">Pilih aset</option>
-                        <option v-for="asset in assets" :key="asset.id" :value="asset.id">
-                            {{ asset.nama || asset.nama_item || asset.name }} (stok
-                            {{ asset.stok ?? '-' }})
-                        </option>
-                    </select></label
+                <SearchableSelect
+                    v-model="draft.item_id"
+                    class="min-w-60 flex-1"
+                    label="Aset"
+                    placeholder="Cari aset yang akan dipinjam"
+                    search-placeholder="Cari nama aset…"
+                    :options="assets.map((asset) => ({
+                        value: asset.id,
+                        label: `${asset.nama || asset.nama_item || asset.name} (stok ${asset.stok ?? '-'})`,
+                    }))"
+                />
                 ><label class="w-28"
                     ><span class="label">Jumlah</span
                     ><input

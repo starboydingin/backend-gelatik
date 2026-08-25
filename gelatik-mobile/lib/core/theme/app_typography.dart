@@ -1,33 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// AppTypography — Inter Font Scale (Material Design 3)
+/// The product voice pairs Montserrat headings with readable Inter body copy.
 class AppTypography {
   AppTypography._();
 
   static TextTheme textTheme(Color textColor) {
     return TextTheme(
-      displayLarge: GoogleFonts.inter(
+      displayLarge: GoogleFonts.montserrat(
         fontSize: 32,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w800,
         color: textColor,
       ),
-      displayMedium: GoogleFonts.inter(
+      displayMedium: GoogleFonts.montserrat(
         fontSize: 28,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w800,
         color: textColor,
       ),
-      headlineMedium: GoogleFonts.inter(
+      headlineMedium: GoogleFonts.montserrat(
         fontSize: 22,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         color: textColor,
       ),
-      titleLarge: GoogleFonts.inter(
+      titleLarge: GoogleFonts.montserrat(
         fontSize: 18,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         color: textColor,
       ),
-      titleMedium: GoogleFonts.inter(
+      titleMedium: GoogleFonts.montserrat(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: textColor,

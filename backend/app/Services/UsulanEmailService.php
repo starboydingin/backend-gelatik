@@ -9,6 +9,7 @@ use App\Models\Notification;
 use App\Models\User;
 use App\Models\UsulanEmail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 use App\Services\NodeServiceClient;
 use App\Services\RealtimeEventPayload;
@@ -98,6 +99,7 @@ class UsulanEmailService
             'Pengajuan email resmi baru telah masuk.',
             'usulan_email',
         );
+        $this->forgetDashboardCache((int) $user->id);
         event(new UsulanEmailCreated($usulan));
 
         return $usulan;
@@ -120,6 +122,7 @@ class UsulanEmailService
             $usulan->email_pribadi = $data['email_pribadi'];
         }
         $usulan->save();
+        $this->forgetDashboardCache((int) $usulan->created_by);
 
         return $usulan->fresh();
     }
@@ -163,6 +166,7 @@ class UsulanEmailService
         );
 
         $ownerId = (int) ($usulan->created_by ?? 0);
+        $this->forgetDashboardCache($ownerId);
         if ($ownerId > 0) {
             $notification = Notification::create([
                 'user_id' => $ownerId,
@@ -189,5 +193,15 @@ class UsulanEmailService
         event(new UsulanEmailStatusChanged($usulan, $oldStatus, $statusBaru));
 
         return $usulan;
+    }
+
+    private function forgetDashboardCache(int $userId): void
+    {
+        if ($userId > 0) {
+            Cache::forget("dashboard:user:{$userId}");
+        }
+        Cache::forget('dashboard:service-insights');
+        Cache::forget('dashboard:admin:admin');
+        Cache::forget('dashboard:admin:superadmin');
     }
 }

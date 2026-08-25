@@ -10,6 +10,7 @@ import StatusSummary from '../../components/StatusSummary.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
 import SummaryModal from '../../components/SummaryModal.vue'
 import PaginationControls from '../../components/PaginationControls.vue'
+import SearchableSelect from '../../components/SearchableSelect.vue'
 import { formatDateTime } from '../../lib/date'
 const route = useRoute(),
     admin = computed(() => route.path.startsWith('/admin')),
@@ -171,14 +172,13 @@ onMounted(load)
                 <label
                     ><span class="label">Judul</span
                     ><input v-model="form.judul" class="input" required /></label
-                ><label
-                    ><span class="label">Topik</span
-                    ><select v-model="form.topik_id" class="input" required>
-                        <option value="">Pilih topik</option>
-                        <option v-for="topic in topics" :key="topic.id" :value="topic.id">
-                            {{ topicLabel(topic) }}
-                        </option>
-                    </select></label
+                ><SearchableSelect
+                    v-model="form.topik_id"
+                    label="Topik"
+                    placeholder="Pilih topik"
+                    search-placeholder="Cari topik konsultasi…"
+                    :options="topics.map((topic) => ({ value: topic.id, label: topicLabel(topic) }))"
+                />
                 ><label v-if="!editingId" class="md:col-span-2"
                     ><span class="label">Penjelasan</span
                     ><textarea

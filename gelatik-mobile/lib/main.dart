@@ -48,7 +48,15 @@ class _GelatikAppState extends ConsumerState<GelatikApp>
     // One durable `notification` event is emitted for each inbox update.
     // Business events still refresh feature data, but must not duplicate this
     // visible feedback on the user device.
-    if (!mounted || event.type != 'notification' || message == null) return;
+    // Read-state sync is intentionally silent. It still refreshes the badge
+    // through its own listener, but must not look like a new notification.
+    if (!mounted ||
+        event.type != 'notification' ||
+        event.status == 'read' ||
+        event.status == 'read_all' ||
+        message == null) {
+      return;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final messenger = _scaffoldMessengerKey.currentState;
@@ -71,15 +79,12 @@ class _GelatikAppState extends ConsumerState<GelatikApp>
   @override
   Widget build(BuildContext context) {
     ref.watch(realtimeCoordinatorProvider);
-    final themeMode = ref.watch(themeModeProvider);
-
     return MaterialApp(
       title: 'Gelatik Mobile',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: _scaffoldMessengerKey,
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
+      themeMode: ThemeMode.light,
       home: const SplashScreen(),
     );
   }

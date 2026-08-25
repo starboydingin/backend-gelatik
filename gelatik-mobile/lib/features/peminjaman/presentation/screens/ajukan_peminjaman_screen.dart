@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_searchable_select.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
@@ -47,7 +48,7 @@ class _AjukanPeminjamanScreenState
   String _jenisIdentitas = 'NIP';
   String _jenisDurasi = 'harian'; // harian, jam, menit
   DateTime _tanggalMulai = DateTime.now();
-  final TimeOfDay _jamMulai = const TimeOfDay(hour: 8, minute: 0);
+  TimeOfDay _jamMulai = const TimeOfDay(hour: 8, minute: 0);
   bool _agreeTerms = false;
 
   // Errors
@@ -160,6 +161,16 @@ class _AjukanPeminjamanScreenState
       setState(() {
         _tanggalMulai = picked;
       });
+    }
+  }
+
+  Future<void> _selectStartTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _jamMulai,
+    );
+    if (picked != null && mounted) {
+      setState(() => _jamMulai = picked);
     }
   }
 
@@ -573,42 +584,38 @@ class _AjukanPeminjamanScreenState
                           ),
                           const SizedBox(height: 12),
 
-                          // Dropdown Jenis Identitas
-                          DropdownButtonFormField<String>(
-                            initialValue: _jenisIdentitas,
-                            decoration: InputDecoration(
-                              labelText: 'Jenis Identitas',
-                              prefixIcon: const Icon(Icons.badge_outlined),
-                            ),
-                            items: const [
-                              DropdownMenuItem(
+                          AppSearchableSelect<String>(
+                            labelText: 'Jenis Identitas',
+                            hintText: 'Pilih jenis identitas',
+                            searchHint: 'Cari jenis identitas…',
+                            value: _jenisIdentitas,
+                            prefixIcon: const Icon(Icons.badge_outlined),
+                            options: const [
+                              SearchableSelectOption(
                                 value: 'KTP',
-                                child: Text('KTP'),
+                                label: 'KTP',
                               ),
-                              DropdownMenuItem(
+                              SearchableSelectOption(
                                 value: 'SIM',
-                                child: Text('SIM'),
+                                label: 'SIM',
                               ),
-                              DropdownMenuItem(
+                              SearchableSelectOption(
                                 value: 'Passport',
-                                child: Text('Passport'),
+                                label: 'Passport',
                               ),
-                              DropdownMenuItem(
+                              SearchableSelectOption(
                                 value: 'NIP',
-                                child: Text('NIP'),
+                                label: 'NIP',
                               ),
                             ],
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() {
-                                  _jenisIdentitas = val;
-                                  _nomorIdentitasController.text = val == 'NIP'
-                                      ? (ref.read(authProvider).currentUser?.nip ?? '')
-                                      : '';
-                                  _nomorIdentitasError = null;
-                                });
-                              }
-                            },
+                            onChanged: (value) => setState(() {
+                              _jenisIdentitas = value;
+                              _nomorIdentitasController.text = value == 'NIP'
+                                  ? (ref.read(authProvider).currentUser?.nip ??
+                                        '')
+                                  : '';
+                              _nomorIdentitasError = null;
+                            }),
                           ),
                           const SizedBox(height: 12),
 
@@ -645,10 +652,11 @@ class _AjukanPeminjamanScreenState
                           ),
                           const SizedBox(height: 14),
 
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final wide = constraints.maxWidth >= 520;
+                              final fields = <Widget>[
+                                GestureDetector(
                                   onTap: _selectDate,
                                   child: AbsorbPointer(
                                     child: AppTextField(
@@ -664,39 +672,69 @@ class _AjukanPeminjamanScreenState
                                     ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: DropdownButtonFormField<String>(
-                                  initialValue: _jenisDurasi,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Jenis Durasi',
-                                    prefixIcon: Icon(Icons.timer_outlined),
-                                  ),
-                                  items: const [
-                                    DropdownMenuItem(
+                                AppSearchableSelect<String>(
+                                  labelText: 'Jenis Durasi',
+                                  hintText: 'Pilih satuan',
+                                  searchHint: 'Cari satuan durasi…',
+                                  value: _jenisDurasi,
+                                  prefixIcon: const Icon(Icons.timer_outlined),
+                                  options: const [
+                                    SearchableSelectOption(
                                       value: 'harian',
-                                      child: Text('Harian'),
+                                      label: 'Harian',
                                     ),
-                                    DropdownMenuItem(
+                                    SearchableSelectOption(
                                       value: 'jam',
-                                      child: Text('Jam'),
+                                      label: 'Jam',
                                     ),
-                                    DropdownMenuItem(
+                                    SearchableSelectOption(
                                       value: 'menit',
-                                      child: Text('Menit'),
+                                      label: 'Menit',
                                     ),
                                   ],
-                                  onChanged: (val) {
-                                    if (val != null) {
-                                      setState(() => _jenisDurasi = val);
-                                    }
-                                  },
+                                  onChanged: (value) =>
+                                      setState(() => _jenisDurasi = value),
                                 ),
-                              ),
-                            ],
+                              ];
+                              return wide
+                                  ? Row(
+                                      children: [
+                                        Expanded(child: fields[0]),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: fields[1]),
+                                      ],
+                                    )
+                                  : Column(
+                                      children: [
+                                        fields[0],
+                                        const SizedBox(height: 12),
+                                        fields[1],
+                                      ],
+                                    );
+                            },
                           ),
                           const SizedBox(height: 12),
+
+                          if (_jenisDurasi == 'jam' ||
+                              _jenisDurasi == 'menit') ...[
+                            GestureDetector(
+                              onTap: _selectStartTime,
+                              child: AbsorbPointer(
+                                child: AppTextField(
+                                  labelText: 'Jam Mulai',
+                                  hintText: 'Pilih jam mulai',
+                                  controller: TextEditingController(
+                                    text:
+                                        '${_jamMulai.hour.toString().padLeft(2, '0')}:${_jamMulai.minute.toString().padLeft(2, '0')}',
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.access_time_rounded,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
 
                           AppTextField(
                             labelText: 'Jumlah Durasi',

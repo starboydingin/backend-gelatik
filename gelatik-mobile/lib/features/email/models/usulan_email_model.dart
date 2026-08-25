@@ -55,7 +55,9 @@ class UsulanEmailModel {
       (pegawai?['nip_baru'] ?? pegawai?['nip']) as String? ?? '-';
 
   factory UsulanEmailModel.fromJson(Map<String, dynamic> json) {
-    final rawPegawai = json['pegawai'];
+    // The regular endpoint may expose `pegawai`, while the aggregate
+    // dashboard serializes the same relation as `pegawai_bkd`.
+    final rawPegawai = json['pegawai'] ?? json['pegawai_bkd'];
     final pegawai = rawPegawai is Map
         ? {
             'nama': rawPegawai['nama'] ?? rawPegawai['Nama'] ?? '',

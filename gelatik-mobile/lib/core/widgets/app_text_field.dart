@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
 
-/// AppTextField — Neo-Brutalism style text field dengan border cardStroke & focus primaryTeal
+/// Consistent compact form field for all Gelatik forms.
 class AppTextField extends StatelessWidget {
   final String labelText;
   final String? hintText;
@@ -40,7 +40,7 @@ class AppTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primaryTeal = AppColors.primaryTeal(context);
+    final focusColor = theme.colorScheme.primary;
     final strokeColor = AppColors.cardStroke(context);
 
     return TextField(
@@ -67,23 +67,23 @@ class AppTextField extends StatelessWidget {
         fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: strokeColor, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: strokeColor, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: primaryTeal, width: 2),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: focusColor, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
         ),
       ),

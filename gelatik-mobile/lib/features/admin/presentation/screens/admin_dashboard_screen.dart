@@ -1,23 +1,91 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_card.dart';
-import '../../../../core/widgets/theme_toggle_button.dart';
+import '../../../../core/widgets/gelatik_page_header.dart';
+import '../../../../core/widgets/notification_badge_button.dart';
+import '../../../../core/realtime/realtime_event.dart';
+import '../../../../core/realtime/realtime_socket_service.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../calendar/presentation/screens/calendar_screen.dart';
 import '../../../email/providers/email_provider.dart';
 import '../../../konsultasi/providers/konsultasi_provider.dart';
 import '../../../peminjaman/providers/peminjaman_provider.dart';
+import '../../repositories/admin_dashboard_repository.dart';
 import 'admin_konsultasi_list_screen.dart';
 import 'admin_peminjaman_list_screen.dart';
 import 'admin_usulan_email_list_screen.dart';
 
 /// AdminDashboardScreen — Halaman Utama Panel Admin (M-L) untuk Admin & Superadmin
-class AdminDashboardScreen extends ConsumerWidget {
+class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminDashboardScreen> createState() =>
+      _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
+  Map<String, dynamic> _dashboard = const {};
+  String? _dashboardError;
+  StreamSubscription<RealtimeEvent>? _realtimeSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(_loadDashboard);
+    _realtimeSubscription = ref
+        .read(realtimeSocketServiceProvider)
+        .events
+        .where(
+          (event) => event.type == 'notification' ||
+              event.type.startsWith('konsultasi.') ||
+              event.type.startsWith('pinjam.') ||
+              event.type.startsWith('usulan_email.'),
+        )
+        .listen((_) => _loadDashboard(fresh: true));
+  }
+
+  @override
+  void dispose() {
+    _realtimeSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadDashboard({bool fresh = false}) async {
+    final role = ref.read(authProvider).currentUser?.role.toLowerCase();
+    if (role != 'admin' && role != 'superadmin') return;
+    try {
+      final data = await ref
+          .read(adminDashboardRepositoryProvider)
+          .getDashboard(bypassCache: fresh);
+      if (mounted) {
+        setState(() {
+          _dashboard = data;
+          _dashboardError = null;
+        });
+      }
+    } catch (_) {
+      // Existing list-based navigation still works if the compact dashboard
+      // endpoint is briefly unavailable. Do not replace the screen with an
+      // opaque exception or stale zeroes.
+      if (mounted) {
+        setState(() => _dashboardError = 'Ringkasan terbaru belum tersedia.');
+      }
+    }
+  }
+
+  int _count(String key, int fallback) {
+    final summary = _dashboard['summary'];
+    final value = summary is Map ? summary[key] : null;
+    return value is int ? value : int.tryParse('$value') ?? fallback;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryTeal = AppColors.primaryTeal(context);
     final actionEmerald = AppColors.actionEmerald(context);
@@ -52,25 +120,25 @@ class AdminDashboardScreen extends ConsumerWidget {
     final konsultasiList = ref.watch(konsultasiProvider).listKonsultasi;
     final emailList = ref.watch(emailProvider).listUsulanEmail;
 
-    final pendingPinjamCount = peminjamanList
+    final fallbackPinjamCount = peminjamanList
         .where((p) => p.status == 'Menunggu')
         .length;
-    final pendingKonsultasiCount = konsultasiList
+    final fallbackKonsultasiCount = konsultasiList
         .where((k) => k.status == 'Menunggu')
         .length;
-    final pendingEmailCount = emailList
+    final fallbackEmailCount = emailList
         .where((e) => e.status == 'diajukan')
         .length;
+    final pendingPinjamCount = _count('peminjaman_open', fallbackPinjamCount);
+    final pendingKonsultasiCount =
+        _count('konsultasi_open', fallbackKonsultasiCount);
+    final pendingEmailCount =
+        _count('usulan_email_pending', fallbackEmailCount);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Panel Admin Gelatik',
-          style: TextStyle(fontWeight: FontWeight.bold, color: primaryTeal),
-        ),
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
+      appBar: const GelatikPageHeader(
+        title: 'Panel Admin',
+        actions: [NotificationBadgeButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -78,6 +146,13 @@ class AdminDashboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_dashboardError != null) ...[
+                Text(
+                  _dashboardError!,
+                  style: TextStyle(fontSize: 12, color: mutedText),
+                ),
+                const SizedBox(height: 12),
+              ],
               // Admin Profile Greeting Banner
               AppCard(
                 child: Row(
@@ -212,6 +287,22 @@ class AdminDashboardScreen extends ConsumerWidget {
                     MaterialPageRoute(
                       builder: (_) => const AdminUsulanEmailListScreen(),
                     ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+              _buildAdminBentoCard(
+                context: context,
+                title: 'Agenda Operasional',
+                subtitle: 'Jadwal pengajuan layanan sesuai peran Anda',
+                badgeText: 'Buka kalender layanan',
+                badgeColor: primaryTeal,
+                icon: Icons.calendar_month_outlined,
+                iconColor: primaryTeal,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const CalendarScreen()),
                   );
                 },
               ),

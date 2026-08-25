@@ -26,7 +26,7 @@ class AdminDashboardController extends Controller
     {
         $superadmin = $request->user()->hasRole('superadmin');
         $scope = $superadmin ? 'superadmin' : 'admin';
-        $data = Cache::remember("dashboard:admin:{$scope}", now()->addSeconds(30), function () use ($superadmin, $scope): array {
+        $data = Cache::remember("dashboard:admin:{$scope}", now()->addSeconds(90), function () use ($superadmin, $scope): array {
             $adminActivity = collect();
             if ($superadmin) {
                 if (Schema::hasTable('admin_audit_logs')) {

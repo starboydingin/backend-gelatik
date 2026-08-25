@@ -1,25 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../theme/app_theme.dart';
-
-class ThemeToggleButton extends ConsumerWidget {
+/// Dark mode is not part of the current Gelatik mobile direction.  Keep this
+/// no-op widget temporarily so existing page headers stay source-compatible
+/// while no redundant control is shown to users.
+class ThemeToggleButton extends StatelessWidget {
   const ThemeToggleButton({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark;
-
-    return IconButton(
-      tooltip: isDark ? 'Beralih ke Light Mode' : 'Beralih ke Dark Mode',
-      icon: Icon(
-        isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-        color: isDark ? Colors.amber : Theme.of(context).colorScheme.primary,
-      ),
-      onPressed: () {
-        ref.read(themeModeProvider.notifier).state =
-            isDark ? ThemeMode.light : ThemeMode.dark;
-      },
-    );
-  }
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }

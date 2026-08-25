@@ -61,7 +61,10 @@ class ApiClient {
 }
 
 class _ShortLivedGetCacheInterceptor extends Interceptor {
-  final Duration ttl = const Duration(seconds: 45);
+  // Navigation uses the most recent in-memory response first. Realtime,
+  // pull-to-refresh, and post-mutation reads opt out with `skipShortCache`,
+  // so this improves perceived speed without hiding fresh business updates.
+  final Duration ttl = const Duration(seconds: 90);
   final Duration staleIfError = const Duration(minutes: 5);
   final Map<String, _CachedGetResponse> _responses = {};
 

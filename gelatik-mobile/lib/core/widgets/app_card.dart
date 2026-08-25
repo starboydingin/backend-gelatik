@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// AppCard — Surface card Neo-Brutalism Teal dengan radius 16px, padding 16-20px, border 1.5px cardStroke TANPA shadow
+/// One calm, touch-friendly surface used by every feature module.
 class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -28,14 +28,14 @@ class AppCard extends StatelessWidget {
     final effectiveBorder = border ??
         Border.all(
           color: strokeColor,
-          width: 1.5,
+          width: 1,
         );
 
     final cardChild = Container(
       padding: padding,
       decoration: BoxDecoration(
         color: backgroundColor ?? theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: effectiveBorder,
         boxShadow: elevation > 0
             ? [
@@ -55,7 +55,7 @@ class AppCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           child: cardChild,
         ),
       );

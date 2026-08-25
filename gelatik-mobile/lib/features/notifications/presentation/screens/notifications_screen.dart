@@ -9,6 +9,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
+import '../../../admin/presentation/screens/admin_peminjaman_detail_screen.dart';
+import '../../../admin/presentation/screens/admin_usulan_email_detail_screen.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../../email/presentation/screens/usulan_email_detail_screen.dart';
 import '../../../email/repositories/email_repository.dart';
 import '../../../konsultasi/presentation/screens/konsultasi_detail_screen.dart';
@@ -97,6 +100,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     }
     if (!mounted) return;
     final resourceId = item.resourceId;
+    final role = ref.read(authProvider).currentUser?.role.toLowerCase() ?? '';
+    final isAdmin = role == 'admin' || role == 'superadmin';
     try {
       final resourceType = item.resourceType?.toLowerCase() ?? '';
       if (resourceId != null && resourceType.contains('konsult')) {
@@ -106,13 +111,24 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         if (mounted) {
           await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => KonsultasiDetailScreen(konsultasi: detail),
+              builder: (_) => KonsultasiDetailScreen(
+                konsultasi: detail,
+                isAdminView: isAdmin,
+              ),
             ),
           );
         }
         return;
       }
       if (resourceId != null && resourceType.contains('pinjam')) {
+        if (isAdmin) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => AdminPeminjamanDetailScreen(pinjamId: resourceId),
+            ),
+          );
+          return;
+        }
         final detail = await ref
             .read(peminjamanRepositoryProvider)
             .getPeminjamanDetail(resourceId);
@@ -126,6 +142,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         return;
       }
       if (resourceId != null && resourceType.contains('email')) {
+        if (isAdmin) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => AdminUsulanEmailDetailScreen(usulanId: resourceId),
+            ),
+          );
+          return;
+        }
         final items = await ref.read(emailRepositoryProvider).getUsulan();
         final detail = items
             .where((entry) => entry.id == resourceId)

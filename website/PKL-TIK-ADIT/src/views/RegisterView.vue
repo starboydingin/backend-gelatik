@@ -7,6 +7,7 @@ import AlertMessage from '../components/AlertMessage.vue'
 import AuthLayout from '../components/AuthLayout.vue'
 import AppInput from '../components/AppInput.vue'
 import AppButton from '../components/AppButton.vue'
+import SearchableSelect from '../components/SearchableSelect.vue'
 const router = useRouter(),
     auth = useAuthStore(),
     opds = ref([]),
@@ -61,19 +62,14 @@ async function submit() {
                     label="Email"
                     type="email"
                     required
-                /><AppInput id="phone" v-model="form.no_hp" label="Nomor HP" required /><label
+                /><AppInput id="phone" v-model="form.no_hp" label="Nomor HP" required /><SearchableSelect
+                    v-model="form.nama_opd"
                     class="md:col-span-2"
-                    ><span class="label">Perangkat daerah / OPD</span
-                    ><select v-model="form.nama_opd" class="input" required>
-                        <option value="" disabled>Pilih OPD</option>
-                        <option
-                            v-for="opd in opds"
-                            :key="opd.id || opd.nama_opd"
-                            :value="opd.nama_opd || opd"
-                        >
-                            {{ opd.nama_opd || opd }}
-                        </option>
-                    </select></label
+                    label="Perangkat daerah / OPD"
+                    placeholder="Pilih OPD"
+                    search-placeholder="Cari nama OPD…"
+                    :options="opds.map((opd) => ({ value: opd.nama_opd || opd, label: opd.nama_opd || opd }))"
+                />
                 ><AppInput
                     id="new-password"
                     v-model="form.password"

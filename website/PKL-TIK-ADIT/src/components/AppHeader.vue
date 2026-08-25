@@ -1,12 +1,10 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Bars3Icon } from '@heroicons/vue/24/outline'
 import NotificationDropdown from './NotificationDropdown.vue'
 import GelatikLogo from './GelatikLogo.vue'
 
 defineProps({ user: Object, subtitle: String, adminArea: Boolean })
-defineEmits(['menu'])
 const route = useRoute()
 const titles = {
     dashboard: ['Ringkasan aktivitas layanan', 'Dashboard'],
@@ -47,13 +45,6 @@ const initials = computed(() => (String(route.meta?.initials || '') || '').trim(
     <header
         class="app-top-header sticky top-0 z-20 flex min-h-[76px] items-center gap-3 border-b px-4 md:gap-4 md:px-7"
     >
-        <button
-            class="icon-button shrink-0 lg:hidden"
-            aria-label="Buka menu navigasi"
-            @click="$emit('menu')"
-        >
-            <Bars3Icon class="size-6" />
-        </button>
         <!-- Desktop branding lives only in the persistent left navigation. -->
         <GelatikLogo compact class="shrink-0 lg:hidden" />
         <div class="min-w-0 flex-1">

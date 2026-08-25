@@ -397,7 +397,7 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(find.byType(CircularProgressIndicator), findsNWidgets(3));
+      expect(find.byType(CircularProgressIndicator), findsNWidgets(4));
     });
 
     testWidgets('renders user success totals and recent data', (tester) async {
@@ -492,7 +492,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('home-partial-error')), findsOneWidget);
       expect(find.text('12'), findsOneWidget);
-      expect(find.text('—'), findsOneWidget);
+      expect(find.text('—'), findsNothing);
     });
 
     testWidgets('full error retries and recovers', (tester) async {

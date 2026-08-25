@@ -9,7 +9,6 @@ use App\Models\Pengumuman;
 use App\Models\UsulanEmail;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 
 class CalendarController extends Controller
 {
@@ -37,14 +36,9 @@ class CalendarController extends Controller
 
         $user = $request->user();
         $allRecords = $user->hasAnyRole(['admin', 'superadmin']);
-        $cacheKey = implode(':', [
-            'dashboard',
-            'calendar',
-            $allRecords ? 'admin' : $user->id,
-            $start->toDateString(),
-            $end->toDateString(),
-        ]);
-        $events = Cache::remember($cacheKey, now()->addSeconds(30), function () use ($allRecords, $user, $start, $end) {
+        // Calendar is opened on demand and must reflect status changes as soon
+        // as a realtime event is received. Avoid a per-month stale cache here.
+        $events = (function () use ($allRecords, $user, $start, $end) {
             $pinjam = Pinjam::query()
                 ->when(! $allRecords, fn ($query) => $query->where('user_id', $user->id))
                 ->whereBetween('tanggal_mulai', [$start->toDateString(), $end->toDateString()])
@@ -96,7 +90,7 @@ class CalendarController extends Controller
                 'status' => 'Informasi',
                 'reference_id' => $item->id,
             ]))->values();
-        });
+        })();
 
         return response()->json(['success' => true, 'data' => $events]);
     }

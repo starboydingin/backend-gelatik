@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 enum AppButtonVariant { filled, outlined }
 
-/// AppButton — Reusable button with stadium/24px rounded border
+/// Shared mobile action: rounded enough for touch, never a pill by default.
 class AppButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
@@ -80,10 +80,11 @@ class AppButton extends StatelessWidget {
     final buttonStyle = ElevatedButton.styleFrom(
       backgroundColor: effectiveBgColor,
       foregroundColor: effectiveTextColor,
-      elevation: variant == AppButtonVariant.filled ? 1 : 0,
-      shape: StadiumBorder(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
         side: variant == AppButtonVariant.outlined && showBorder
-            ? BorderSide(color: effectiveTextColor, width: 1.5)
+            ? BorderSide(color: effectiveTextColor, width: 1.25)
             : BorderSide.none,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),

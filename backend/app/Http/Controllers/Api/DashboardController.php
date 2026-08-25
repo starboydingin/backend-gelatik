@@ -22,7 +22,7 @@ class DashboardController extends Controller
         $user = $request->user();
         $data = Cache::remember(
             "dashboard:user:{$user->id}",
-            now()->addSeconds(30),
+            now()->addSeconds(90),
             fn (): array => $this->dashboardService->getUserDashboard($user),
         );
 

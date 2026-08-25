@@ -5,16 +5,18 @@ import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
-import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
 import '../../../internet/presentation/screens/self_assessment_screen.dart';
 import '../../../notifications/presentation/screens/notifications_screen.dart';
 import '../../../peminjaman/presentation/screens/ajukan_peminjaman_screen.dart';
+import '../../../../core/widgets/notification_badge_button.dart';
 import '../../providers/wa_notification_provider.dart';
 import 'edit_profil_screen.dart';
 import 'change_password_screen.dart';
 import 'notifikasi_whatsapp_screen.dart';
+import 'activity_log_screen.dart';
 import '../../../rating/presentation/screens/rating_screen.dart';
 
 /// ProfilScreen — Modul M-J Profil Pengguna Gelatik Mobile
@@ -204,7 +206,7 @@ class ProfilScreen extends ConsumerWidget {
     return Scaffold(
       appBar: const GelatikPageHeader(
         title: 'Profil',
-        actions: [ThemeToggleButton(), SizedBox(width: 8)],
+        actions: [NotificationBadgeButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -225,16 +227,13 @@ class ProfilScreen extends ConsumerWidget {
                   AppCard(
                     child: Row(
                       children: [
-                        // Avatar Lingkaran Aksen Navy/Gold dengan Inisial Nama
+                        // A solid primary avatar keeps the profile identifiable
+                        // without introducing a decorative gradient.
                         Container(
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [accentNavy, accentGold],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
+                            color: accentNavy,
                             shape: BoxShape.circle,
                             border: Border.all(color: strokeColor, width: 2),
                           ),
@@ -338,6 +337,20 @@ class ProfilScreen extends ConsumerWidget {
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => const ChangePasswordScreen(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.history_rounded,
+                    iconColor: primaryTeal,
+                    title: 'Log Aktivitas',
+                    subtitle: 'Riwayat layanan dan pembaruan pada akun Anda',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ActivityLogScreen(),
                       ),
                     ),
                   ),
@@ -470,6 +483,10 @@ class ProfilScreen extends ConsumerWidget {
       ),
       bottomNavigationBar: AppBottomNav(
         currentIndex: 2,
+        isAdmin: user != null &&
+            const {'admin', 'superadmin', 'bkd'}.contains(
+              user.role.toLowerCase(),
+            ),
         onTap: (index) {
           if (index == 0) {
             Navigator.of(context).popUntil((route) => route.isFirst);
@@ -479,6 +496,14 @@ class ProfilScreen extends ConsumerWidget {
             );
           } else if (index == 2) {
             // Already in ProfilScreen
+          } else if (index == 3 &&
+              user != null &&
+              const {'admin', 'superadmin', 'bkd'}.contains(
+                user.role.toLowerCase(),
+              )) {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+            );
           }
         },
       ),

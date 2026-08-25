@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_searchable_select.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -366,67 +367,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 ),
                                 const SizedBox(height: 16),
 
-                                // 5. Dropdown OPD
-                                DropdownButtonFormField<String>(
+                                // 5. OPD is a long server-provided list. Use a
+                                // searchable picker instead of a clipped native
+                                // dropdown, especially on narrow devices.
+                                AppSearchableSelect<String>(
                                   key: const Key('opd_dropdown'),
-                                  initialValue: _selectedOpd,
-                                  isExpanded: true,
-                                  decoration: InputDecoration(
-                                    labelText:
-                                        'Organisasi Perangkat Daerah (OPD)',
-                                    hintText: 'Pilih OPD Anda',
-                                    errorText: _opdError,
-                                    prefixIcon: const Icon(
-                                      Icons.business_rounded,
-                                    ),
-                                    filled: true,
-                                    fillColor: theme
-                                        .colorScheme
-                                        .surfaceContainerHighest,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 14,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide(
-                                        color: primaryTeal,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    errorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide(
-                                        color: theme.colorScheme.error,
-                                        width: 1.5,
-                                      ),
-                                    ),
+                                  labelText:
+                                      'Organisasi Perangkat Daerah (OPD)',
+                                  hintText: 'Pilih OPD Anda',
+                                  searchHint: 'Cari nama OPD…',
+                                  value: _selectedOpd,
+                                  errorText: _opdError,
+                                  prefixIcon: const Icon(
+                                    Icons.business_rounded,
                                   ),
-                                  items: authState.opds.map((opd) {
-                                    return DropdownMenuItem<String>(
-                                      value: opd,
-                                      child: Text(
-                                        opd,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: theme.colorScheme.onSurface,
+                                  enabled: !authState.isOpdLoading,
+                                  options: authState.opds
+                                      .map(
+                                        (opd) => SearchableSelectOption<String>(
+                                          value: opd,
+                                          label: opd,
                                         ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    );
-                                  }).toList(),
-                                  onChanged: authState.isOpdLoading
-                                      ? null
-                                      : (val) {
-                                          setState(() {
-                                            _selectedOpd = val;
-                                            _opdError = null;
-                                          });
-                                        },
+                                      )
+                                      .toList(growable: false),
+                                  onChanged: (value) => setState(() {
+                                    _selectedOpd = value;
+                                    _opdError = null;
+                                  }),
                                 ),
                                 if (authState.isOpdLoading) ...[
                                   const SizedBox(height: 8),

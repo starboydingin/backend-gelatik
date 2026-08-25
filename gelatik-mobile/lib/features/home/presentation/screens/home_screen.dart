@@ -5,12 +5,15 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
+import '../../../../core/widgets/notification_badge_button.dart';
 import '../../../../core/widgets/status_badge.dart';
-import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../chatbot/presentation/screens/chatbot_native_screen.dart';
+import '../../../calendar/presentation/screens/calendar_screen.dart';
+import '../../../email/models/usulan_email_model.dart';
+import '../../../email/presentation/screens/usulan_email_detail_screen.dart';
 import '../../../email/presentation/screens/usulan_email_list_screen.dart';
 import '../../../info_alat/presentation/screens/info_alat_screen.dart';
 import '../../../internet/presentation/screens/layanan_internet_screen.dart';
@@ -60,10 +63,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(homeProvider);
     final data = state.data;
-    final announcement = ref
-        .watch(activeAnnouncementsProvider)
-        .valueOrNull
-        ?.firstOrNull;
+    final announcement = data.announcements.firstOrNull;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final horizontalPadding = screenWidth >= 960
         ? (screenWidth - 920) / 2
@@ -71,15 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       appBar: GelatikPageHeader(
         title: 'Beranda',
-        actions: [
-          IconButton(
-            tooltip: 'Notifikasi',
-            onPressed: () => _open(const NotificationsScreen()),
-            icon: const Icon(Icons.notifications_none_rounded),
-          ),
-          const ThemeToggleButton(),
-          const SizedBox(width: 8),
-        ],
+        actions: [const NotificationBadgeButton(), const SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -96,12 +88,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               112,
             ),
             children: [
+              // The Gelatik service banner remains the page's primary entry.
+              // Announcements follow it so they do not push the brand message
+              // above the main service context.
+              _ServiceBanner(data: data),
+              const SizedBox(height: 14),
               if (announcement != null) ...[
                 _AnnouncementBanner(announcement: announcement),
-                const SizedBox(height: 14),
+                const SizedBox(height: 24),
               ],
-              _ServiceBanner(data: data),
-              const SizedBox(height: 24),
+              if (announcement == null) const SizedBox(height: 10),
               if (state.status == HomeLoadStatus.error)
                 _FullErrorCard(
                   message: state.errorMessage ?? 'Data Home gagal dimuat.',
@@ -112,9 +108,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               else ...[
                 _SummarySection(
                   state: state,
-                  onItems: () => _open(const InfoAlatScreen()),
                   onBorrowings: () => _open(const PeminjamanListScreen()),
                   onConsultations: () => _open(const KonsultasiListScreen()),
+                  onEmails: () => _open(const UsulanEmailListScreen()),
                 ),
                 const SizedBox(height: 28),
                 _QuickMenu(onOpen: _open),
@@ -125,9 +121,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       _open(PeminjamanDetailScreen(pinjam: item)),
                   onConsultation: (item) =>
                       _open(KonsultasiDetailScreen(konsultasi: item)),
+                  onEmail: (item) =>
+                      _open(UsulanEmailDetailScreen(usulan: item)),
                   onAllBorrowings: () => _open(const PeminjamanListScreen()),
                   onAllConsultations: () => _open(const KonsultasiListScreen()),
+                  onAllEmails: () => _open(const UsulanEmailListScreen()),
                 ),
+                const SizedBox(height: 28),
+                _ServiceInsightsSection(data: data),
               ],
             ],
           ),
@@ -331,15 +332,15 @@ class _ServiceBanner extends StatelessWidget {
 
 class _SummarySection extends StatelessWidget {
   final HomeState state;
-  final VoidCallback onItems;
   final VoidCallback onBorrowings;
   final VoidCallback onConsultations;
+  final VoidCallback onEmails;
 
   const _SummarySection({
     required this.state,
-    required this.onItems,
     required this.onBorrowings,
     required this.onConsultations,
+    required this.onEmails,
   });
 
   @override
@@ -353,46 +354,72 @@ class _SummarySection extends StatelessWidget {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _SummaryCard(
-                key: const Key('summary-items'),
-                label: 'Aset Tersedia',
-                value: state.data.availableItemCount,
-                loading: loading,
-                failed: state.sectionErrors.containsKey(HomeSection.items),
-                icon: Icons.inventory_2_outlined,
-                onTap: onItems,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _SummaryCard(
-                key: const Key('summary-borrowings'),
-                label: 'Total Pinjam',
-                value: state.data.totalBorrowingCount,
-                loading: loading,
-                failed: state.sectionErrors.containsKey(HomeSection.borrowings),
-                icon: Icons.assignment_outlined,
-                onTap: onBorrowings,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _SummaryCard(
-                key: const Key('summary-consultations'),
-                label: 'Total Konsultasi',
-                value: state.data.totalConsultationCount,
-                loading: loading,
-                failed: state.sectionErrors.containsKey(
-                  HomeSection.consultations,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth >= 720 ? 4 : 2;
+            return GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: columns,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: columns == 4 ? 1.55 : 1.42,
+              children: [
+                _SummaryCard(
+                  key: const Key('summary-borrowings'),
+                  label: 'Peminjaman aktif',
+                  value:
+                      state.data.activeBorrowingCount ??
+                      state.data.totalBorrowingCount,
+                  loading: loading,
+                  failed: state.sectionErrors.containsKey(
+                    HomeSection.borrowings,
+                  ),
+                  icon: Icons.assignment_outlined,
+                  onTap: onBorrowings,
                 ),
-                icon: Icons.forum_outlined,
-                onTap: onConsultations,
-              ),
-            ),
-          ],
+                _SummaryCard(
+                  key: const Key('summary-consultations'),
+                  label: 'Konsultasi aktif',
+                  value:
+                      state.data.activeConsultationCount ??
+                      state.data.totalConsultationCount,
+                  loading: loading,
+                  failed: state.sectionErrors.containsKey(
+                    HomeSection.consultations,
+                  ),
+                  icon: Icons.forum_outlined,
+                  onTap: onConsultations,
+                ),
+                _SummaryCard(
+                  key: const Key('summary-email'),
+                  label: 'Usulan email',
+                  value: state.data.emailRequestCount,
+                  loading: loading,
+                  failed: state.sectionErrors.containsKey(
+                    HomeSection.dashboard,
+                  ),
+                  icon: Icons.mark_email_unread_outlined,
+                  onTap: onEmails,
+                ),
+                _SummaryCard(
+                  key: const Key('summary-notifications'),
+                  label: 'Notifikasi baru',
+                  value: state.data.unreadNotificationCount,
+                  loading: loading,
+                  failed: state.sectionErrors.containsKey(
+                    HomeSection.dashboard,
+                  ),
+                  icon: Icons.notifications_none_rounded,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen(),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
         if (state.hasPartialFailure) ...[
           const SizedBox(height: 8),
@@ -460,15 +487,19 @@ class _RecentSection extends StatelessWidget {
   final HomeState state;
   final ValueChanged<PinjamModel> onBorrowing;
   final ValueChanged<KonsultasiModel> onConsultation;
+  final ValueChanged<UsulanEmailModel> onEmail;
   final VoidCallback onAllBorrowings;
   final VoidCallback onAllConsultations;
+  final VoidCallback onAllEmails;
 
   const _RecentSection({
     required this.state,
     required this.onBorrowing,
     required this.onConsultation,
+    required this.onEmail,
     required this.onAllBorrowings,
     required this.onAllConsultations,
+    required this.onAllEmails,
   });
 
   @override
@@ -506,11 +537,414 @@ class _RecentSection extends StatelessWidget {
             onTap: () => onConsultation(item),
           ),
         ),
+      const SizedBox(height: 16),
+      _RecentHeader(title: 'Usulan Email Terbaru', onAll: onAllEmails),
+      if (state.sectionErrors.containsKey(HomeSection.dashboard) &&
+          state.data.recentEmailRequests.isEmpty)
+        const _SectionError(message: 'Usulan email terbaru gagal dimuat.')
+      else if (state.data.recentEmailRequests.isEmpty)
+        const _EmptyRecent(message: 'Belum ada usulan email.')
+      else
+        ...state.data.recentEmailRequests.map(
+          (item) => _RecentTile(
+            title: item.pegawai == null ? item.emailPribadi : item.namaPegawai,
+            subtitle: item.emailResmi?.isNotEmpty == true
+                ? item.emailResmi!
+                : 'Menunggu pemrosesan email resmi',
+            status: item.status,
+            onTap: () => onEmail(item),
+          ),
+        ),
     ],
   );
 
   static String _date(DateTime value) =>
       '${value.day}/${value.month}/${value.year}';
+}
+
+/// Compact, anonymous service insights. These match the website dashboard
+/// data without exposing another user's transaction details on mobile.
+class _ServiceInsightsSection extends StatelessWidget {
+  final HomeDashboardModel data;
+
+  const _ServiceInsightsSection({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final points = data.serviceActivity.length > 7
+        ? data.serviceActivity.sublist(data.serviceActivity.length - 7)
+        : data.serviceActivity;
+    final maximum = points.fold<int>(1, (value, point) {
+      return point.total > value ? point.total : value;
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Insight Layanan',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Aktivitas layanan 7 hari terakhir',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Ringkasan seluruh pengguna tanpa menampilkan data pribadi.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.mutedText(context),
+                ),
+              ),
+              const SizedBox(height: 18),
+              if (points.isEmpty)
+                const _EmptyRecent(message: 'Aktivitas layanan belum tersedia.')
+              else
+                SizedBox(
+                  height: 118,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: points
+                        .map(
+                          (point) => Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 3,
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Expanded(
+                                    child: Align(
+                                      alignment: Alignment.bottomCenter,
+                                      child: Container(
+                                        width: double.infinity,
+                                        constraints: const BoxConstraints(
+                                          minHeight: 4,
+                                        ),
+                                        height: 74 * point.total / maximum,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primaryTeal(context),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 7),
+                                  Text(
+                                    point.date.length >= 10
+                                        ? point.date.substring(8, 10)
+                                        : '–',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.mutedText(context),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 600;
+            final cards = [
+              _UsageCard(
+                title: 'Topik konsultasi',
+                icon: Icons.forum_outlined,
+                data: data.consultationTopics,
+                emptyText: 'Belum ada topik.',
+              ),
+              _UsageCard(
+                title: 'Aset populer',
+                icon: Icons.devices_other_outlined,
+                data: data.assetUsage,
+                emptyText: 'Belum ada aset dipinjam.',
+              ),
+            ];
+            final usageCards = isWide
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: cards
+                        .map(
+                          (card) => Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              child: card,
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                  )
+                : Column(
+                    children: cards
+                        .map(
+                          (card) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: card,
+                          ),
+                        )
+                        .toList(growable: false),
+                  );
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                usageCards,
+                const SizedBox(height: 12),
+                _RatingInsightCard(
+                  average: data.serviceRatingAverage,
+                  count: data.serviceRatingCount,
+                  distribution: data.serviceRatingDistribution,
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _UsageCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final List<ServiceUsageMetric> data;
+  final String emptyText;
+
+  const _UsageCard({
+    required this.title,
+    required this.icon,
+    required this.data,
+    required this.emptyText,
+  });
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: AppColors.primaryTeal(context)),
+        const SizedBox(height: 10),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 10),
+        if (data.isEmpty)
+          Text(emptyText, style: TextStyle(color: AppColors.mutedText(context)))
+        else
+          ...data
+              .take(3)
+              .map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${item.total}',
+                        style: TextStyle(
+                          color: AppColors.accentNavy(context),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+      ],
+    ),
+  );
+}
+
+class _RatingInsightCard extends StatelessWidget {
+  final double average;
+  final int count;
+  final Map<int, int> distribution;
+
+  const _RatingInsightCard({
+    required this.average,
+    required this.count,
+    required this.distribution,
+  });
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'KUALITAS LAYANAN',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.1,
+            color: AppColors.primaryTeal(context),
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Rating pengguna',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        average.toStringAsFixed(1),
+                        style: TextStyle(
+                          fontSize: 52,
+                          height: .9,
+                          color: AppColors.accentNavy(context),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.only(left: 3, bottom: 4),
+                        child: Text(
+                          '/5',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _RatingStars(value: average),
+                ],
+              ),
+            ),
+            Container(
+              constraints: const BoxConstraints(minWidth: 122),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              decoration: BoxDecoration(
+                color: AppColors.accentNavy(context).withValues(alpha: .08),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 23,
+                      color: AppColors.accentNavy(context),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'penilaian pengguna',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.accentNavy(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        ...List.generate(5, (index) {
+          final score = 5 - index;
+          final votes = distribution[score] ?? 0;
+          final percentage = count == 0 ? 0.0 : votes / count;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                SizedBox(width: 76, child: Text('$score bintang')),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: percentage,
+                      minHeight: 12,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      valueColor: AlwaysStoppedAnimation(
+                        AppColors.accentGold(context),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 20,
+                  child: Text('$votes', textAlign: TextAlign.right),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    ),
+  );
+}
+
+class _RatingStars extends StatelessWidget {
+  final double value;
+
+  const _RatingStars({required this.value});
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: List.generate(5, (index) {
+      final fill = (value - index).clamp(0.0, 1.0).toDouble();
+      return SizedBox(
+        width: 28,
+        height: 28,
+        child: Stack(
+          children: [
+            const Icon(Icons.star_rounded, color: Color(0xFFE2E8F0), size: 28),
+            ClipRect(
+              child: Align(
+                widthFactor: fill,
+                alignment: Alignment.centerLeft,
+                child: Icon(
+                  Icons.star_rounded,
+                  color: AppColors.accentGold(context),
+                  size: 28,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }),
+  );
 }
 
 class _RecentHeader extends StatelessWidget {
@@ -656,6 +1090,13 @@ class _QuickMenu extends StatelessWidget {
         const PeminjamanListScreen(),
       ),
       _MenuData(
+        'Agenda',
+        'Jadwal layanan Anda',
+        Icons.calendar_month_outlined,
+        AppColors.primaryTeal(context),
+        const CalendarScreen(),
+      ),
+      _MenuData(
         'Kritik & Saran',
         'Evaluasi Layanan',
         Icons.rate_review_rounded,
@@ -669,6 +1110,13 @@ class _QuickMenu extends StatelessWidget {
         AppColors.accentGold(context),
         const ChatbotNativeScreen(),
         'AI',
+      ),
+      _MenuData(
+        'Bantuan & FAQ',
+        'Panduan layanan TIK',
+        Icons.help_outline_rounded,
+        const Color(0xFF16A34A),
+        const SelfAssessmentScreen(),
       ),
     ];
     return Column(
@@ -702,47 +1150,6 @@ class _QuickMenu extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: 12),
-        AppCard(
-          onTap: () => onOpen(const SelfAssessmentScreen()),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFDCFCE7),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.help_outline_rounded,
-                  color: Color(0xFF15803D),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Bantuan & FAQ',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Panduan penggunaan layanan',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.mutedText(context),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -774,67 +1181,73 @@ class _MenuCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AppCard(
     onTap: onTap,
-    child: Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: item.color.withValues(alpha: .14),
-                  shape: BoxShape.circle,
+    child: Container(
+      decoration: BoxDecoration(
+        color: item.color.withValues(alpha: .055),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: item.color.withValues(alpha: .14),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(item.icon, color: item.color, size: 27),
                 ),
-                child: Icon(item.icon, color: item.color, size: 27),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                item.title,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primaryTeal(context),
+                const SizedBox(height: 8),
+                Text(
+                  item.title,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryTeal(context),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                item.subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: AppColors.mutedText(context),
+                const SizedBox(height: 2),
+                Text(
+                  item.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: AppColors.mutedText(context),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        if (item.badge != null)
-          Positioned(
-            top: -4,
-            right: -4,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.accentGold(context),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                item.badge!,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+          if (item.badge != null)
+            Positioned(
+              top: -4,
+              right: -4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.accentGold(context),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  item.badge!,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     ),
   );
 }

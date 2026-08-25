@@ -12,6 +12,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 use App\Services\NodeServiceClient;
 use App\Services\RealtimeEventPayload;
@@ -119,6 +120,7 @@ class PinjamService
             'pinjam',
             ['status' => $pinjam->status],
         );
+        $this->forgetDashboardCache((int) $user->id);
         event(new PinjamCreated($pinjam));
 
         return $pinjam->load('pinjamItems.masterItem');
@@ -167,6 +169,7 @@ class PinjamService
         }
 
         $pinjam->update($updateData);
+        $this->forgetDashboardCache((int) $pinjam->user_id);
 
         if ($admin) {
             $this->audit->record(
@@ -338,6 +341,18 @@ class PinjamService
             throw new \InvalidArgumentException('Pengajuan yang sudah diproses tidak dapat dihapus.');
         }
 
-        return (bool) $pinjam->delete();
+        $deleted = (bool) $pinjam->delete();
+        if ($deleted) {
+            $this->forgetDashboardCache((int) $pinjam->user_id);
+        }
+        return $deleted;
+    }
+
+    private function forgetDashboardCache(int $userId): void
+    {
+        Cache::forget("dashboard:user:{$userId}");
+        Cache::forget('dashboard:service-insights');
+        Cache::forget('dashboard:admin:admin');
+        Cache::forget('dashboard:admin:superadmin');
     }
 }

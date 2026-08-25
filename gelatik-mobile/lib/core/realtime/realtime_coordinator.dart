@@ -26,7 +26,9 @@ class RealtimeCoordinator {
   }
 
   void _onEvent(RealtimeEvent event) {
-    if (event.type.startsWith('pinjam.')) {
+    if (event.type == 'notification') {
+      _schedule('notification', () => home.refreshFromRealtime());
+    } else if (event.type.startsWith('pinjam.')) {
       _schedule('pinjam', () async {
         await peminjaman.refreshFromRealtime(event.entityId);
         await home.refreshFromRealtime();

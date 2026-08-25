@@ -30,7 +30,7 @@ class RatingService
             'user_id' => $user->id,
             'rating'  => $nilai,
         ]);
-        Cache::forget('dashboard:service-insights');
+        $this->forgetDashboardCache((int) $user->id);
 
         return $rating;
     }
@@ -52,7 +52,7 @@ class RatingService
         }
 
         $rating->update(['rating' => $nilaiBaru]);
-        Cache::forget('dashboard:service-insights');
+        $this->forgetDashboardCache((int) $user->id);
 
         return $rating;
     }
@@ -78,5 +78,13 @@ class RatingService
             'total_user' => $total,
             'distribusi' => $distribusi,
         ];
+    }
+
+    private function forgetDashboardCache(int $userId): void
+    {
+        Cache::forget("dashboard:user:{$userId}");
+        Cache::forget('dashboard:service-insights');
+        Cache::forget('dashboard:admin:admin');
+        Cache::forget('dashboard:admin:superadmin');
     }
 }

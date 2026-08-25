@@ -23,7 +23,7 @@ class GelatikPageHeader extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final strokeColor = AppColors.cardStroke(context);
-    final primaryTeal = AppColors.primaryTeal(context);
+    final primary = Theme.of(context).colorScheme.primary;
     final isNarrow = MediaQuery.sizeOf(context).width < 360;
     final logoWidth = isNarrow ? 52.0 : 68.0;
     final titleSize = isNarrow ? 21.0 : 25.0;
@@ -32,7 +32,7 @@ class GelatikPageHeader extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       toolbarHeight: preferredSize.height,
       backgroundColor: Theme.of(context).colorScheme.surface,
-      foregroundColor: primaryTeal,
+      foregroundColor: primary,
       surfaceTintColor: Colors.transparent,
       titleSpacing: 20,
       title: Row(
@@ -62,7 +62,7 @@ class GelatikPageHeader extends StatelessWidget implements PreferredSizeWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: primaryTeal,
+                color: primary,
                 fontSize: titleSize,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.5,

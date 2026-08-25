@@ -173,7 +173,6 @@ onBeforeUnmount(disconnectRealtime)
                 :user="auth.user"
                 :subtitle="auth.roles.join(', ')"
                 :admin-area="adminArea"
-                @menu="open = true"
         /></template>
         <PageContainer>
             <RouterView v-slot="{ Component }">

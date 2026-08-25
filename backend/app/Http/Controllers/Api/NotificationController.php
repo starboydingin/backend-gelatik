@@ -61,6 +61,12 @@ class NotificationController extends Controller
             $notification->update(['read' => true]);
         }
 
+        app(NotificationRealtimeService::class)->inboxState(
+            (int) $userId,
+            (int) $notification->id,
+            'read',
+        );
+
         return response()->json(['success' => true, 'message' => 'Notifikasi berhasil ditandai telah dibaca.']);
     }
 
@@ -79,6 +85,14 @@ class NotificationController extends Controller
                 );
             }
         }
+
+        // Any positive event entity is sufficient for clients to refresh their
+        // own inbox count; it is not interpreted as a resource deep link.
+        app(NotificationRealtimeService::class)->inboxState(
+            (int) $userId,
+            1,
+            'read_all',
+        );
 
         return response()->json(['success' => true, 'message' => 'Semua notifikasi ditandai telah dibaca.']);
     }

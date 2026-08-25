@@ -13,6 +13,7 @@ use App\Services\NodeServiceClient;
 use App\Services\RealtimeEventPayload;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 
 class KonsultasiService
@@ -54,6 +55,7 @@ class KonsultasiService
             'konsultasi',
             ['status' => $konsultasi->status],
         );
+        $this->forgetDashboardCache((int) $user->id);
         event(new KonsultasiCreated($konsultasi));
 
         return $konsultasi->load(['user', 'topik']);
@@ -75,6 +77,7 @@ class KonsultasiService
             'pesan'         => $isiRespon,
             'file'          => $filePath,
         ]);
+        $this->forgetDashboardCache((int) $konsultasi->user_id);
 
         // Jika pembalas adalah admin (atau user lain), update status Konsultasi otomatis menjadi 'Diproses'
         $isAdmin = (int) $pembalas->id !== (int) $konsultasi->user_id;
@@ -144,6 +147,7 @@ class KonsultasiService
             'status'     => $statusBaru,
             'updated_by' => $admin ? $admin->id : null,
         ]);
+        $this->forgetDashboardCache((int) $konsultasi->user_id);
 
         if ($admin) {
             $this->audit->record(
@@ -178,5 +182,13 @@ class KonsultasiService
         event(new KonsultasiStatusChanged($konsultasi, $oldStatus, $statusBaru));
 
         return $konsultasi;
+    }
+
+    private function forgetDashboardCache(int $userId): void
+    {
+        Cache::forget("dashboard:user:{$userId}");
+        Cache::forget('dashboard:service-insights');
+        Cache::forget('dashboard:admin:admin');
+        Cache::forget('dashboard:admin:superadmin');
     }
 }

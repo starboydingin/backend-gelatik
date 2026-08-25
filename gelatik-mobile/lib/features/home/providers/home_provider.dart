@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/paginated_result.dart';
+import '../../../core/network/api_exception.dart';
 import '../../auth/models/user_model.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../info_alat/models/master_item_model.dart';
@@ -10,6 +11,7 @@ import '../../konsultasi/repositories/konsultasi_repository.dart';
 import '../../peminjaman/models/pinjam_model.dart';
 import '../../peminjaman/repositories/peminjaman_repository.dart';
 import '../models/home_dashboard_model.dart';
+import '../repositories/dashboard_repository.dart';
 
 enum HomeLoadStatus {
   initial,
@@ -21,7 +23,7 @@ enum HomeLoadStatus {
   refreshing,
 }
 
-enum HomeSection { items, borrowings, consultations }
+enum HomeSection { dashboard, items, borrowings, consultations }
 
 enum HomeErrorType {
   network,
@@ -57,6 +59,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
   final MasterItemRepository? masterItemRepository;
   final PeminjamanRepository? peminjamanRepository;
   final KonsultasiRepository? konsultasiRepository;
+  final DashboardRepository? dashboardRepository;
   final UserModel? user;
   int _generation = 0;
 
@@ -64,6 +67,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
     required MasterItemRepository this.masterItemRepository,
     required PeminjamanRepository this.peminjamanRepository,
     required KonsultasiRepository this.konsultasiRepository,
+    this.dashboardRepository,
     required this.user,
   }) : super(HomeState(data: HomeDashboardModel.fromSources(user: user)));
 
@@ -76,6 +80,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
   }) : masterItemRepository = null,
        peminjamanRepository = null,
        konsultasiRepository = null,
+       dashboardRepository = null,
        user = null,
        super(
          HomeState(
@@ -99,11 +104,61 @@ class HomeNotifier extends StateNotifier<HomeState> {
     await _fetch(refreshing: false);
   }
 
-  Future<void> refresh() => _fetch(refreshing: true);
-  Future<void> retry() => _fetch(refreshing: false);
-  Future<void> refreshFromRealtime() => _fetch(refreshing: true);
+  Future<void> refresh() => _fetch(refreshing: true, bypassCache: true);
+  Future<void> retry() => _fetch(refreshing: false, bypassCache: true);
+  Future<void> refreshFromRealtime() =>
+      _fetch(refreshing: true, bypassCache: true);
 
-  Future<void> _fetch({required bool refreshing}) async {
+  Future<void> _fetch({required bool refreshing, bool bypassCache = false}) async {
+    final aggregateRepository = dashboardRepository;
+    if (aggregateRepository != null) {
+      final generation = ++_generation;
+      state = HomeState(
+        status: refreshing ? HomeLoadStatus.refreshing : HomeLoadStatus.loading,
+        data: state.data,
+      );
+      try {
+        final payload = await aggregateRepository.getDashboard(
+          bypassCache: bypassCache,
+        );
+        if (generation != _generation) return;
+        final data = HomeDashboardModel.fromDashboardPayload(
+          user: user,
+          payload: payload,
+          previous: state.data,
+        );
+        state = HomeState(
+          status: data.isEmpty ? HomeLoadStatus.empty : HomeLoadStatus.success,
+          data: data,
+        );
+        return;
+      } on ApiException catch (error) {
+        if (generation != _generation) return;
+        state = HomeState(
+          status: HomeLoadStatus.error,
+          data: state.data,
+          sectionErrors: {HomeSection.dashboard: error.message},
+          errorMessage: error.statusCode == 401
+              ? 'Sesi Anda telah berakhir. Silakan login kembali.'
+              : 'Data Home tidak dapat dimuat. Silakan coba lagi.',
+          errorType: _dashboardError(error.statusCode),
+        );
+        return;
+      } catch (_) {
+        if (generation != _generation) return;
+        state = HomeState(
+          status: HomeLoadStatus.error,
+          data: state.data,
+          sectionErrors: const {
+            HomeSection.dashboard: 'Dashboard tidak dapat diperbarui.',
+          },
+          errorMessage: 'Data Home tidak dapat dimuat. Silakan coba lagi.',
+          errorType: HomeErrorType.unknown,
+        );
+        return;
+      }
+    }
+
     final itemRepository = masterItemRepository;
     final borrowRepository = peminjamanRepository;
     final consultRepository = konsultasiRepository;
@@ -142,6 +197,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         continue;
       }
       switch (outcome.section) {
+        case HomeSection.dashboard:
+          break;
         case HomeSection.items:
           items = outcome.value as List<MasterItemModel>;
         case HomeSection.borrowings:
@@ -158,7 +215,11 @@ class HomeNotifier extends StateNotifier<HomeState> {
       consultations: consultations,
       previous: state.data,
     );
-    final allFailed = errors.length == HomeSection.values.length;
+    // The legacy fallback only requests these three sections. `dashboard` is
+    // an enum member for the aggregate path above, so counting every enum
+    // member here would incorrectly present a partial success when all three
+    // fallback calls failed.
+    final allFailed = errors.length == 3;
     final unauthorized = outcomes.any(
       (outcome) => outcome.error?.type == HomeErrorType.unauthorized,
     );
@@ -225,6 +286,13 @@ class HomeNotifier extends StateNotifier<HomeState> {
     _ => HomeErrorType.unknown,
   };
 
+  HomeErrorType _dashboardError(int? statusCode) {
+    if (statusCode == 401) return HomeErrorType.unauthorized;
+    if (statusCode == 403) return HomeErrorType.forbidden;
+    if (statusCode != null && statusCode >= 500) return HomeErrorType.server;
+    return HomeErrorType.network;
+  }
+
   HomeErrorType _borrowingError(PeminjamanErrorType type) => switch (type) {
     PeminjamanErrorType.network => HomeErrorType.network,
     PeminjamanErrorType.timeout => HomeErrorType.timeout,
@@ -266,6 +334,7 @@ final homeProvider = StateNotifierProvider<HomeNotifier, HomeState>((ref) {
     masterItemRepository: ref.watch(masterItemRepositoryProvider),
     peminjamanRepository: ref.watch(peminjamanRepositoryProvider),
     konsultasiRepository: ref.watch(konsultasiRepositoryProvider),
+    dashboardRepository: ref.watch(dashboardRepositoryProvider),
     user: ref.watch(authProvider).currentUser,
   );
 });

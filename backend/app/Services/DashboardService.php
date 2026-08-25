@@ -138,7 +138,10 @@ class DashboardService
             'rating' => Rating::where('user_id', $userId)->latest()->first(),
             'recent' => [
                 'peminjaman' => Pinjam::query()
-                    ->with(['items:id,nama'])
+                    // Match the public Pinjam API contract. Loading the
+                    // pivot relation retains quantity and the asset payload,
+                    // whereas `items:id,nama` loses fields mobile needs.
+                    ->with(['pinjamItems.masterItem'])
                     ->where('user_id', $userId)
                     ->latest()
                     ->take(5)
@@ -155,6 +158,9 @@ class DashboardService
                     ->latest()
                     ->take(5)
                     ->get(),
+                'pengumuman' => $this->pengumumanService->getActive()
+                    ->take(3)
+                    ->values(),
             ],
         ];
     }
