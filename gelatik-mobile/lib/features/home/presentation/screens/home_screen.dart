@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -67,10 +69,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // The dashboard response is cached for fast navigation, so use its value
     // only while the active-announcement request is still loading or fails.
     final activeAnnouncements = ref.watch(activeAnnouncementsProvider);
-    final announcement = activeAnnouncements.when(
-      data: (announcements) => announcements.firstOrNull,
-      loading: () => data.announcements.firstOrNull,
-      error: (_, _) => data.announcements.firstOrNull,
+    final announcements = activeAnnouncements.when(
+      data: (items) => items,
+      loading: () => data.announcements,
+      error: (_, _) => data.announcements,
     );
     final screenWidth = MediaQuery.sizeOf(context).width;
     final horizontalPadding = screenWidth >= 960
@@ -113,11 +115,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               // above the main service context.
               _ServiceBanner(data: data),
               const SizedBox(height: 14),
-              if (announcement != null) ...[
-                _AnnouncementBanner(announcement: announcement),
+              if (announcements.isNotEmpty) ...[
+                _AnnouncementCarousel(announcements: announcements),
                 const SizedBox(height: 24),
               ],
-              if (announcement == null) const SizedBox(height: 10),
+              if (announcements.isEmpty) const SizedBox(height: 10),
               if (state.status == HomeLoadStatus.error)
                 _FullErrorCard(
                   message: state.errorMessage ?? 'Data Home gagal dimuat.',
@@ -182,12 +184,129 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
+class _AnnouncementCarousel extends StatefulWidget {
+  final List<Announcement> announcements;
+
+  const _AnnouncementCarousel({required this.announcements});
+
+  @override
+  State<_AnnouncementCarousel> createState() => _AnnouncementCarouselState();
+}
+
+class _AnnouncementCarouselState extends State<_AnnouncementCarousel> {
+  static const _slideInterval = Duration(seconds: 5);
+  static const _slideDuration = Duration(milliseconds: 420);
+
+  final PageController _controller = PageController();
+  Timer? _timer;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleNextSlide();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnnouncementCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_currentPage >= widget.announcements.length) {
+      _currentPage = 0;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _controller.hasClients) _controller.jumpToPage(0);
+      });
+    }
+    _scheduleNextSlide();
+  }
+
+  void _scheduleNextSlide() {
+    _timer?.cancel();
+    if (widget.announcements.length < 2) return;
+    _timer = Timer(_slideInterval, () {
+      if (!mounted || !_controller.hasClients) return;
+      final nextPage = (_currentPage + 1) % widget.announcements.length;
+      _controller.animateToPage(
+        nextPage,
+        duration: _slideDuration,
+        curve: Curves.easeInOutCubic,
+      );
+    });
+  }
+
+  void _pageChanged(int page) {
+    setState(() => _currentPage = page);
+    // A manual swipe gets a full reading interval before autoplay resumes.
+    _scheduleNextSlide();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      SizedBox(
+        height: 132,
+        child: PageView.builder(
+          key: const Key('announcement-carousel'),
+          controller: _controller,
+          itemCount: widget.announcements.length,
+          onPageChanged: _pageChanged,
+          itemBuilder: (context, index) => _AnnouncementBanner(
+            announcement: widget.announcements[index],
+            position: index + 1,
+            total: widget.announcements.length,
+          ),
+        ),
+      ),
+      if (widget.announcements.length > 1) ...[
+        const SizedBox(height: 9),
+        Semantics(
+          label:
+              'Pengumuman ${_currentPage + 1} dari ${widget.announcements.length}',
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(widget.announcements.length, (index) {
+              final selected = index == _currentPage;
+              return AnimatedContainer(
+                key: Key('announcement-indicator-$index'),
+                duration: const Duration(milliseconds: 220),
+                width: selected ? 22 : 7,
+                height: 7,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? AppColors.accentNavy(context)
+                      : AppColors.cardStroke(context),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              );
+            }),
+          ),
+        ),
+      ],
+    ],
+  );
+}
+
 class _AnnouncementBanner extends StatelessWidget {
   final Announcement announcement;
-  const _AnnouncementBanner({required this.announcement});
+  final int position;
+  final int total;
+
+  const _AnnouncementBanner({
+    required this.announcement,
+    required this.position,
+    required this.total,
+  });
 
   @override
   Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.symmetric(horizontal: 1),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: const Color(0xFFFFF3C7),
@@ -203,9 +322,26 @@ class _AnnouncementBanner extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Pengumuman terbaru',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Pengumuman terbaru',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  if (total > 1)
+                    Text(
+                      '$position/$total',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(

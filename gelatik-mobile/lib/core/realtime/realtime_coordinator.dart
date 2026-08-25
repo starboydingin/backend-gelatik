@@ -50,6 +50,8 @@ class RealtimeCoordinator {
     apiClient.invalidateCacheForResource(_resourceFor(event));
     if (event.type == 'notification') {
       _schedule('notification', () => home.refreshFromRealtime());
+    } else if (event.type == 'pengumuman.created') {
+      onAnnouncementsChanged?.call();
     } else if (event.type == 'data.sync') {
       _syncData(event);
     } else if (event.type == 'insights.sync') {
@@ -71,6 +73,7 @@ class RealtimeCoordinator {
 
   String _resourceFor(RealtimeEvent event) {
     if (event.type == 'insights.sync') return 'insights';
+    if (event.type == 'pengumuman.created') return 'pengumuman';
     final resource = event.resource?.trim();
     if (resource != null && resource.isNotEmpty) return resource;
     if (event.type.startsWith('pinjam.')) return 'peminjaman';
@@ -130,6 +133,9 @@ class RealtimeCoordinator {
         onAnnouncementsChanged?.call();
         return;
       case 'session':
+        // Re-fetch the independent announcement feed as well. This closes the
+        // gap when an announcement event arrived while the app was suspended.
+        onAnnouncementsChanged?.call();
         _schedule('session', () async {
           await auth.refreshFromRealtime();
           await Future.wait([

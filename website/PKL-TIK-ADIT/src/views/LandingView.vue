@@ -73,8 +73,8 @@ const services = [
                         class="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-y border-[var(--color-border)] py-4 text-sm font-semibold text-[var(--color-text-secondary)]"
                     >
                         <span class="inline-flex items-center gap-2"><CheckIcon class="size-4 stroke-[3]" />Status transparan</span>
-                        ><span class="inline-flex items-center gap-2"><CheckIcon class="size-4 stroke-[3]" />Notifikasi terpadu</span>
-                        ><span class="inline-flex items-center gap-2"><CheckIcon class="size-4 stroke-[3]" />Dukungan responsif</span>
+                        <span class="inline-flex items-center gap-2"><CheckIcon class="size-4 stroke-[3]" />Notifikasi terpadu</span>
+                        <span class="inline-flex items-center gap-2"><CheckIcon class="size-4 stroke-[3]" />Dukungan responsif</span>
                     </div>
                 </div>
                 <div

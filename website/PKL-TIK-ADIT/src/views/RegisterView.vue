@@ -70,7 +70,7 @@ async function submit() {
                     search-placeholder="Cari nama OPD…"
                     :options="opds.map((opd) => ({ value: opd.nama_opd || opd, label: opd.nama_opd || opd }))"
                 />
-                ><AppInput
+                <AppInput
                     id="new-password"
                     v-model="form.password"
                     label="Kata sandi"

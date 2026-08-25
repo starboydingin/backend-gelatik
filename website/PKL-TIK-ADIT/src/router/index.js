@@ -38,6 +38,10 @@ const routes = [
                 path: 'peminjaman/:id',
                 component: () => import('../views/shared/PeminjamanDetailView.vue'),
             },
+            {
+                path: 'pinjam/:id',
+                redirect: (to) => `/app/peminjaman/${to.params.id}`,
+            },
             { path: 'konsultasi', component: () => import('../views/shared/KonsultasiView.vue') },
             {
                 path: 'konsultasi/:id',
@@ -47,6 +51,10 @@ const routes = [
             {
                 path: 'email-resmi/:id',
                 component: () => import('../views/shared/EmailDetailView.vue'),
+            },
+            {
+                path: 'pengajuan-email/:id',
+                redirect: (to) => `/app/email-resmi/${to.params.id}`,
             },
             { path: 'notifikasi', component: () => import('../views/user/NotificationsView.vue') },
             { path: 'faq', component: () => import('../views/user/FaqView.vue') },
@@ -79,6 +87,14 @@ const routes = [
                 path: 'peminjaman/:id/kelola',
                 component: () => import('../views/admin/LoanManagementView.vue'),
             },
+            {
+                path: 'peminjaman/:id',
+                redirect: (to) => `/admin/peminjaman/${to.params.id}/kelola`,
+            },
+            {
+                path: 'pinjam/:id',
+                redirect: (to) => `/admin/peminjaman/${to.params.id}/kelola`,
+            },
             { path: 'konsultasi', component: () => import('../views/shared/KonsultasiView.vue') },
             {
                 path: 'konsultasi/:id',
@@ -88,6 +104,10 @@ const routes = [
             {
                 path: 'email-resmi/:id',
                 component: () => import('../views/shared/EmailDetailView.vue'),
+            },
+            {
+                path: 'pengajuan-email/:id',
+                redirect: (to) => `/admin/email-resmi/${to.params.id}`,
             },
             { path: 'pengguna', component: () => import('../views/admin/UsersView.vue') },
             { path: 'peran', component: () => import('../views/admin/RolesView.vue') },

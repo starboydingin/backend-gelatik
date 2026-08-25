@@ -96,9 +96,11 @@ class KritikSaranService
                 'read' => false,
             ]);
 
-            // Tidak memanggil WhatsApp: balasan kritik & saran hanya tersedia
-            // melalui notifikasi realtime aplikasi dan website.
             app(NotificationRealtimeService::class)->toUser($notification);
+            app(UserWhatsAppNotificationService::class)->afterFeedbackReply(
+                $kritikSaran,
+                $responder,
+            );
         }
 
         return $kritikSaran->fresh(['user:id,name,email', 'responder:id,name']);

@@ -166,6 +166,12 @@ class RealtimeSocketService {
 
   void handleLifecycle(AppLifecycleState lifecycleState) {
     if (lifecycleState == AppLifecycleState.resumed) {
+      // A mobile OS may suspend network delivery while retaining the socket's
+      // connected flag. Always ask every provider to re-read authoritative
+      // data on resume, including aggregate insights from other users.
+      if (_state == RealtimeConnectionState.connected) {
+        _emitSessionResync();
+      }
       unawaited(connect());
     }
   }

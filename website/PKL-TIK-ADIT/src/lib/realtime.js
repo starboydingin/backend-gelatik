@@ -10,6 +10,7 @@ const seenEventOrder = []
 let hasConnected = false
 const notificationEvents = [
     'notification',
+    'pengumuman.created',
     'konsultasi.created',
     'konsultasi.responded',
     'konsultasi.status_changed',

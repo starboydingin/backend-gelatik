@@ -17,6 +17,8 @@ import 'package:gelatik/features/info_alat/repositories/master_item_repository.d
 import 'package:gelatik/features/konsultasi/models/konsultasi_model.dart';
 import 'package:gelatik/features/konsultasi/presentation/screens/konsultasi_list_screen.dart';
 import 'package:gelatik/features/konsultasi/repositories/konsultasi_repository.dart';
+import 'package:gelatik/features/notifications/models/gelatik_notification.dart';
+import 'package:gelatik/features/notifications/repositories/notification_repository.dart';
 import 'package:gelatik/features/peminjaman/models/pinjam_model.dart';
 import 'package:gelatik/features/peminjaman/presentation/screens/peminjaman_list_screen.dart';
 import 'package:gelatik/features/peminjaman/repositories/peminjaman_repository.dart';
@@ -132,6 +134,18 @@ class _FakeConsultationRepository extends KonsultasiRepository {
     calls++;
     return handler();
   }
+}
+
+class _FakeNotificationRepository extends NotificationRepository {
+  _FakeNotificationRepository()
+    : super(
+        apiClient: _client(),
+        storage: SecureStorageService(),
+        userId: _user.id,
+      );
+
+  @override
+  Future<List<GelatikNotification>> getNotifications() async => const [];
 }
 
 HomeNotifier _notifier({
@@ -385,6 +399,9 @@ void main() {
         ProviderScope(
           overrides: [
             activeAnnouncementsProvider.overrideWith((ref) async => const []),
+            notificationRepositoryProvider.overrideWith(
+              (ref) => _FakeNotificationRepository(),
+            ),
             homeProvider.overrideWith(
               (ref) => HomeNotifier.preview(
                 _dashboard(items: null, borrowings: null, consultations: null),
@@ -453,6 +470,44 @@ void main() {
         expect(find.text('Layanan akan dipelihara malam ini.'), findsOneWidget);
       },
     );
+
+    testWidgets('announcement carousel supports swipe and autoplay', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            activeAnnouncementsProvider.overrideWith(
+              (ref) async => const [
+                Announcement(title: 'Pengumuman pertama', content: 'Satu'),
+                Announcement(title: 'Pengumuman kedua', content: 'Dua'),
+              ],
+            ),
+            homeProvider.overrideWith(
+              (ref) => HomeNotifier.preview(_dashboard()),
+            ),
+          ],
+          child: const MaterialApp(home: HomeScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      PageView carousel() => tester.widget<PageView>(
+        find.byKey(const Key('announcement-carousel')),
+      );
+      expect(carousel().controller?.page, closeTo(0, 0.01));
+      await tester.fling(
+        find.byKey(const Key('announcement-carousel')),
+        const Offset(-600, 0),
+        1200,
+      );
+      await tester.pumpAndSettle();
+      expect(carousel().controller?.page, closeTo(1, 0.01));
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(carousel().controller?.page, closeTo(0, 0.01));
+    });
 
     testWidgets('admin sees role-aware Admin tab', (tester) async {
       await tester.pumpWidget(

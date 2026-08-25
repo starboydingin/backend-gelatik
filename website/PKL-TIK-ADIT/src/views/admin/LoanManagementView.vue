@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { api, errorMessage, payload } from '../../lib/api'
+import { openProtectedAttachment } from '../../lib/attachments'
 import { formatDate as formatDateWib, formatDateTime } from '../../lib/date'
 import AlertMessage from '../../components/AlertMessage.vue'
 import LoadingState from '../../components/LoadingState.vue'
@@ -56,6 +57,14 @@ async function saveConfirmation() {
         saving.value = false
     }
 }
+async function previewDocument() {
+    error.value = ''
+    try {
+        await openProtectedAttachment(`/pinjam/${loan.value.id}/attachment/document`)
+    } catch (requestError) {
+        error.value = errorMessage(requestError)
+    }
+}
 onMounted(load)
 </script>
 
@@ -94,7 +103,7 @@ onMounted(load)
                         <div><dt class="label">Durasi</dt><dd>{{ loan.durasi_peminjaman || '-' }} {{ loan.jenis_durasi || '' }}</dd></div>
                         <div><dt class="label">Tanggal selesai</dt><dd>{{ formatDate(loan.tanggal_selesai, true) }}</dd></div>
                         <div class="sm:col-span-2"><dt class="label">Keperluan</dt><dd class="whitespace-pre-wrap">{{ loan.keterangan || '-' }}</dd></div>
-                        <div v-if="loan.url_dokumen" class="sm:col-span-2"><dt class="label">Dokumen pendukung</dt><dd><a class="font-semibold text-brand-700 underline" :href="loan.url_dokumen" target="_blank" rel="noopener">Buka dokumen pendukung</a></dd></div>
+                        <div v-if="loan.url_dokumen" class="sm:col-span-2"><dt class="label">Dokumen pendukung</dt><dd><button type="button" class="font-semibold text-brand-700 underline" @click="previewDocument">Buka dokumen pendukung</button></dd></div>
                     </dl>
 
                     <div>

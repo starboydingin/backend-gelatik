@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Events\KonsultasiCreated;
 use App\Models\Faq;
 use App\Models\Konsultasi;
+use App\Models\KritikSaran;
+use App\Models\Pengumuman;
 use App\Models\Pinjam;
 use App\Models\PinjamItem;
 use App\Models\User;
@@ -12,6 +14,7 @@ use App\Models\UsulanEmail;
 use App\Services\ChatbotService;
 use App\Services\DashboardService;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
@@ -59,6 +62,30 @@ class AuthorizationTest extends TestCase
     public function test_unauthenticated_request_is_rejected(): void
     {
         $this->getJson('/api/pinjam')->assertUnauthorized();
+    }
+
+    public function test_announcement_expiration_date_remains_active_until_end_of_wib_day(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-08-26 12:00:00', 'Asia/Jakarta'));
+        try {
+            $today = Pengumuman::create([
+                'judul' => 'Aktif hari ini',
+                'konten' => 'Masih harus tampil di slider.',
+                'expired_at' => '2026-08-26 00:00:00',
+            ]);
+            Pengumuman::create([
+                'judul' => 'Sudah lewat',
+                'konten' => 'Tidak boleh tampil.',
+                'expired_at' => '2026-08-25 00:00:00',
+            ]);
+
+            $activeIds = Pengumuman::aktif()->pluck('id');
+
+            $this->assertTrue($activeIds->contains($today->id));
+            $this->assertCount(1, $activeIds);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_chatbot_requires_authentication_and_valid_payload(): void
@@ -425,6 +452,46 @@ class AuthorizationTest extends TestCase
             $first['session_id'],
         );
         $this->assertDatabaseCount('tr_konsultasi', $consultationCountBefore + 1);
+
+        $service->sendMessage(
+            $this->userA,
+            'Email dinas saya sekarang tidak dapat menerima pesan baru.',
+            $first['session_id'],
+        );
+        $secondOffer = $service->sendMessage(
+            $this->userA,
+            'Saya memerlukan bantuan untuk konsultasi ke petugas.',
+            $first['session_id'],
+        );
+        $this->assertSame('consultation_offer', $secondOffer['provider']);
+        $this->assertStringContainsString("Nama:\nOPD:\nDetail Permasalahan:", $secondOffer['reply']);
+
+        $secondCreated = $service->sendMessage(
+            $this->userA,
+            'Nama: Adwika, OPD: Dinas Kesehatan, Detail Permasalahan: email dinas tidak dapat menerima pesan baru',
+            $first['session_id'],
+        );
+        $this->assertSame('consultation_created', $secondCreated['provider']);
+        $this->assertNotSame($created['konsultasi_id'], $secondCreated['konsultasi_id']);
+        $this->assertDatabaseCount('tr_konsultasi', $consultationCountBefore + 2);
+
+        $service->sendMessage(
+            $this->userA,
+            'Proses TTE saya masih terkendala.',
+            $first['session_id'],
+        );
+        $service->sendMessage($this->userA, 'tidak bisa', $first['session_id']);
+        $tteOffer = $service->sendMessage($this->userA, 'tidak bisa', $first['session_id']);
+        $this->assertStringContainsString("Nama:\nOPD:\nDetail Permasalahan:", $tteOffer['reply']);
+
+        $tteCreated = $service->sendMessage(
+            $this->userA,
+            'Nama: Adwika, OPD: Dinas Kesehatan, Detail Permasalahan: proses TTE selalu gagal setelah dokumen dipilih',
+            $first['session_id'],
+        );
+        $this->assertSame('consultation_created', $tteCreated['provider']);
+        $this->assertNotSame($secondCreated['konsultasi_id'], $tteCreated['konsultasi_id']);
+        $this->assertDatabaseCount('tr_konsultasi', $consultationCountBefore + 3);
     }
 
     public function test_user_can_view_own_pinjam_but_not_another_users_pinjam(): void
@@ -608,6 +675,57 @@ class AuthorizationTest extends TestCase
             && (int) $request['reference']['user_id'] === $this->userB->id);
         $this->assertDatabaseHas('whatsapp_subscriptions', [
             'user_id' => $this->userB->id,
+            'last_delivery_status' => 'delivered',
+        ]);
+    }
+
+    public function test_admin_actions_send_whatsapp_for_loan_email_and_feedback(): void
+    {
+        \DB::table('whatsapp_subscriptions')->insert([
+            'user_id' => $this->userA->id,
+            'nomor_wa' => '081234567890',
+            'is_opt_in' => true,
+            'verified_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        Http::fake([
+            'http://127.0.0.1:4000/internal/wa/send' => Http::response([
+                'success' => true,
+                'status' => 'delivered',
+            ]),
+            '*' => Http::response(['success' => true]),
+        ]);
+        $feedback = KritikSaran::create([
+            'user_id' => $this->userA->id,
+            'kritik' => 'Informasi layanan belum cukup jelas.',
+            'saran' => 'Tambahkan petunjuk yang lebih rinci.',
+        ]);
+
+        $this->actingAsApi($this->admin);
+        $this->postJson('/api/pinjam/101/status', [
+            'status' => 'Proses',
+            'catatan' => 'Aset sedang disiapkan.',
+        ])->assertOk();
+        $this->postJson('/api/pengajuan-email/301/buat-email-resmi', [
+            'email_resmi' => 'pegawai@lampungprov.go.id',
+            'catatan' => 'Email telah dibuat.',
+        ])->assertOk();
+        $this->postJson("/api/admin/kritik-saran/{$feedback->id}/reply", [
+            'balasan' => 'Terima kasih, petunjuk akan kami perjelas.',
+        ])->assertOk();
+
+        foreach ([
+            'pinjam.status_changed',
+            'usulan_email.status_changed',
+            'kritik_saran.responded',
+        ] as $eventType) {
+            Http::assertSent(fn ($request): bool => $request->url() === 'http://127.0.0.1:4000/internal/wa/send'
+                && $request['reference']['event_type'] === $eventType
+                && (int) $request['reference']['user_id'] === $this->userA->id);
+        }
+        $this->assertDatabaseHas('whatsapp_subscriptions', [
+            'user_id' => $this->userA->id,
             'last_delivery_status' => 'delivered',
         ]);
     }
@@ -1002,6 +1120,13 @@ class AuthorizationTest extends TestCase
             $table->softDeletes();
             $table->timestamps();
         });
+        Schema::create('pengumumans', function (Blueprint $table): void {
+            $table->id();
+            $table->string('judul');
+            $table->text('konten');
+            $table->dateTime('expired_at')->nullable();
+            $table->timestamps();
+        });
         Schema::create('tr_permintaan_pinjam', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('user_id');
@@ -1073,6 +1198,16 @@ class AuthorizationTest extends TestCase
             $table->string('type')->nullable();
             $table->unsignedBigInteger('item_id')->nullable();
             $table->boolean('read')->default(false);
+            $table->timestamps();
+        });
+        Schema::create('kritik_sarans', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->text('kritik');
+            $table->text('saran');
+            $table->text('balasan')->nullable();
+            $table->unsignedBigInteger('dibalas_oleh')->nullable();
+            $table->dateTime('dibalas_pada')->nullable();
             $table->timestamps();
         });
         Schema::create('whatsapp_subscriptions', function (Blueprint $table): void {

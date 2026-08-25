@@ -101,13 +101,22 @@ void main() {
       'created_at': '2026-08-24T00:00:00.000Z',
       'message': 'Ada pembaruan layanan.',
     });
+    transport.emit('pengumuman.created', {
+      'event_id': 'evt-12345680',
+      'type': 'pengumuman.created',
+      'pengumuman_id': 14,
+      'created_at': '2026-08-24T00:00:00.000Z',
+      'judul': 'Pengumuman baru',
+    });
     transport.emit('pinjam.status_changed', {'entity_id': 7});
     await Future<void>.delayed(Duration.zero);
 
-    expect(events, hasLength(3));
+    expect(events, hasLength(4));
     expect(events.where((event) => event.type == 'data.sync'), hasLength(1));
     expect(events[1].entityId, 7);
-    expect(events.last.type, 'notification');
+    expect(events[2].type, 'notification');
+    expect(events.last.type, 'pengumuman.created');
+    expect(events.last.entityId, 14);
     await subscription.cancel();
     await service.dispose();
   });
@@ -172,6 +181,38 @@ void main() {
       expect(firstTransport.disconnectCalls, 1);
       expect(firstTransport.removed, contains('konsultasi.responded'));
       expect(secondTransport.connectCalls, 1);
+      await service.dispose();
+    },
+  );
+
+  test(
+    'resume refreshes authoritative data when socket remains connected',
+    () async {
+      final storage = _MemoryStorage()..token = 'secure-token';
+      final transport = _FakeTransport();
+      final service = RealtimeSocketService(
+        storage: storage,
+        baseUrl: 'http://localhost:4000',
+        transportFactory: (_, _) => transport,
+      );
+      final events = <RealtimeEvent>[];
+      final subscription = service.events.listen(events.add);
+
+      await service.connect();
+      transport.emit('connect', null);
+      service.handleLifecycle(AppLifecycleState.resumed);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(transport.connectCalls, 1);
+      expect(
+        events,
+        contains(
+          isA<RealtimeEvent>()
+              .having((event) => event.type, 'type', 'data.sync')
+              .having((event) => event.resource, 'resource', 'session'),
+        ),
+      );
+      await subscription.cancel();
       await service.dispose();
     },
   );

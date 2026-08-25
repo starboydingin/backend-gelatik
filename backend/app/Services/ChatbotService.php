@@ -155,6 +155,14 @@ class ChatbotService
             $conversation->refresh();
         }
 
+        // An explicit request for a petugas consultation must work for every
+        // issue in the same conversation, including after an earlier ticket
+        // has already been created.
+        if ($activeContext !== null && $this->isConsultationRequest($normalized)) {
+            $conversation->update(['consultation_offer_pending' => true]);
+            $conversation->refresh();
+        }
+
         if ($conversation->consultation_offer_pending
             && $activeContext !== null
             && ! $this->isPromptInjection($normalized)) {
@@ -566,12 +574,26 @@ class ChatbotService
         ];
 
         foreach ($contexts as $context => $terms) {
-            if (Str::contains($normalized, $terms)) {
+            if (collect($terms)->contains(
+                fn (string $term): bool => $this->containsServiceTerm($normalized, $term)
+            )) {
                 return $context;
             }
         }
 
         return null;
+    }
+
+    private function containsServiceTerm(string $normalized, string $term): bool
+    {
+        if (Str::length($term) > 3) {
+            return Str::contains($normalized, $term);
+        }
+
+        return preg_match(
+            '/(?<![\pL\pN])'.preg_quote($term, '/').'(?![\pL\pN])/iu',
+            $normalized
+        ) === 1;
     }
 
     /**
@@ -591,6 +613,9 @@ class ChatbotService
     private function isIssueSignal(string $normalized): bool
     {
         return Str::contains($normalized, [
+            'tidak bisa',
+            'tidak dapat',
+            'gagal',
             'belum bisa',
             'masih belum bisa',
             'masih tidak bisa',
@@ -650,7 +675,7 @@ class ChatbotService
         ChatbotConversation $conversation,
         ?string $context
     ): string {
-        if ($context === null || $conversation->escalated_konsultasi_id) {
+        if ($context === null) {
             return $reply;
         }
 
@@ -697,9 +722,25 @@ class ChatbotService
                 'buat konsultasi',
                 'iya buatkan',
                 'ya buatkan',
+                'konsultasi ke petugas',
+                'konsultasi dengan petugas',
+                'bantuan untuk konsultasi',
+                'hubungkan ke petugas',
             ]);
 
         return compact('confirmed', 'name', 'opd', 'detail');
+    }
+
+    private function isConsultationRequest(string $normalized): bool
+    {
+        return Str::contains($normalized, [
+            'buatkan konsultasi',
+            'buat konsultasi',
+            'konsultasi ke petugas',
+            'konsultasi dengan petugas',
+            'bantuan untuk konsultasi',
+            'hubungkan ke petugas',
+        ]);
     }
 
     private function extractLabeledValue(string $message, array $labels): ?string
@@ -746,7 +787,11 @@ class ChatbotService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($lockedConversation->escalated_konsultasi_id) {
+            // A concurrent retry of the same submitted template must remain
+            // idempotent. Once a new offer is pending, however, the previous
+            // ticket ID must not block creation for the new issue.
+            if (! $lockedConversation->consultation_offer_pending
+                && $lockedConversation->escalated_konsultasi_id) {
                 return Konsultasi::query()->findOrFail($lockedConversation->escalated_konsultasi_id);
             }
 
@@ -765,6 +810,8 @@ class ChatbotService
             $lockedConversation->update([
                 'escalated_konsultasi_id' => $konsultasi->id,
                 'consultation_offer_pending' => false,
+                'unresolved_count' => 0,
+                'escalation_context' => null,
             ]);
 
             return $konsultasi;

@@ -23,6 +23,7 @@ class AnnouncementRepository {
       final response = await apiClient.dio.get(
         '/pengumuman',
         cancelToken: cancelToken,
+        options: Options(extra: {'skipShortCache': true}),
       );
       final root = response.data;
       final data = root is Map ? root['data'] : root;

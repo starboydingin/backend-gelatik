@@ -330,7 +330,7 @@ onMounted(load)
                     :options="['KTP', 'SIM', 'Passport', 'NIP']"
                     @update:model-value="identityChanged"
                 />
-                ><label
+                <label
                     ><span class="label">Nomor identitas</span
                     ><input
                         v-model="form.nomor_identitas"
@@ -384,7 +384,7 @@ onMounted(load)
                 >
                     Estimasi selesai: <strong>{{ estimatedEnd }}</strong>
                 </p>
-                ><label v-if="!editingId" class="md:col-span-2"
+                <label v-if="!editingId" class="md:col-span-2"
                     ><span class="label">Keterangan</span
                     ><textarea v-model="form.keterangan" class="input min-h-24"></textarea></label
                 ><label class="md:col-span-2"
@@ -461,7 +461,7 @@ onMounted(load)
                         }))
                     "
                 />
-                ><label class="w-28"
+                <label class="w-28"
                     ><span class="label">Jumlah</span
                     ><input
                         v-model.number="draft.quantity"

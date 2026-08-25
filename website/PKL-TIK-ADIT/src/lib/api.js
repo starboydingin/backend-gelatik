@@ -127,6 +127,7 @@ function cachedTtl(url, explicitTtl) {
 export function realtimeResource(payload = {}) {
     const type = String(payload.type || '').toLowerCase()
     if (type === 'insights.sync') return 'insights'
+    if (type === 'pengumuman.created') return 'pengumuman'
     const fromPayload = String(payload.resource || '')
         .trim()
         .toLowerCase()

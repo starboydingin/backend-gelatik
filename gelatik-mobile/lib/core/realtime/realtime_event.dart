@@ -1,6 +1,7 @@
 class RealtimeEvent {
   static const supportedTypes = <String>{
     'notification',
+    'pengumuman.created',
     'pinjam.created',
     'pinjam.status_changed',
     'konsultasi.created',
@@ -54,7 +55,10 @@ class RealtimeEvent {
     }
     final eventId = json['event_id'];
     final type = json['type'];
-    final entityId = _positiveInt(json['entity_id']);
+    final entityId = _positiveInt(
+      json['entity_id'] ??
+          (eventName == 'pengumuman.created' ? json['pengumuman_id'] : null),
+    );
     final createdAt = _date(json['created_at']);
     if (eventId is! String ||
         eventId.trim().isEmpty ||
@@ -65,7 +69,10 @@ class RealtimeEvent {
     }
 
     final isChatbotEvent = eventName.startsWith('chatbot.');
-    final requiresStatus = !isChatbotEvent && eventName != 'kritik_saran.created';
+    final requiresStatus =
+        !isChatbotEvent &&
+        eventName != 'kritik_saran.created' &&
+        eventName != 'pengumuman.created';
     final status = _optionalText(json['status']);
     if (requiresStatus && status == null) return null;
 

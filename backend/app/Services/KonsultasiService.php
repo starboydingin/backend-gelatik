@@ -111,7 +111,7 @@ class KonsultasiService
                     'message' => 'Anda mendapat balasan baru pada konsultasi: '.$konsultasi->judul,
                 ]),
             );
-            app(KonsultasiWhatsAppService::class)->afterAdminResponse(
+            app(UserWhatsAppNotificationService::class)->afterConsultationResponse(
                 $konsultasi,
                 $response,
             );

@@ -139,6 +139,7 @@ Map<String, dynamic> _payload({
   required String eventId,
   required String type,
   required int entityId,
+  String? resource,
 }) => {
   'event_id': eventId,
   'type': type,
@@ -147,6 +148,7 @@ Map<String, dynamic> _payload({
   'old_status': 'Menunggu',
   'created_at': '2026-08-10T00:00:00.000Z',
   'message': 'Data berubah',
+  'resource': ?resource,
 };
 
 void main() {
@@ -167,6 +169,7 @@ void main() {
       final infoAlat = _TrackingInfoAlat();
       final waNotification = _TrackingWaNotification();
       final home = _TrackingHome();
+      var announcementRefreshes = 0;
       final coordinator = RealtimeCoordinator(
         service: service,
         apiClient: _client(),
@@ -178,6 +181,7 @@ void main() {
         infoAlat: infoAlat,
         waNotification: waNotification,
         home: home,
+        onAnnouncementsChanged: () => announcementRefreshes++,
       );
 
       await service.connect();
@@ -229,6 +233,27 @@ void main() {
       expect(konsultasi.refreshCalls, 1);
       expect(konsultasi.lastEntityId, 52);
       expect(home.refreshCalls, 1);
+
+      transport.emit('pengumuman.created', {
+        'event_id': 'announcement-event-0001',
+        'type': 'pengumuman.created',
+        'pengumuman_id': 61,
+        'created_at': '2026-08-10T00:00:00.000Z',
+      });
+      await Future<void>.delayed(Duration.zero);
+      expect(announcementRefreshes, 1);
+
+      transport.emit(
+        'data.sync',
+        _payload(
+          eventId: 'session-event-0001',
+          type: 'data.sync',
+          entityId: 1,
+          resource: 'session',
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      expect(announcementRefreshes, 2);
 
       coordinator.dispose();
       await service.dispose();

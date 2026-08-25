@@ -195,9 +195,13 @@ class PinjamService
                     'message' => 'Status peminjaman Anda telah diubah menjadi '.$statusBaru,
                 ]),
             );
+            app(UserWhatsAppNotificationService::class)->afterLoanStatusChanged(
+                $pinjam,
+                $statusBaru,
+            );
         }
 
-        // Dispatch Event untuk notifikasi (Socket.io, WA, FCM)
+        // Dispatch event for the queued FCM notification.
         event(new PinjamStatusChanged($pinjam, $oldStatus, $statusBaru));
 
         return $pinjam;

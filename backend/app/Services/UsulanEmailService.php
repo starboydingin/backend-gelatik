@@ -183,9 +183,15 @@ class UsulanEmailService
                     'message' => 'Status usulan email Anda telah diubah menjadi '.$statusBaru,
                 ]),
             );
+            if ($verifikator->hasAnyRole(['admin', 'superadmin'])) {
+                app(UserWhatsAppNotificationService::class)->afterEmailStatusChanged(
+                    $usulan,
+                    $statusBaru,
+                );
+            }
         }
 
-        // Dispatch Event untuk notifikasi ke user pemohon (Socket.io, WA, FCM)
+        // Dispatch event for the queued FCM notification.
         event(new UsulanEmailStatusChanged($usulan, $oldStatus, $statusBaru));
 
         return $usulan;

@@ -186,7 +186,7 @@ onMounted(load)
                         topics.map((topic) => ({ value: topic.id, label: topicLabel(topic) }))
                     "
                 />
-                ><label v-if="!editingId" class="md:col-span-2"
+                <label v-if="!editingId" class="md:col-span-2"
                     ><span class="label">Penjelasan</span
                     ><textarea
                         v-model="form.deskripsi"
