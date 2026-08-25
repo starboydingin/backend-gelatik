@@ -21,7 +21,7 @@ class KritikSaranController extends Controller
     {
         $request->validate([
             'kritik' => 'required|string',
-            'saran'  => 'required|string',
+            'saran' => 'required|string',
         ]);
 
         $user = auth('api')->user();
@@ -35,7 +35,7 @@ class KritikSaranController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Kritik & saran berhasil dikirim.',
-            'data'    => $kritikSaran,
+            'data' => $kritikSaran,
         ], 201);
     }
 
@@ -56,7 +56,12 @@ class KritikSaranController extends Controller
     /** GET /api/admin/kritik-saran (role-gated: superadmin, admin, operator) */
     public function index(Request $request)
     {
-        $data = $this->kritikSaranService->getAllForAdmin();
+        $data = $this->kritikSaranService->getAllForAdmin(
+            $request->string('q')->trim()->value() ?: null,
+            $request->string('status')->trim()->lower()->value() ?: null,
+            $request->integer('per_page', 15),
+        );
+
         return response()->json(['success' => true, 'data' => $data]);
     }
 
@@ -106,7 +111,7 @@ class KritikSaranController extends Controller
     public function bulkDelete(Request $request)
     {
         $request->validate([
-            'ids'   => 'required|array|min:1',
+            'ids' => 'required|array|min:1',
             'ids.*' => 'required|integer',
         ]);
 

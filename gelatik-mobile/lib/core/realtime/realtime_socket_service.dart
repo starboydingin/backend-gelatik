@@ -71,6 +71,7 @@ class RealtimeSocketService {
   Future<void>? _connectOperation;
   RealtimeConnectionState _state = RealtimeConnectionState.disconnected;
   bool _disposed = false;
+  bool _hasConnectedAtLeastOnce = false;
   int _connectionVersion = 0;
 
   RealtimeSocketService({
@@ -115,13 +116,11 @@ class RealtimeSocketService {
     }
     final transport = transportFactory(baseUrl, token);
     _transport = transport;
-    transport.on(
-      'connect',
-      (_) {
-        _setState(RealtimeConnectionState.connected);
-        _emitSessionResync();
-      },
-    );
+    transport.on('connect', (_) {
+      _setState(RealtimeConnectionState.connected);
+      if (_hasConnectedAtLeastOnce) _emitSessionResync();
+      _hasConnectedAtLeastOnce = true;
+    });
     transport.on(
       'reconnect_attempt',
       (_) => _setState(RealtimeConnectionState.reconnecting),
@@ -150,6 +149,7 @@ class RealtimeSocketService {
     if (transport != null) {
       _detachTransport(transport);
     }
+    _hasConnectedAtLeastOnce = false;
     _setState(RealtimeConnectionState.disconnected);
   }
 

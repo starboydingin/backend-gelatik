@@ -673,11 +673,10 @@ void main() {
         );
         await tester.enterText(find.byType(TextField).at(3), '081298765432');
 
-        await tester.ensureVisible(
-          find.byType(DropdownButtonFormField<String>),
-        );
+        final opdPicker = find.byKey(const Key('opd_dropdown'));
+        await tester.ensureVisible(opdPicker);
         await tester.pumpAndSettle();
-        await tester.tap(find.byType(DropdownButtonFormField<String>));
+        await tester.tap(opdPicker);
 
         await tester.pumpAndSettle();
         await tester.tap(find.text(fakeAuthRepo.opds.first).last);

@@ -7,8 +7,8 @@ use App\Models\AdminAuditLog;
 use App\Models\Konsultasi;
 use App\Models\Notification;
 use App\Models\Pinjam;
-use App\Models\UsulanEmail;
 use App\Models\User;
+use App\Models\UsulanEmail;
 use App\Services\DashboardService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -17,9 +17,7 @@ use Illuminate\Support\Facades\Schema;
 
 class AdminDashboardController extends Controller
 {
-    public function __construct(private DashboardService $dashboardService)
-    {
-    }
+    public function __construct(private DashboardService $dashboardService) {}
 
     /** GET /api/admin/dashboard */
     public function index(Request $request)
@@ -29,8 +27,9 @@ class AdminDashboardController extends Controller
         // Stale-while-revalidate prevents an expensive aggregate from slowing
         // down page entry when the cache has just expired.
         $data = Cache::flexible("dashboard:admin:{$scope}", [30, 120], function () use ($superadmin, $scope): array {
-            $adminActivity = collect();
+            $adminActivity = [];
             if ($superadmin) {
+                $adminActivity = collect();
                 if (Schema::hasTable('admin_audit_logs')) {
                     $adminActivity = AdminAuditLog::query()
                         ->with('actor:id,name,username')
@@ -42,32 +41,32 @@ class AdminDashboardController extends Controller
                             'actor' => $entry->actor?->name ?? $entry->actor?->username ?? 'Administrator',
                             'actor_role' => $entry->actor_role,
                             'description' => $entry->description,
-                            'created_at' => $entry->created_at,
+                            'created_at' => $entry->created_at?->toIso8601String(),
                         ]);
                 }
 
                 // Compatibility for activity_log entries produced before the
                 // dedicated audit stream was added.
                 if (Schema::hasTable('activity_log')) {
-                $privilegedUserIds = DB::table('model_has_roles as model_roles')
-                    ->join('roles', 'roles.id', '=', 'model_roles.role_id')
-                    ->where('model_roles.model_type', User::class)
-                    ->whereIn('roles.name', ['admin', 'superadmin'])
-                    ->pluck('model_roles.model_id');
+                    $privilegedUserIds = DB::table('model_has_roles as model_roles')
+                        ->join('roles', 'roles.id', '=', 'model_roles.role_id')
+                        ->where('model_roles.model_type', User::class)
+                        ->whereIn('roles.name', ['admin', 'superadmin'])
+                        ->pluck('model_roles.model_id');
                     $legacyActivity = DB::table('activity_log as a')
-                    ->leftJoin('users as u', 'u.id', '=', 'a.causer_id')
-                    ->where('a.causer_type', User::class)
-                    ->whereIn('a.causer_id', $privilegedUserIds)
-                    ->latest('a.id')
-                    ->limit(10)
-                    ->get(['a.id', 'a.description', 'a.created_at', 'u.name as actor'])
-                    ->map(fn ($entry): array => [
-                        'id' => 'legacy-'.$entry->id,
-                        'actor' => $entry->actor ?? 'Administrator',
-                        'actor_role' => 'administrator',
-                        'description' => $entry->description,
-                        'created_at' => $entry->created_at,
-                    ]);
+                        ->leftJoin('users as u', 'u.id', '=', 'a.causer_id')
+                        ->where('a.causer_type', User::class)
+                        ->whereIn('a.causer_id', $privilegedUserIds)
+                        ->latest('a.id')
+                        ->limit(10)
+                        ->get(['a.id', 'a.description', 'a.created_at', 'u.name as actor'])
+                        ->map(fn ($entry): array => [
+                            'id' => 'legacy-'.$entry->id,
+                            'actor' => $entry->actor ?? 'Administrator',
+                            'actor_role' => 'administrator',
+                            'description' => $entry->description,
+                            'created_at' => $entry->created_at,
+                        ]);
                     $adminActivity = $adminActivity->concat($legacyActivity);
                 }
 
@@ -98,7 +97,7 @@ class AdminDashboardController extends Controller
                             'actor' => $item->updatedBy?->name ?? $item->updatedBy?->username ?? 'Administrator',
                             'actor_role' => $role,
                             'description' => "Menolak konsultasi “{$item->judul}”.",
-                            'created_at' => $item->updated_at,
+                            'created_at' => $item->updated_at?->toIso8601String(),
                         ];
                     });
                 $adminActivity = $adminActivity
@@ -131,19 +130,23 @@ class AdminDashboardController extends Controller
                     'users' => User::query()
                         ->latest()
                         ->take(5)
-                        ->get(['id', 'name', 'username', 'email', 'nama_opd', 'status', 'created_at']),
+                        ->get(['id', 'name', 'username', 'email', 'nama_opd', 'status', 'created_at'])
+                        ->toArray(),
                     'konsultasi' => Konsultasi::with(['user:id,name', 'topik:id,topik'])
                         ->latest()
                         ->take(5)
-                        ->get(),
+                        ->get()
+                        ->toArray(),
                     'peminjaman' => Pinjam::with(['user:id,name', 'items:id,nama'])
                         ->latest()
                         ->take(5)
-                        ->get(),
+                        ->get()
+                        ->toArray(),
                     'usulan_email' => UsulanEmail::with(['user:id,name', 'pegawaiBkd'])
                         ->latest()
                         ->take(5)
-                        ->get(),
+                        ->get()
+                        ->toArray(),
                 ],
             ];
         });

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/services/fcm_topic_service.dart';
 import '../../../core/realtime/realtime_socket_service.dart';
 import '../../../core/storage/secure_storage_service.dart';
@@ -69,12 +70,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final SecureStorageService? secureStorageService;
   final FcmTopicService? fcmTopicService;
   final RealtimeSocketService? realtimeSocketService;
+  final ApiClient? apiClient;
 
   AuthNotifier({
     this.authRepository,
     this.secureStorageService,
     this.fcmTopicService,
     this.realtimeSocketService,
+    this.apiClient,
   }) : super(const AuthState());
 
   Future<void> loadOpds() async {
@@ -391,6 +394,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await fcmTopicService?.unsubscribeFromAllTopics();
     await authRepository?.logout();
     await secureStorageService?.deleteToken();
+    apiClient?.clearCache();
 
     state = const AuthState(
       isLoggedIn: false,
@@ -407,10 +411,12 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final secureStorageService = ref.watch(secureStorageServiceProvider);
   final fcmTopicService = ref.watch(fcmTopicServiceProvider);
   final realtimeSocketService = ref.watch(realtimeSocketServiceProvider);
+  final apiClient = ref.watch(apiClientProvider);
   return AuthNotifier(
     authRepository: authRepository,
     secureStorageService: secureStorageService,
     fcmTopicService: fcmTopicService,
     realtimeSocketService: realtimeSocketService,
+    apiClient: apiClient,
   );
 });

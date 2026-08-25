@@ -8,33 +8,32 @@ use Illuminate\Support\Facades\Cache;
 /** Publishes a durable inbox update after its database row has been written. */
 class NotificationRealtimeService
 {
-    public function toUser(Notification $notification): void
+    public function toUser(Notification $notification, string $status = 'new'): void
     {
         if ((int) $notification->user_id < 1) {
             return;
         }
 
-        Cache::forget('dashboard:user:' . (int) $notification->user_id);
+        Cache::forget('dashboard:user:'.(int) $notification->user_id);
         Cache::forget('dashboard:admin:admin');
         Cache::forget('dashboard:admin:superadmin');
 
-        app(NodeServiceClient::class)->broadcastToUser(
+        app(RealtimeDataSyncService::class)->eventToUser(
             (int) $notification->user_id,
             'notification',
             RealtimeEventPayload::make('notification', (int) $notification->id, [
-                'status' => 'new',
+                'status' => $status,
                 'message' => $notification->message ?: $notification->judul,
             ]),
         );
     }
 
-    public function toAdmins(Notification $notification): void
+    public function toAdmins(Notification $notification, string $status = 'new'): void
     {
-        app(NodeServiceClient::class)->broadcastToRole(
-            'admin',
+        app(RealtimeDataSyncService::class)->eventToAdmins(
             'notification',
             RealtimeEventPayload::make('notification', (int) $notification->id, [
-                'status' => 'new',
+                'status' => $status,
                 'message' => $notification->message ?: $notification->judul,
             ]),
         );
@@ -55,7 +54,7 @@ class NotificationRealtimeService
         Cache::forget('dashboard:admin:admin');
         Cache::forget('dashboard:admin:superadmin');
 
-        app(NodeServiceClient::class)->broadcastToUser(
+        app(RealtimeDataSyncService::class)->eventToUser(
             $userId,
             'notification',
             RealtimeEventPayload::make('notification', $notificationId, [

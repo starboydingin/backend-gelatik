@@ -11,18 +11,32 @@ const router = useRouter()
 const open = ref(false)
 const items = ref([])
 const error = ref('')
-const unread = computed(() => items.value.filter((item) => !item.read && !item.read_at).length)
+const unreadTotal = ref(0)
+let loadRevision = 0
+const unread = computed(() => unreadTotal.value)
 
 async function load({ fresh = false } = {}) {
+    const revision = ++loadRevision
     try {
         if (fresh) invalidateApiCache('/notifications')
-        items.value = rows(payload(await api.get('/notifications', { cache: !fresh }))).slice(0, 5)
+        const data = payload(await api.get('/notifications', { cache: !fresh }))
+        const nextItems = rows(data).slice(0, 5)
+        if (revision !== loadRevision) return
+        items.value = nextItems
+        unreadTotal.value = Number(
+            data?.unread_count ?? nextItems.filter((item) => !item.read && !item.read_at).length
+        )
+        error.value = ''
     } catch (requestError) {
+        if (revision !== loadRevision) return
         error.value = errorMessage(requestError)
     }
 }
 async function markRead(item) {
-    if (!item.read && !item.read_at) await api.post(`/notifications/${item.id}/read`)
+    if (!item.read && !item.read_at) {
+        await api.post(`/notifications/${item.id}/read`)
+        unreadTotal.value = Math.max(0, unreadTotal.value - 1)
+    }
     item.read = true
 }
 function toggleOpen() {

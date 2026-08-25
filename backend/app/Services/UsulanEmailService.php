@@ -4,24 +4,20 @@ namespace App\Services;
 
 use App\Events\UsulanEmailCreated;
 use App\Events\UsulanEmailStatusChanged;
-use App\Models\PegawaiBelumPunyaEmail;
 use App\Models\Notification;
+use App\Models\PegawaiBelumPunyaEmail;
 use App\Models\User;
 use App\Models\UsulanEmail;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
-use App\Services\NodeServiceClient;
-use App\Services\RealtimeEventPayload;
 
 class UsulanEmailService
 {
     public function __construct(
         private AdminAuditService $audit,
         private AdminNotificationService $adminNotifications,
-    )
-    {
-    }
+    ) {}
 
     /**
      * Catat verifikasi dokumen BKD tanpa mengambil keputusan final.
@@ -178,7 +174,7 @@ class UsulanEmailService
             ]);
             app(NotificationRealtimeService::class)->toUser($notification);
 
-            app(NodeServiceClient::class)->broadcastToUser(
+            app(RealtimeDataSyncService::class)->eventToUser(
                 $ownerId,
                 'usulan_email.status_changed',
                 RealtimeEventPayload::make('usulan_email.status_changed', (int) $usulan->id, [

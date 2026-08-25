@@ -16,6 +16,12 @@ resource.
 | `kritik_saran.created` | admin room | Refresh feedback moderation list. |
 | `chatbot.conversation.*`, `chatbot.message.created` | owning user room | Refresh the matching chatbot session. |
 
+Events are queued in `RealtimeDataSyncService` and flushed by Laravel's
+post-response deferred-callback middleware. Bursts are coalesced per target,
+event, entity, and resource. Web and mobile clients debounce per normalized
+resource, so a specific business event followed by `data.sync` causes one
+authoritative REST refresh rather than competing requests.
+
 ## Adding a shared resource
 
 1. Persist the mutation through Laravel and let the transaction commit.
@@ -27,5 +33,10 @@ resource.
    `ApiClient.invalidateCacheForResource`.
 5. Refresh only the provider/page that owns the resource and add a test.
 
-On socket reconnect and browser/app resume, clients reconcile from REST so
-events missed while offline do not leave stale state behind.
+Socket reconnects reconcile the active website resource and the mobile account
+providers from REST. Merely focusing or switching a healthy browser tab does
+not invalidate cache, remount a page, or issue a network request.
+
+Local browser origins must be listed explicitly in
+`realtime-service/.env`/`.env.example`; the maintained development defaults are
+`localhost:5173` and `127.0.0.1:5173` in addition to the legacy origins.

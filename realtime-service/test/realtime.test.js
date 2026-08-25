@@ -3,7 +3,7 @@ const test = require('node:test');
 
 const { validateRuntimeConfig } = require('../src/config');
 const { normalizePayload } = require('../src/realtime/eventSchema');
-const { normalizeIndonesianNumber } = require('../src/whatsapp/waGateway');
+const { normalizeIndonesianNumber, shouldReconnectAfter } = require('../src/whatsapp/waGateway');
 const {
     createAuthMiddleware,
     createBroadcaster,
@@ -178,4 +178,10 @@ test('WhatsApp numbers are normalized safely without changing recipients', () =>
     assert.equal(normalizeIndonesianNumber('+62 812 3456 7890'), '6281234567890');
     assert.throws(() => normalizeIndonesianNumber('123'), /tidak valid/);
     assert.throws(() => normalizeIndonesianNumber(''), /tidak valid/);
+});
+
+test('WhatsApp reconnect policy stops conflict and logged-out reconnect loops', () => {
+    assert.equal(shouldReconnectAfter({ output: { statusCode: 440 } }), false);
+    assert.equal(shouldReconnectAfter({ output: { statusCode: 401 } }), false);
+    assert.equal(shouldReconnectAfter({ output: { statusCode: 408 } }), true);
 });

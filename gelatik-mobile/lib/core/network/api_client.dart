@@ -64,6 +64,9 @@ class ApiClient {
   /// Clears only GET cache entries affected by a realtime resource signal.
   void invalidateCacheForResource(String resource) =>
       _getCache.invalidateResource(resource);
+
+  /// Remove all account-scoped responses on logout/account replacement.
+  void clearCache() => _getCache.clear();
 }
 
 class _ShortLivedGetCacheInterceptor extends Interceptor {
@@ -158,10 +161,11 @@ class _ShortLivedGetCacheInterceptor extends Interceptor {
   void invalidateResource(String rawResource) {
     _cacheGeneration++;
     final resource = rawResource.trim().toLowerCase().replaceAll('-', '_');
-    if (resource.isEmpty || resource == 'session') {
+    if (resource == 'session') {
       _responses.clear();
       return;
     }
+    if (resource.isEmpty) return;
     final prefixes = <String>[
       if (resource == 'peminjaman') '/pinjam',
       if (resource == 'peminjaman') '/dashboard',
@@ -189,13 +193,15 @@ class _ShortLivedGetCacheInterceptor extends Interceptor {
       if (resource == 'pengumuman' || resource == 'slider') '/dashboard',
       if (resource == 'insights') '/dashboard',
     ];
-    if (prefixes.isEmpty) {
-      _responses.clear();
-      return;
-    }
+    if (prefixes.isEmpty) return;
     _responses.removeWhere(
       (key, _) => prefixes.any((prefix) => key.contains(prefix)),
     );
+  }
+
+  void clear() {
+    _cacheGeneration++;
+    _responses.clear();
   }
 }
 

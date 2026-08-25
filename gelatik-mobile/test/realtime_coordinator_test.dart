@@ -195,6 +195,17 @@ void main() {
       expect(peminjaman.refreshCalls, 1);
       expect(peminjaman.lastEntityId, 41);
       expect(konsultasi.refreshCalls, 0);
+      expect(home.refreshCalls, 0);
+
+      transport.emit(
+        'insights.sync',
+        _payload(
+          eventId: 'insights-event-0001',
+          type: 'insights.sync',
+          entityId: 1,
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 350));
       expect(home.refreshCalls, 1);
 
       transport.emit(
@@ -217,7 +228,7 @@ void main() {
 
       expect(konsultasi.refreshCalls, 1);
       expect(konsultasi.lastEntityId, 52);
-      expect(home.refreshCalls, 2);
+      expect(home.refreshCalls, 1);
 
       coordinator.dispose();
       await service.dispose();

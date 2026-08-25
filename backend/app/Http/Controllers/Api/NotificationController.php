@@ -41,7 +41,29 @@ class NotificationController extends Controller
             return $notification;
         });
 
-        return response()->json(['success' => true, 'data' => $notifications]);
+        $unreadCount = Notification::query()
+            ->where(function ($query) use ($userId, $isAdmin): void {
+                $query->where(function ($personal) use ($userId): void {
+                    $personal->where('user_id', $userId)->where('read', false);
+                });
+                if ($isAdmin) {
+                    $query->orWhere(function ($broadcast) use ($userId): void {
+                        $broadcast->where('user_id', 0)
+                            ->whereNotExists(function ($reads) use ($userId): void {
+                                $reads->selectRaw('1')
+                                    ->from('notification_reads')
+                                    ->whereColumn('notification_reads.notification_id', 'notification.id')
+                                    ->where('notification_reads.user_id', $userId);
+                            });
+                    });
+                }
+            })
+            ->count();
+
+        $data = $notifications->toArray();
+        $data['unread_count'] = $unreadCount;
+
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     /** POST /api/notifications/{id}/read */
@@ -78,11 +100,17 @@ class NotificationController extends Controller
         Notification::where('user_id', $userId)->where('read', false)->update(['read' => true]);
         if ($isAdmin) {
             $broadcastIds = Notification::where('user_id', 0)->pluck('id');
-            foreach ($broadcastIds as $notificationId) {
-                NotificationRead::updateOrCreate(
-                    ['notification_id' => $notificationId, 'user_id' => $userId],
-                    ['read_at' => now()]
-                );
+            $alreadyRead = NotificationRead::where('user_id', $userId)
+                ->whereIn('notification_id', $broadcastIds)
+                ->pluck('notification_id');
+            $readAt = now();
+            $rows = $broadcastIds->diff($alreadyRead)->map(fn ($notificationId) => [
+                'notification_id' => $notificationId,
+                'user_id' => $userId,
+                'read_at' => $readAt,
+            ])->values()->all();
+            if ($rows !== []) {
+                NotificationRead::upsert($rows, ['notification_id', 'user_id'], ['read_at']);
             }
         }
 
@@ -156,6 +184,7 @@ class NotificationController extends Controller
             'type' => 'sometimes|required|string|max:20',
         ]);
         $notification->update($validated);
+        $this->publishRealtime($notification, 'updated');
 
         return response()->json(['success' => true, 'message' => 'Notifikasi berhasil diperbarui.', 'data' => $notification]);
     }
@@ -166,7 +195,16 @@ class NotificationController extends Controller
         $notification = Notification::findOrFail($id);
         NotificationRead::where('notification_id', $notification->id)->delete();
         $notification->delete();
+        $this->publishRealtime($notification, 'deleted');
 
         return response()->json(['success' => true, 'message' => 'Notifikasi berhasil dihapus.']);
+    }
+
+    private function publishRealtime(Notification $notification, string $status): void
+    {
+        $realtime = app(NotificationRealtimeService::class);
+        (int) $notification->user_id === 0
+            ? $realtime->toAdmins($notification, $status)
+            : $realtime->toUser($notification, $status);
     }
 }

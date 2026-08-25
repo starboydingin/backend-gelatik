@@ -10,6 +10,7 @@ import ServiceHero from '../../components/ServiceHero.vue'
 import { notificationRoute } from '../../lib/notificationRoute'
 import { formatDateTime } from '../../lib/date'
 const router = useRouter()
+let loadRevision = 0
 const list = ref([]),
     error = ref(''),
     loading = ref(true),
@@ -52,13 +53,18 @@ const stats = computed(() => [
     },
 ])
 async function load({ fresh = false } = {}) {
+    const revision = ++loadRevision
     loading.value = true
     try {
-        list.value = rows(payload(await api.get('/notifications', { cache: !fresh })))
+        const nextList = rows(payload(await api.get('/notifications', { cache: !fresh })))
+        if (revision !== loadRevision) return
+        list.value = nextList
+        error.value = ''
     } catch (requestError) {
+        if (revision !== loadRevision) return
         error.value = errorMessage(requestError)
     } finally {
-        loading.value = false
+        if (revision === loadRevision) loading.value = false
     }
 }
 async function read(id) {

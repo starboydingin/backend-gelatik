@@ -8,16 +8,15 @@ use App\Models\KonsultasiResponse;
 use App\Models\KritikSaran;
 use App\Models\MasterItem;
 use App\Models\MasterTopik;
-use App\Models\Notification;
+use App\Models\PegawaiBelumPunyaEmail;
+use App\Models\Pengumuman;
 use App\Models\Pinjam;
 use App\Models\PinjamItem;
-use App\Models\Pengumuman;
-use App\Models\PegawaiBelumPunyaEmail;
 use App\Models\Rating;
 use App\Models\Router;
 use App\Models\RouterList;
-use App\Models\Slider;
 use App\Models\Setting;
+use App\Models\Slider;
 use App\Models\User;
 use App\Models\UsulanEmail;
 use App\Models\WhatsappSubscription;
@@ -28,14 +27,27 @@ use Illuminate\Database\Eloquent\Model;
 /** Keeps every signed-in client fresh after persisted model changes. */
 class RealtimeDataObserver implements ShouldHandleEventsAfterCommit
 {
-    public function __construct(private RealtimeDataSyncService $sync)
+    public function __construct(private RealtimeDataSyncService $sync) {}
+
+    public function created(Model $model): void
     {
+        $this->publish($model);
     }
 
-    public function created(Model $model): void { $this->publish($model); }
-    public function updated(Model $model): void { $this->publish($model); }
-    public function deleted(Model $model): void { $this->publish($model); }
-    public function restored(Model $model): void { $this->publish($model); }
+    public function updated(Model $model): void
+    {
+        $this->publish($model);
+    }
+
+    public function deleted(Model $model): void
+    {
+        $this->publish($model);
+    }
+
+    public function restored(Model $model): void
+    {
+        $this->publish($model);
+    }
 
     private function publish(Model $model): void
     {
@@ -46,52 +58,54 @@ class RealtimeDataObserver implements ShouldHandleEventsAfterCommit
 
         if ($model instanceof Pinjam) {
             $this->personal($model->user_id, 'peminjaman', $entityId, true);
+
             return;
         }
         if ($model instanceof PinjamItem) {
             $pinjam = Pinjam::withTrashed()->find($model->pinjam_id);
             $this->personal($pinjam?->user_id, 'peminjaman', (int) ($pinjam?->id ?? $entityId), true);
+
             return;
         }
         if ($model instanceof Konsultasi) {
             $this->personal($model->user_id, 'konsultasi', $entityId, true);
+
             return;
         }
         if ($model instanceof KonsultasiResponse) {
             $konsultasi = Konsultasi::withTrashed()->find($model->konsultasi_id);
             $this->personal($konsultasi?->user_id, 'konsultasi', (int) ($konsultasi?->id ?? $entityId), true);
+
             return;
         }
         if ($model instanceof UsulanEmail) {
             $this->personal($model->created_by, 'usulan_email', $entityId, true);
+
             return;
         }
         if ($model instanceof Rating) {
             $this->personal($model->user_id, 'rating', $entityId, true);
+
             return;
         }
         if ($model instanceof KritikSaran) {
             $this->personal($model->user_id, 'kritik_saran', $entityId);
-            return;
-        }
-        if ($model instanceof Notification) {
-            if ((int) $model->user_id === 0) {
-                $this->sync->admins('notification', $entityId);
-            } else {
-                $this->sync->user((int) $model->user_id, 'notification', $entityId);
-            }
+
             return;
         }
         if ($model instanceof User) {
             $this->sync->userAndAdmins($entityId, 'user', $entityId);
+
             return;
         }
         if ($model instanceof WhatsappSubscription) {
             $this->sync->user((int) $model->user_id, 'whatsapp_subscription', $entityId);
+
             return;
         }
         if ($model instanceof Setting) {
             $this->sync->admins('settings', $entityId);
+
             return;
         }
 

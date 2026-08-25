@@ -24,10 +24,8 @@ class ChatbotService
 
     public function __construct(
         private KonsultasiService $konsultasiService,
-        private NodeServiceClient $nodeService,
-    )
-    {
-    }
+        private RealtimeDataSyncService $realtime,
+    ) {}
 
     private const SCOPE_REFUSAL = 'Maaf, saya hanya dapat membantu pertanyaan seputar konsultasi dan layanan TIK Gelatik, seperti WiFi/internet, email dinas, peminjaman aset, konsultasi, hosting, subdomain, TTE, atau status layanan. Silakan tuliskan pertanyaan terkait layanan TIK yang ingin Anda tanyakan.';
 
@@ -733,7 +731,7 @@ class ChatbotService
     {
         $message = ChatbotMessage::create($attributes);
         $conversation->touch();
-        $this->nodeService->broadcastToUser(
+        $this->realtime->eventToUser(
             $user->id,
             'chatbot.message.created',
             RealtimeEventPayload::make('chatbot.message.created', (int) $conversation->id, [
@@ -748,7 +746,7 @@ class ChatbotService
 
     private function broadcastConversation(User $user, ChatbotConversation $conversation, string $event): void
     {
-        $this->nodeService->broadcastToUser(
+        $this->realtime->eventToUser(
             $user->id,
             $event,
             RealtimeEventPayload::make($event, (int) $conversation->id, [

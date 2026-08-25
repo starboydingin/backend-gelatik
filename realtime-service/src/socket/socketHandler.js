@@ -151,6 +151,13 @@ function getSocketConnectionsCount() {
     return io?.engine?.clientsCount || 0;
 }
 
+function closeSocket() {
+    if (!io) return Promise.resolve();
+    const current = io;
+    io = undefined;
+    return new Promise((resolve) => current.close(resolve));
+}
+
 module.exports = {
     broadcastToAll,
     broadcastToRole,
@@ -158,6 +165,7 @@ module.exports = {
     createAuthMiddleware,
     createBroadcaster,
     createConnectionRegistry,
+    closeSocket,
     getAllowedOrigins,
     getRole,
     getRoleRooms,

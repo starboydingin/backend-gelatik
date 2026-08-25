@@ -13,8 +13,8 @@ use App\Services\DashboardService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Passport\Passport;
 use Maatwebsite\Excel\Facades\Excel;
 use Mockery\MockInterface;
@@ -683,10 +683,13 @@ class AuthorizationTest extends TestCase
         });
 
         $this->actingAsApi($this->superadmin);
-        $this->getJson('/api/admin/dashboard')
+        $first = $this->getJson('/api/admin/dashboard')
             ->assertOk()
             ->assertJsonPath('data.scope', 'superadmin')
             ->assertJsonPath('data.admin_activity.0.actor', $this->admin->name);
+        $second = $this->getJson('/api/admin/dashboard')->assertOk();
+
+        $this->assertSame($first->json('data'), $second->json('data'));
     }
 
     public function test_service_reports_are_restricted_and_export_filtered_queries(): void

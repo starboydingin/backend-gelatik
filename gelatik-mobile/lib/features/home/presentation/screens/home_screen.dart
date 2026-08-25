@@ -383,7 +383,9 @@ class _SummarySection extends StatelessWidget {
               crossAxisCount: columns,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
-              childAspectRatio: columns == 4 ? 1.55 : 1.42,
+              // Two-column cards need enough vertical room for the icon,
+              // value, and a two-line label on 320 px devices.
+              childAspectRatio: columns == 4 ? 1.55 : 1.2,
               children: [
                 _SummaryCard(
                   key: const Key('summary-borrowings'),

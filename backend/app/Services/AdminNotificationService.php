@@ -33,8 +33,7 @@ class AdminNotificationService
 
         app(NotificationRealtimeService::class)->toAdmins($notification);
 
-        app(NodeServiceClient::class)->broadcastToRole(
-            'admin',
+        app(RealtimeDataSyncService::class)->eventToAdmins(
             $event,
             RealtimeEventPayload::make($event, $entityId, array_merge([
                 'message' => $message,

@@ -4,6 +4,8 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
 
+use function Illuminate\Support\defer;
+
 /**
  * Publishes metadata-only invalidation events. Clients never trust these
  * events as data; they re-read the REST API with their current credentials.
@@ -12,7 +14,32 @@ class RealtimeDataSyncService
 {
     /** @var array<string, \Closure> */
     private array $pending = [];
+
     private bool $flushRegistered = false;
+
+    public function eventToUser(int $userId, string $event, array $payload): void
+    {
+        if ($userId < 1) {
+            return;
+        }
+        $entityId = (int) ($payload['entity_id'] ?? 0);
+        $this->afterResponse("event:user:{$userId}:{$event}:{$entityId}", fn () => app(NodeServiceClient::class)
+            ->broadcastToUser($userId, $event, $payload));
+    }
+
+    public function eventToAdmins(string $event, array $payload): void
+    {
+        $entityId = (int) ($payload['entity_id'] ?? 0);
+        $this->afterResponse("event:admins:{$event}:{$entityId}", fn () => app(NodeServiceClient::class)
+            ->broadcastToRole('admin', $event, $payload));
+    }
+
+    public function eventToEveryone(string $event, array $payload): void
+    {
+        $entityId = (int) ($payload['entity_id'] ?? 0);
+        $this->afterResponse("event:everyone:{$event}:{$entityId}", fn () => app(NodeServiceClient::class)
+            ->broadcastToAll($event, $payload));
+    }
 
     public function user(int $userId, string $resource, int $entityId): void
     {
@@ -97,12 +124,12 @@ class RealtimeDataSyncService
         }
 
         $this->flushRegistered = true;
-        app()->terminating(function (): void {
+        defer(function (): void {
             foreach ($this->pending as $publish) {
                 $publish();
             }
             $this->pending = [];
             $this->flushRegistered = false;
-        });
+        }, 'gelatik-realtime-sync', always: true);
     }
 }

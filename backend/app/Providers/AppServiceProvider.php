@@ -2,32 +2,31 @@
 
 namespace App\Providers;
 
+use App\Models\Faq;
 use App\Models\Konsultasi;
 use App\Models\KonsultasiResponse;
 use App\Models\KritikSaran;
 use App\Models\MasterItem;
 use App\Models\MasterTopik;
-use App\Models\Notification;
+use App\Models\PegawaiBelumPunyaEmail;
+use App\Models\Pengumuman;
 use App\Models\Pinjam;
 use App\Models\PinjamItem;
-use App\Models\Pengumuman;
-use App\Models\PegawaiBelumPunyaEmail;
 use App\Models\Rating;
 use App\Models\Router;
 use App\Models\RouterList;
-use App\Models\Slider;
 use App\Models\Setting;
+use App\Models\Slider;
 use App\Models\User;
 use App\Models\UsulanEmail;
 use App\Models\WhatsappSubscription;
-use App\Models\Faq;
 use App\Observers\RealtimeDataObserver;
-use App\Services\RealtimeDataSyncService;
 use App\Policies\KonsultasiPolicy;
 use App\Policies\PinjamPolicy;
 use App\Policies\UsulanEmailPolicy;
-use Illuminate\Support\Facades\Gate;
+use App\Services\RealtimeDataSyncService;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -60,7 +59,6 @@ class AppServiceProvider extends ServiceProvider
             UsulanEmail::class,
             Rating::class,
             KritikSaran::class,
-            Notification::class,
             WhatsappSubscription::class,
             Faq::class,
             MasterTopik::class,

@@ -2,8 +2,8 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { connectRealtime, disconnectRealtime, reconcileRealtime } from '../lib/realtime'
-import { realtimeResource } from '../lib/api'
+import { connectRealtime, disconnectRealtime } from '../lib/realtime'
+import { invalidateRealtimeResource, realtimeResource } from '../lib/api'
 import AppShell from '../components/AppShell.vue'
 import AppSidebar from '../components/AppSidebar.vue'
 import AppHeader from '../components/AppHeader.vue'
@@ -132,7 +132,7 @@ async function logout() {
     router.push('/login')
 }
 function routeUsesResource(resource) {
-    if (resource === 'session') return true
+    if (resource === 'session') return false
     const path = route.path
     if (resource === 'insights') return path.endsWith('/dashboard')
     if (resource === 'peminjaman')
@@ -150,13 +150,9 @@ function routeUsesResource(resource) {
     if (resource === 'usulan_email')
         return path.includes('email-resmi') || path.includes('laporan-email')
     if (resource === 'notification') return path.endsWith('/notifikasi')
-    if (resource === 'kritik_saran' || resource === 'rating') {
-        return (
-            path.endsWith('/umpan-balik') ||
-            path.endsWith('/kritik-saran') ||
-            path.endsWith('/rating')
-        )
-    }
+    if (resource === 'kritik_saran')
+        return path.endsWith('/umpan-balik') || path.endsWith('/kritik-saran')
+    if (resource === 'rating') return path.endsWith('/rating') || path.endsWith('/dashboard')
     if (resource === 'user') return path.endsWith('/profil')
     if (resource === 'whatsapp_subscription') return path.endsWith('/whatsapp')
     if (resource === 'faq' || resource === 'mastertopik')
@@ -168,6 +164,30 @@ function routeUsesResource(resource) {
         return path.endsWith('/pengumuman') || path.endsWith('/dashboard')
     if (resource === 'settings') return path.endsWith('/pengaturan')
     return false
+}
+function activeRouteResource() {
+    const path = route.path
+    if (path.endsWith('/dashboard')) return 'insights'
+    if (path.includes('peminjaman') || path.includes('laporan-peminjaman')) return 'peminjaman'
+    if (path.includes('konsultasi') || path.includes('laporan-konsultasi')) return 'konsultasi'
+    if (path.includes('email-resmi') || path.includes('laporan-email')) return 'usulan_email'
+    if (path.endsWith('/notifikasi')) return 'notification'
+    if (path.endsWith('/umpan-balik') || path.endsWith('/kritik-saran')) return 'kritik_saran'
+    if (path.endsWith('/rating')) return 'rating'
+    if (path.endsWith('/profil')) return 'user'
+    if (path.endsWith('/whatsapp')) return 'whatsapp_subscription'
+    if (path.endsWith('/faq')) return 'faq'
+    if (path.endsWith('/router')) return 'router'
+    if (path.endsWith('/pengumuman')) return 'pengumuman'
+    if (path.includes('referensi-layanan')) return 'masteritem'
+    if (path.endsWith('/pengaturan')) return 'settings'
+    return ''
+}
+function reconcileAfterReconnect() {
+    const resource = activeRouteResource()
+    if (!resource) return
+    invalidateRealtimeResource({ resource })
+    syncRevision.value += 1
 }
 async function refreshActivePage(event) {
     const resource = realtimeResource(event?.detail || {})
@@ -183,17 +203,14 @@ async function refreshActivePage(event) {
     // whose REST resource changed; unrelated pages retain their lazy cache.
     syncRevision.value += 1
 }
-function reconcileVisibleTab() {
-    if (document.visibilityState === 'visible') reconcileRealtime()
-}
 onMounted(() => {
     connectRealtime(auth.token)
     window.addEventListener('gelatik:data-sync', refreshActivePage)
-    document.addEventListener('visibilitychange', reconcileVisibleTab)
+    window.addEventListener('gelatik:reconnected', reconcileAfterReconnect)
 })
 onBeforeUnmount(() => {
     window.removeEventListener('gelatik:data-sync', refreshActivePage)
-    document.removeEventListener('visibilitychange', reconcileVisibleTab)
+    window.removeEventListener('gelatik:reconnected', reconcileAfterReconnect)
     disconnectRealtime()
 })
 </script>

@@ -16,8 +16,8 @@ class KritikSaranService
     {
         $kritikSaran = KritikSaran::create([
             'user_id' => $user ? $user->id : null,
-            'kritik'  => $kritik,
-            'saran'   => $saran,
+            'kritik' => $kritik,
+            'saran' => $saran,
         ]);
 
         $sender = $user?->name ?: 'Pengguna anonim';
@@ -35,14 +35,28 @@ class KritikSaranService
     /**
      * Ambil list semua kritik saran untuk admin
      */
-    public function getAllForAdmin()
+    public function getAllForAdmin(?string $keyword = null, ?string $status = null, int $perPage = 15)
     {
-        return KritikSaran::with(['user', 'responder:id,name,role'])->latest()->paginate(15);
+        return KritikSaran::with(['user:id,name,email', 'responder:id,name'])
+            ->when($keyword, function ($query, string $value): void {
+                $query->where(function ($nested) use ($value): void {
+                    $nested->where('kritik', 'like', "%{$value}%")
+                        ->orWhere('saran', 'like', "%{$value}%")
+                        ->orWhere('balasan', 'like', "%{$value}%")
+                        ->orWhereHas('user', fn ($user) => $user
+                            ->where('name', 'like', "%{$value}%")
+                            ->orWhere('email', 'like', "%{$value}%"));
+                });
+            })
+            ->when($status === 'answered', fn ($query) => $query->whereNotNull('balasan'))
+            ->when($status === 'waiting', fn ($query) => $query->whereNull('balasan'))
+            ->latest()
+            ->paginate(max(1, min($perPage, 50)));
     }
 
     public function getForUser(User $user, ?string $keyword = null, ?string $status = null)
     {
-        return KritikSaran::with('responder:id,name,role')
+        return KritikSaran::with('responder:id,name')
             ->where('user_id', $user->id)
             ->when($keyword, function ($query, string $value) {
                 $query->where(function ($nested) use ($value): void {
@@ -59,7 +73,7 @@ class KritikSaranService
 
     public function findForUser(User $user, int $id): KritikSaran
     {
-        return KritikSaran::with('responder:id,name,role')
+        return KritikSaran::with('responder:id,name')
             ->where('user_id', $user->id)
             ->findOrFail($id);
     }
@@ -87,7 +101,7 @@ class KritikSaranService
             app(NotificationRealtimeService::class)->toUser($notification);
         }
 
-        return $kritikSaran->fresh(['user', 'responder:id,name,role']);
+        return $kritikSaran->fresh(['user:id,name,email', 'responder:id,name']);
     }
 
     /**

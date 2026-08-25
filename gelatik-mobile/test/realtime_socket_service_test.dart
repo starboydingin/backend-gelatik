@@ -104,9 +104,9 @@ void main() {
     transport.emit('pinjam.status_changed', {'entity_id': 7});
     await Future<void>.delayed(Duration.zero);
 
-    expect(events, hasLength(4));
-    expect(events.where((event) => event.type == 'data.sync'), hasLength(2));
-    expect(events[2].entityId, 7);
+    expect(events, hasLength(3));
+    expect(events.where((event) => event.type == 'data.sync'), hasLength(1));
+    expect(events[1].entityId, 7);
     expect(events.last.type, 'notification');
     await subscription.cancel();
     await service.dispose();
@@ -148,28 +148,31 @@ void main() {
     await service.dispose();
   });
 
-  test('resume replaces a disconnected transport without duplicate listeners', () async {
-    final storage = _MemoryStorage()..token = 'secure-token';
-    final firstTransport = _FakeTransport();
-    final secondTransport = _FakeTransport();
-    var factoryCalls = 0;
-    final service = RealtimeSocketService(
-      storage: storage,
-      baseUrl: 'http://localhost:4000',
-      transportFactory: (_, _) =>
-          factoryCalls++ == 0 ? firstTransport : secondTransport,
-    );
+  test(
+    'resume replaces a disconnected transport without duplicate listeners',
+    () async {
+      final storage = _MemoryStorage()..token = 'secure-token';
+      final firstTransport = _FakeTransport();
+      final secondTransport = _FakeTransport();
+      var factoryCalls = 0;
+      final service = RealtimeSocketService(
+        storage: storage,
+        baseUrl: 'http://localhost:4000',
+        transportFactory: (_, _) =>
+            factoryCalls++ == 0 ? firstTransport : secondTransport,
+      );
 
-    await service.connect();
-    firstTransport.emit('connect', null);
-    firstTransport.emit('disconnect', null);
-    service.handleLifecycle(AppLifecycleState.resumed);
-    await Future<void>.delayed(Duration.zero);
+      await service.connect();
+      firstTransport.emit('connect', null);
+      firstTransport.emit('disconnect', null);
+      service.handleLifecycle(AppLifecycleState.resumed);
+      await Future<void>.delayed(Duration.zero);
 
-    expect(factoryCalls, 2);
-    expect(firstTransport.disconnectCalls, 1);
-    expect(firstTransport.removed, contains('konsultasi.responded'));
-    expect(secondTransport.connectCalls, 1);
-    await service.dispose();
-  });
+      expect(factoryCalls, 2);
+      expect(firstTransport.disconnectCalls, 1);
+      expect(firstTransport.removed, contains('konsultasi.responded'));
+      expect(secondTransport.connectCalls, 1);
+      await service.dispose();
+    },
+  );
 }

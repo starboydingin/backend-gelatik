@@ -11,20 +11,16 @@ use App\Models\PinjamItem;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use App\Services\NodeServiceClient;
-use App\Services\RealtimeEventPayload;
 
 class PinjamService
 {
     public function __construct(
         private AdminAuditService $audit,
         private AdminNotificationService $adminNotifications,
-    )
-    {
-    }
+    ) {}
 
     /**
      * Ajukan peminjaman aset TIK baru.
@@ -190,7 +186,7 @@ class PinjamService
             ]);
             app(NotificationRealtimeService::class)->toUser($notification);
 
-            app(NodeServiceClient::class)->broadcastToUser(
+            app(RealtimeDataSyncService::class)->eventToUser(
                 $pinjam->user_id,
                 'pinjam.status_changed',
                 RealtimeEventPayload::make('pinjam.status_changed', (int) $pinjam->id, [
@@ -353,6 +349,7 @@ class PinjamService
         if ($deleted) {
             $this->forgetDashboardCache((int) $pinjam->user_id);
         }
+
         return $deleted;
     }
 

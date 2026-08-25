@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Log;
 class DashboardService
 {
     protected RatingService $ratingService;
+
     protected PengumumanService $pengumumanService;
 
     public function __construct(RatingService $ratingService, PengumumanService $pengumumanService)
@@ -32,7 +33,7 @@ class DashboardService
     {
         // 1. Total peminjaman per status
         $pinjamCounts = Pinjam::query()
-            ->selectRaw("COUNT(*) as total")
+            ->selectRaw('COUNT(*) as total')
             ->selectRaw("SUM(CASE WHEN status = 'Menunggu' THEN 1 ELSE 0 END) as menunggu")
             ->selectRaw("SUM(CASE WHEN status = 'Proses' THEN 1 ELSE 0 END) as proses")
             ->selectRaw("SUM(CASE WHEN status = 'Selesai' THEN 1 ELSE 0 END) as selesai")
@@ -91,17 +92,17 @@ class DashboardService
         $ratingStatistik = $this->ratingService->getStatistik();
 
         // 5. Pengumuman aktif terbaru (limit 3)
-        $pengumumanTerbaru = $this->pengumumanService->getActive()->take(3);
+        $pengumumanTerbaru = $this->pengumumanService->getActive()->take(3)->values()->toArray();
 
         return [
-            'peminjaman'          => $peminjaman,
-            'grafik_konsultasi'   => $grafikKonsultasi,
-            'top_5_aset'          => $top5Aset,
-            'rating_statistik'    => $ratingStatistik,
-            'pengumuman_terbaru'  => $pengumumanTerbaru,
-            'activity_series'     => $activity->values(),
-            'consultation_topics' => $topicStats,
-            'email_statistics'    => $emailStats,
+            'peminjaman' => $peminjaman,
+            'grafik_konsultasi' => $grafikKonsultasi,
+            'top_5_aset' => $top5Aset,
+            'rating_statistik' => $ratingStatistik,
+            'pengumuman_terbaru' => $pengumumanTerbaru,
+            'activity_series' => $activity->values()->all(),
+            'consultation_topics' => $topicStats->toArray(),
+            'email_statistics' => $emailStats->all(),
         ];
     }
 
@@ -130,12 +131,12 @@ class DashboardService
                 'usulan_email' => UsulanEmail::where('created_by', $userId)->count(),
                 'notifikasi_belum_dibaca' => Notification::where('user_id', $userId)->where('read', false)->count(),
             ],
-            'activity_series' => $activity->values(),
+            'activity_series' => $activity->values()->all(),
             'service_activity_series' => $serviceInsights['activity_series'],
             'service_rating_statistics' => $serviceInsights['rating_statistics'],
             'consultation_topics' => $serviceInsights['consultation_topics'],
             'asset_usage' => $serviceInsights['asset_usage'],
-            'rating' => Rating::where('user_id', $userId)->latest()->first(),
+            'rating' => Rating::where('user_id', $userId)->latest()->first()?->toArray(),
             'recent' => [
                 'peminjaman' => Pinjam::query()
                     // Match the public Pinjam API contract. Loading the
@@ -145,22 +146,26 @@ class DashboardService
                     ->where('user_id', $userId)
                     ->latest()
                     ->take(5)
-                    ->get(),
+                    ->get()
+                    ->toArray(),
                 'konsultasi' => Konsultasi::query()
                     ->with('topik:id,topik')
                     ->where('user_id', $userId)
                     ->latest()
                     ->take(5)
-                    ->get(),
+                    ->get()
+                    ->toArray(),
                 'usulan_email' => UsulanEmail::query()
                     ->with('pegawaiBkd')
                     ->where('created_by', $userId)
                     ->latest()
                     ->take(5)
-                    ->get(),
+                    ->get()
+                    ->toArray(),
                 'pengumuman' => $this->pengumumanService->getActive()
                     ->take(3)
-                    ->values(),
+                    ->values()
+                    ->toArray(),
             ],
         ];
     }
@@ -202,9 +207,9 @@ class DashboardService
                 ->get();
 
             return [
-                'activity_series' => $activity->values(),
-                'consultation_topics' => $topics,
-                'asset_usage' => $assets,
+                'activity_series' => $activity->values()->all(),
+                'consultation_topics' => $topics->toArray(),
+                'asset_usage' => $assets->toArray(),
                 'rating_statistics' => $this->ratingService->getStatistik(),
             ];
         });
@@ -235,20 +240,21 @@ class DashboardService
 
         if (empty($baseUrl) || empty($apiKey)) {
             Log::warning('DashboardService: Kredensial SIMKI API (URL_API_SIMKI / TOKEN_SIMKI) belum diisi.');
+
             return null;
         }
 
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
+                'Authorization' => 'Bearer '.$apiKey,
                 'X-API-KEY' => $apiKey,
-            ])->timeout(5)->get(rtrim($baseUrl, '/') . '/dashboard-stats');
+            ])->timeout(5)->get(rtrim($baseUrl, '/').'/dashboard-stats');
 
             if ($response->successful()) {
                 return $response->json('data') ?? $response->json();
             }
         } catch (\Throwable $e) {
-            Log::error('DashboardService: Gagal memanggil SIMKI API: ' . $e->getMessage());
+            Log::error('DashboardService: Gagal memanggil SIMKI API: '.$e->getMessage());
         }
 
         return null;

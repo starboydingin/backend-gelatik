@@ -124,15 +124,13 @@ export function invalidateApiCache(prefix = '') {
 /** Invalidate only REST reads that can be affected by a realtime event. */
 export function invalidateRealtimeResource(payload = {}) {
     const resource = realtimeResource(payload)
-    if (!resource || resource === 'session') {
-        invalidateApiCache()
-        return resource
-    }
+    // A reconnect/session marker is not a business-data mutation. Clearing the
+    // whole cache here made every tab activation remount and refetch its page.
+    if (!resource || resource === 'session') return resource
     const prefixes = resourceEndpointPrefixes[resource]
-    if (!prefixes) {
-        invalidateApiCache()
-        return resource
-    }
+    // Unknown/malformed events are ignored instead of invalidating unrelated
+    // account data. New resources must be registered explicitly above.
+    if (!prefixes) return resource
     for (const prefix of prefixes) invalidateApiCache(prefix)
     return resource
 }

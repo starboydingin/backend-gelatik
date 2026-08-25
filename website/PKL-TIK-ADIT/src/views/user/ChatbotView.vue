@@ -8,7 +8,7 @@ import AlertMessage from '../../components/AlertMessage.vue'
 const auth = useAuthStore()
 const starterResetAfter = 5 * 60 * 1000
 const visitKey = `gelatik_chat_left_at:${auth.user?.id || 'current-session'}`
-const sessionId = ref(localStorage.getItem('gelatik_chat_session') || '')
+const sessionId = ref(sessionStorage.getItem('gelatik_chat_session') || '')
 const messages = ref([]),
     input = ref(''),
     error = ref(''),
@@ -143,7 +143,7 @@ async function history() {
     } catch {
         // A locally stored session can outlive a deleted server conversation.
         sessionId.value = ''
-        localStorage.removeItem('gelatik_chat_session')
+        sessionStorage.removeItem('gelatik_chat_session')
     }
 }
 async function syncLatestConversation(preferredSession = '') {
@@ -153,7 +153,7 @@ async function syncLatestConversation(preferredSession = '') {
         if (!nextSession) return
         if (sessionId.value !== nextSession) {
             sessionId.value = nextSession
-            localStorage.setItem('gelatik_chat_session', nextSession)
+            sessionStorage.setItem('gelatik_chat_session', nextSession)
         }
         await history()
     } catch {
@@ -168,7 +168,7 @@ async function handleRealtimeChat(event) {
 
     if (eventType === 'chatbot.conversation.deleted' && remoteSession === sessionId.value) {
         sessionId.value = ''
-        localStorage.removeItem('gelatik_chat_session')
+        sessionStorage.removeItem('gelatik_chat_session')
         messages.value = messages.value.filter((item) => item.localStarter)
         await syncLatestConversation()
         return
@@ -192,7 +192,7 @@ async function send(text = input.value) {
         )
         if (result.session_id) {
             sessionId.value = result.session_id
-            localStorage.setItem('gelatik_chat_session', result.session_id)
+            sessionStorage.setItem('gelatik_chat_session', result.session_id)
         }
         messages.value.push({
             role: 'assistant',
@@ -215,7 +215,7 @@ async function clear() {
         await api.delete('/chatbot/history', { params: { session_id: sessionId.value } })
         messages.value = []
         sessionId.value = ''
-        localStorage.removeItem('gelatik_chat_session')
+        sessionStorage.removeItem('gelatik_chat_session')
         sessionStorage.removeItem(visitKey)
         appendStarterIfDue()
     } catch (requestError) {

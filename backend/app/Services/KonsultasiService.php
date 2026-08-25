@@ -9,21 +9,15 @@ use App\Models\Konsultasi;
 use App\Models\KonsultasiResponse;
 use App\Models\Notification;
 use App\Models\User;
-use App\Services\NodeServiceClient;
-use App\Services\RealtimeEventPayload;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Validation\ValidationException;
 
 class KonsultasiService
 {
     public function __construct(
         private AdminAuditService $audit,
         private AdminNotificationService $adminNotifications,
-    )
-    {
-    }
+    ) {}
 
     /**
      * Buat pengajuan konsultasi TIK baru.
@@ -36,12 +30,12 @@ class KonsultasiService
         }
 
         $konsultasi = Konsultasi::create([
-            'user_id'    => $user->id,
-            'faq_id'     => $data['topik_id'] ?? $data['faq_id'],
-            'judul'      => $data['judul'],
-            'pesan'      => $data['deskripsi'] ?? $data['pertanyaan'] ?? $data['pesan'],
-            'file'       => $filePath,
-            'status'     => 'Menunggu',
+            'user_id' => $user->id,
+            'faq_id' => $data['topik_id'] ?? $data['faq_id'],
+            'judul' => $data['judul'],
+            'pesan' => $data['deskripsi'] ?? $data['pertanyaan'] ?? $data['pesan'],
+            'file' => $filePath,
+            'status' => 'Menunggu',
             'created_by' => $user->id,
         ]);
 
@@ -73,9 +67,9 @@ class KonsultasiService
 
         $response = KonsultasiResponse::create([
             'konsultasi_id' => $konsultasi->id,
-            'user_id'       => $pembalas->id,
-            'pesan'         => $isiRespon,
-            'file'          => $filePath,
+            'user_id' => $pembalas->id,
+            'pesan' => $isiRespon,
+            'file' => $filePath,
         ]);
         $this->forgetDashboardCache((int) $konsultasi->user_id);
 
@@ -98,7 +92,7 @@ class KonsultasiService
             $notification = Notification::create([
                 'user_id' => $konsultasi->user_id,
                 'judul' => 'Balasan baru dari admin',
-                'message' => 'Admin membalas konsultasi: ' . $konsultasi->judul,
+                'message' => 'Admin membalas konsultasi: '.$konsultasi->judul,
                 'type' => 'konsultasi_response',
                 'item_id' => $konsultasi->id,
                 'read' => false,
@@ -108,7 +102,7 @@ class KonsultasiService
             // Keep the user's open web/mobile session in sync immediately.
             // WhatsApp and FCM are still handled asynchronously by the event
             // listener below, so a gateway outage never blocks this reply.
-            app(NodeServiceClient::class)->broadcastToUser(
+            app(RealtimeDataSyncService::class)->eventToUser(
                 $konsultasi->user_id,
                 'konsultasi.responded',
                 RealtimeEventPayload::make('konsultasi.responded', (int) $konsultasi->id, [
@@ -135,16 +129,16 @@ class KonsultasiService
         $allowedTransitions = [
             'Menunggu' => ['Diproses', 'Ditolak', 'Selesai'],
             'Diproses' => ['Selesai', 'Ditolak'],
-            'Ditolak'  => [],
-            'Selesai'  => [],
+            'Ditolak' => [],
+            'Selesai' => [],
         ];
 
-        if (!isset($allowedTransitions[$oldStatus]) || !in_array($statusBaru, $allowedTransitions[$oldStatus])) {
+        if (! isset($allowedTransitions[$oldStatus]) || ! in_array($statusBaru, $allowedTransitions[$oldStatus])) {
             throw new \InvalidArgumentException("Transisi status konsultasi dari '{$oldStatus}' ke '{$statusBaru}' tidak diperbolehkan.");
         }
 
         $konsultasi->update([
-            'status'     => $statusBaru,
+            'status' => $statusBaru,
             'updated_by' => $admin ? $admin->id : null,
         ]);
         $this->forgetDashboardCache((int) $konsultasi->user_id);
@@ -168,7 +162,7 @@ class KonsultasiService
             ]);
             app(NotificationRealtimeService::class)->toUser($notification);
 
-            app(NodeServiceClient::class)->broadcastToUser(
+            app(RealtimeDataSyncService::class)->eventToUser(
                 $konsultasi->user_id,
                 'konsultasi.status_changed',
                 RealtimeEventPayload::make('konsultasi.status_changed', (int) $konsultasi->id, [

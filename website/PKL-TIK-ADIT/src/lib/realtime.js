@@ -4,7 +4,9 @@ import { invalidateRealtimeResource } from './api'
 const enabled = import.meta.env.VITE_ENABLE_REALTIME === 'true'
 const realtimeUrl = import.meta.env.VITE_REALTIME_URL
 let socket = null
-let syncTimer = null
+const syncTimers = new Map()
+const seenEventIds = new Set()
+const seenEventOrder = []
 let hasConnected = false
 const notificationEvents = [
     'notification',
@@ -25,15 +27,27 @@ const notificationEvents = [
 ]
 
 function dispatchDataSync(payload) {
-    invalidateRealtimeResource(payload)
-    if (syncTimer) window.clearTimeout(syncTimer)
-    syncTimer = window.setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('gelatik:data-sync', { detail: payload }))
-        syncTimer = null
-    }, 120)
+    const resource = invalidateRealtimeResource(payload)
+    if (!resource || resource === 'session') return
+    const existingTimer = syncTimers.get(resource)
+    if (existingTimer) window.clearTimeout(existingTimer)
+    syncTimers.set(
+        resource,
+        window.setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('gelatik:data-sync', { detail: payload }))
+            syncTimers.delete(resource)
+        }, 120)
+    )
 }
 
 function notify(payload) {
+    const eventId = String(payload?.event_id || '').trim()
+    if (eventId && seenEventIds.has(eventId)) return
+    if (eventId) {
+        seenEventIds.add(eventId)
+        seenEventOrder.push(eventId)
+        if (seenEventOrder.length > 300) seenEventIds.delete(seenEventOrder.shift())
+    }
     dispatchDataSync(payload)
     window.dispatchEvent(new CustomEvent('gelatik:notification', { detail: payload }))
     if (String(payload?.type || '').startsWith('chatbot.')) {
@@ -45,8 +59,12 @@ function resyncAfterConnect() {
     // Socket.IO reconnects do not replay missed events. Re-fetch the current
     // user's authorized data after a reconnect. The first connection must not
     // remount a page whose initial request is still running.
-    if (hasConnected) dispatchDataSync({ type: 'data.sync', resource: 'session' })
+    if (hasConnected) window.dispatchEvent(new CustomEvent('gelatik:reconnected'))
     hasConnected = true
+}
+
+function reportConnectionError(error) {
+    console.warn('Koneksi realtime belum tersedia:', error?.message || 'unknown error')
 }
 
 /**
@@ -65,6 +83,7 @@ export function connectRealtime(token) {
 
     notificationEvents.forEach((eventName) => socket.on(eventName, notify))
     socket.on('connect', resyncAfterConnect)
+    socket.on('connect_error', reportConnectionError)
 
     return socket
 }
@@ -72,16 +91,14 @@ export function connectRealtime(token) {
 export function disconnectRealtime() {
     notificationEvents.forEach((eventName) => socket?.off(eventName, notify))
     socket?.off('connect', resyncAfterConnect)
+    socket?.off('connect_error', reportConnectionError)
     socket?.disconnect()
     socket = null
     hasConnected = false
-    if (syncTimer) window.clearTimeout(syncTimer)
-    syncTimer = null
-}
-
-/** Reconcile stale reads when a background browser tab becomes visible again. */
-export function reconcileRealtime() {
-    dispatchDataSync({ type: 'data.sync', resource: 'session' })
+    for (const timer of syncTimers.values()) window.clearTimeout(timer)
+    syncTimers.clear()
+    seenEventIds.clear()
+    seenEventOrder.length = 0
 }
 
 export const realtimeEnabled = enabled

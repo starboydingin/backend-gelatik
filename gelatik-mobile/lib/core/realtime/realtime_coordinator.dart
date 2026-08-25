@@ -55,20 +55,17 @@ class RealtimeCoordinator {
     } else if (event.type == 'insights.sync') {
       _schedule('insights', () => home.refreshFromRealtime());
     } else if (event.type.startsWith('pinjam.')) {
-      _schedule('pinjam', () async {
-        await peminjaman.refreshFromRealtime(event.entityId);
-        await home.refreshFromRealtime();
-      });
+      _schedule(
+        'peminjaman',
+        () => peminjaman.refreshFromRealtime(event.entityId),
+      );
     } else if (event.type.startsWith('konsultasi.')) {
-      _schedule('konsultasi', () async {
-        await konsultasi.refreshFromRealtime(event.entityId);
-        await home.refreshFromRealtime();
-      });
+      _schedule(
+        'konsultasi',
+        () => konsultasi.refreshFromRealtime(event.entityId),
+      );
     } else if (event.type.startsWith('usulan_email.')) {
-      _schedule('usulan_email', () async {
-        await email.refreshFromRealtime();
-        await home.refreshFromRealtime();
-      });
+      _schedule('usulan_email', email.refreshFromRealtime);
     }
   }
 
@@ -88,71 +85,66 @@ class RealtimeCoordinator {
     final resource = event.resource?.toLowerCase() ?? '';
     switch (resource) {
       case 'peminjaman':
-        _schedule('sync:peminjaman', () async {
-          await peminjaman.refreshFromRealtime(event.entityId);
-          await home.refreshFromRealtime();
-        });
+        _schedule(
+          'peminjaman',
+          () => peminjaman.refreshFromRealtime(event.entityId),
+        );
         return;
       case 'konsultasi':
-        _schedule('sync:konsultasi', () async {
-          await konsultasi.refreshFromRealtime(event.entityId);
-          await home.refreshFromRealtime();
-        });
+        _schedule(
+          'konsultasi',
+          () => konsultasi.refreshFromRealtime(event.entityId),
+        );
         return;
       case 'usulan_email':
-        _schedule('sync:usulan_email', () async {
-          await email.refreshFromRealtime();
-          await home.refreshFromRealtime();
-        });
+        _schedule('usulan_email', email.refreshFromRealtime);
         return;
       case 'user':
-        _schedule('sync:user', () async {
-          await auth.refreshFromRealtime();
-          await home.refreshFromRealtime();
-        });
+        _schedule('user', auth.refreshFromRealtime);
         return;
       case 'rating':
       case 'notification':
       case 'kritik_saran':
-        _schedule('sync:$resource', () => home.refreshFromRealtime());
+        _schedule(resource, () => home.refreshFromRealtime());
         return;
       case 'whatsapp_subscription':
-        _schedule('sync:$resource', () async {
-          await waNotification.refreshFromRealtime();
-          await home.refreshFromRealtime();
-        });
+        _schedule(resource, waNotification.refreshFromRealtime);
         return;
       case 'faq':
       case 'mastertopik':
-        _schedule('sync:$resource', () async {
+        _schedule(resource, () async {
           await konsultasi.loadTopik(force: true);
           await internet.refreshAllFromRealtime();
         });
         return;
       case 'masteritem':
-        _schedule('sync:$resource', () => infoAlat.loadItems(force: true));
+        _schedule(resource, () => infoAlat.loadItems(force: true));
         return;
       case 'router':
       case 'routerlist':
-        _schedule('sync:$resource', () => internet.refreshAllFromRealtime());
+        _schedule(resource, () => internet.refreshAllFromRealtime());
         return;
       case 'pengumuman':
         // The dashboard may still be served from its short-lived cache. Refresh
         // the independent feed so an announcement appears immediately.
         onAnnouncementsChanged?.call();
-        _schedule('sync:$resource', () => home.refreshFromRealtime());
+        return;
+      case 'session':
+        _schedule('session', () async {
+          await auth.refreshFromRealtime();
+          await Future.wait([
+            peminjaman.refreshFromRealtime(event.entityId),
+            konsultasi.refreshFromRealtime(event.entityId),
+            email.refreshFromRealtime(),
+            home.refreshFromRealtime(),
+          ]);
+        });
         return;
       case 'slider':
       case 'insights':
-        _schedule('sync:$resource', () => home.refreshFromRealtime());
+        _schedule(resource, () => home.refreshFromRealtime());
         return;
       default:
-        _schedule('sync:reference', () async {
-          await konsultasi.loadTopik(force: true);
-          await infoAlat.loadItems(force: true);
-          await internet.refreshAllFromRealtime();
-          await home.refreshFromRealtime();
-        });
         return;
     }
   }
