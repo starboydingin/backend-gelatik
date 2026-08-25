@@ -1,8 +1,8 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ChatBubbleBottomCenterTextIcon, CheckIcon } from '@heroicons/vue/24/outline'
-import { api, errorMessage } from '../../lib/api'
+import { api, errorMessage, payload, rows } from '../../lib/api'
 import { formatDateTime } from '../../lib/date'
 import AlertMessage from '../../components/AlertMessage.vue'
 import PageHeader from '../../components/PageHeader.vue'
@@ -11,17 +11,25 @@ const form = ref({ kritik: '', saran: '' }),
     error = ref(''),
     saving = ref(false),
     history = ref([]),
+    historyLoading = ref(false),
+    historyLoaded = ref(false),
+    historyError = ref(''),
     selectedDetail = ref(null),
     route = useRoute(),
     router = useRouter()
 const historyOnly = computed(() => route.meta.feedbackHistory === true)
 
 async function loadHistory() {
+    historyLoading.value = true
+    historyError.value = ''
     try {
         const response = await api.get('/kritik-saran/mine', { cache: false })
-        history.value = response.data?.data?.data || response.data?.data || []
-    } catch (_) {
-        // Riwayat tidak boleh menghalangi pengguna mengirim masukan baru.
+        history.value = rows(payload(response))
+        historyLoaded.value = true
+    } catch (requestError) {
+        historyError.value = errorMessage(requestError)
+    } finally {
+        historyLoading.value = false
     }
 }
 async function loadDetail() {
@@ -58,10 +66,14 @@ async function submit() {
         saving.value = false
     }
 }
-onMounted(async () => {
-    await loadHistory()
-})
 watch(() => route.query.detail, loadDetail, { immediate: true })
+watch(
+    historyOnly,
+    (showHistory) => {
+        if (showHistory) loadHistory()
+    },
+    { immediate: true }
+)
 </script>
 <template>
     <div class="page-stack">
@@ -165,7 +177,19 @@ watch(() => route.query.detail, loadDetail, { immediate: true })
         <section v-else class="card mx-auto max-w-5xl p-6 md:p-8">
             <p class="eyebrow">Riwayat masukan</p>
             <h2 class="mt-2 text-xl font-bold text-navy">Tanggapan untuk kritik & saran Anda</h2>
-            <div v-if="history.length" class="mt-5 divide-y divide-stroke">
+            <div v-if="historyLoading" class="mt-6 flex items-center justify-center py-12">
+                <span
+                    class="size-8 animate-spin rounded-full border-4 border-blue-100 border-t-blue-700"
+                />
+                <span class="ml-3 text-sm font-semibold text-slate-500">Memuat riwayat…</span>
+            </div>
+            <div v-else-if="historyError" class="mt-6">
+                <AlertMessage :message="historyError" />
+                <button type="button" class="btn-secondary mt-4" @click="loadHistory">
+                    Coba lagi
+                </button>
+            </div>
+            <div v-else-if="history.length" class="mt-5 divide-y divide-stroke">
                 <article v-for="item in history" :key="item.id" class="py-5 first:pt-0 last:pb-0">
                     <p class="text-xs text-slate-500">
                         Dikirim {{ formatDateTime(item.created_at) }}
@@ -189,7 +213,10 @@ watch(() => route.query.detail, loadDetail, { immediate: true })
                     </p>
                 </article>
             </div>
-            <div v-else class="mt-6 rounded-xl border border-dashed border-stroke p-8 text-center">
+            <div
+                v-else-if="historyLoaded"
+                class="mt-6 rounded-xl border border-dashed border-stroke p-8 text-center"
+            >
                 <p class="font-semibold text-navy">Belum ada riwayat kritik & saran</p>
                 <p class="mt-2 text-sm text-slate-500">
                     Masukan yang Anda kirim akan tampil di halaman ini.
