@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -9,7 +10,10 @@ use RuntimeException;
 
 class NodeServiceClient
 {
+    private const BROADCAST_CIRCUIT_KEY = 'realtime:node:broadcast-unavailable';
+
     protected $baseUrl;
+
     protected $apiKey;
 
     public function __construct()
@@ -23,22 +27,12 @@ class NodeServiceClient
      */
     public function broadcastToUser($userId, $event, $payload)
     {
-        try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'Accept' => 'application/json'
-            ])->timeout(5)->post($this->baseUrl . '/internal/broadcast', [
-                'target' => 'user',
-                'user_id' => $userId,
-                'event' => $event,
-                'payload' => $payload
-            ]);
-
-            return $response->json();
-        } catch (\Throwable $e) {
-            Log::error('Gagal mengirim broadcast ke Node.js: ' . $e->getMessage());
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
+        return $this->broadcast([
+            'target' => 'user',
+            'user_id' => $userId,
+            'event' => $event,
+            'payload' => $payload,
+        ]);
     }
 
     /**
@@ -46,21 +40,11 @@ class NodeServiceClient
      */
     public function broadcastToAll($event, $payload)
     {
-        try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'Accept' => 'application/json'
-            ])->timeout(5)->post($this->baseUrl . '/internal/broadcast', [
-                'target' => 'all',
-                'event' => $event,
-                'payload' => $payload
-            ]);
-
-            return $response->json();
-        } catch (\Throwable $e) {
-            Log::error('Gagal mengirim broadcast ke Node.js: ' . $e->getMessage());
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
+        return $this->broadcast([
+            'target' => 'all',
+            'event' => $event,
+            'payload' => $payload,
+        ]);
     }
 
     /**
@@ -68,20 +52,35 @@ class NodeServiceClient
      */
     public function broadcastToRole(string $role, string $event, array $payload)
     {
+        return $this->broadcast([
+            'target' => 'role',
+            'role' => $role,
+            'event' => $event,
+            'payload' => $payload,
+        ]);
+    }
+
+    private function broadcast(array $payload): array
+    {
+        if (Cache::has(self::BROADCAST_CIRCUIT_KEY)) {
+            return ['success' => false, 'error' => 'Realtime service temporarily unavailable.'];
+        }
+
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer '.$this->apiKey,
                 'Accept' => 'application/json',
-            ])->timeout(5)->post($this->baseUrl . '/internal/broadcast', [
-                'target' => 'role',
-                'role' => $role,
-                'event' => $event,
-                'payload' => $payload,
-            ]);
+            ])->connectTimeout(1)->timeout(2)->post($this->baseUrl.'/internal/broadcast', $payload);
 
-            return $response->json();
+            if (! $response->successful()) {
+                Cache::put(self::BROADCAST_CIRCUIT_KEY, true, now()->addSeconds(5));
+            }
+
+            return $response->json() ?? ['success' => $response->successful()];
         } catch (\Throwable $e) {
-            Log::error('Gagal mengirim role broadcast ke Node.js: ' . $e->getMessage());
+            Cache::put(self::BROADCAST_CIRCUIT_KEY, true, now()->addSeconds(5));
+            Log::warning('Realtime broadcast tidak tersedia.', ['exception' => $e::class]);
+
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
@@ -100,9 +99,9 @@ class NodeServiceClient
 
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'Accept' => 'application/json'
-            ])->timeout(20)->post($this->baseUrl . '/internal/wa/send', [
+                'Authorization' => 'Bearer '.$this->apiKey,
+                'Accept' => 'application/json',
+            ])->timeout(20)->post($this->baseUrl.'/internal/wa/send', [
                 'nomor_wa' => $nomorWa,
                 'message' => $message,
                 'reference' => $reference + ['delivery_key' => $deliveryKey],
@@ -115,7 +114,7 @@ class NodeServiceClient
 
             return $response->json() + ['delivery_key' => $deliveryKey];
         } catch (\Throwable $e) {
-            Log::error('Gagal mengirim WhatsApp ke Node.js: ' . $e->getMessage());
+            Log::error('Gagal mengirim WhatsApp ke Node.js: '.$e->getMessage());
             throw $e;
         }
     }

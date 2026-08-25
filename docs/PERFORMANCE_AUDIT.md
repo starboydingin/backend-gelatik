@@ -51,6 +51,17 @@ Entry fresh dirender langsung. Entry stale yang masih layak kini juga dirender
 langsung, lalu direvalidasi di background dengan single-flight. Setelah REST
 response baru tiba, hanya route aktif yang membaca ulang cache tersebut.
 
-FAQ dan topik aktif disimpan pada cache backend selama 10 menit. Mutation admin
-melakukan invalidasi eksplisit, sehingga chatbot tidak lagi membaca seluruh FAQ
-pada setiap pesan.
+Seluruh FAQ aktif tetap dimuat sebagai knowledge base chatbot, tetapi disimpan
+sebagai array portabel pada cache backend selama 10 menit. Setiap pesan melakukan
+ranking terhadap knowledge tersebut tanpa query ulang ke database. Mutation admin
+menaikkan versi cache agar FAQ terbaru langsung digunakan.
+
+Pertanyaan yang memiliki kecocokan FAQ kuat dijawab langsung dari FAQ resmi.
+Gemini/Groq hanya digunakan bila FAQ tidak cukup atau saat pengguna memberikan
+follow-up troubleshooting. Benchmark lokal retrieval dan ranking FAQ menghasilkan
+39,48 ms pada cache miss dan 6 ms pada cache hit.
+
+Cache menyimpan array, bukan objek Eloquent terserialisasi. Ini memperbaiki error
+`__PHP_Incomplete_Class` yang sebelumnya menyebabkan endpoint chatbot menjadi 500
+setelah cache dibaca oleh proses PHP baru. Provider AI memakai timeout terbatas dan
+circuit breaker singkat agar outage berulang segera memakai fallback lokal.

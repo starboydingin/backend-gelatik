@@ -143,7 +143,7 @@ class AuthorizationTest extends TestCase
         ]);
     }
 
-    public function test_chatbot_prioritizes_relevant_active_faq_context(): void
+    public function test_chatbot_answers_a_relevant_active_faq_without_waiting_for_ai(): void
     {
         Schema::create('chatbot_conversations', function (Blueprint $table): void {
             $table->id();
@@ -189,14 +189,7 @@ class AuthorizationTest extends TestCase
             'status' => '0',
         ]);
 
-        config()->set('services.chatbot.gemini.key', 'test-key');
-        Http::fake([
-            'https://generativelanguage.googleapis.com/*' => Http::response([
-                'candidates' => [[
-                    'content' => ['parts' => [['text' => 'Silakan hubungi helpdesk.']]],
-                ]],
-            ]),
-        ]);
+        Http::preventStrayRequests();
 
         $response = app(ChatbotService::class)->sendMessage(
             $this->userA,
@@ -205,15 +198,11 @@ class AuthorizationTest extends TestCase
         );
 
         $this->assertTrue($response['success']);
-        Http::assertSent(function ($request): bool {
-            $prompt = data_get($request->data(), 'system_instruction.parts.0.text');
-
-            return is_string($prompt)
-                && str_contains($prompt, 'Konteks FAQ Resmi')
-                && str_contains($prompt, 'Cara reset password WiFi')
-                && str_contains($prompt, 'Hubungi helpdesk untuk verifikasi identitas')
-                && ! str_contains($prompt, 'FAQ ini tidak boleh dikirim.');
-        });
+        $this->assertSame('faq', $response['provider']);
+        $this->assertStringContainsString('Cara reset password WiFi', $response['reply']);
+        $this->assertStringContainsString('Hubungi helpdesk untuk verifikasi identitas', $response['reply']);
+        $this->assertStringNotContainsString('FAQ ini tidak boleh dikirim.', $response['reply']);
+        Http::assertNothingSent();
     }
 
     public function test_chatbot_quick_questions_return_complete_active_faq_answers_without_ai(): void

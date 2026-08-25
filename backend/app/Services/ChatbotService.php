@@ -11,6 +11,7 @@ use App\Models\Pinjam;
 use App\Models\User;
 use App\Models\UsulanEmail;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -123,7 +124,9 @@ class ChatbotService
             'provider_used' => 'gemini',
         ]);
 
-        $isContextualFollowUp = $activeContext !== null
+        $isContextualFollowUp = $previousContext !== null
+            && ! $isContextSwitch
+            && $activeContext !== null
             && $this->isSafeContextualFollowUp($normalized)
             && ! $this->isPromptInjection($normalized);
         $scope = $isContextualFollowUp ? 'allowed' : $this->classifyQuestionScope($message);
@@ -138,27 +141,6 @@ class ChatbotService
             }
             $conversation->increment('unresolved_count');
             $conversation->refresh();
-        }
-
-        // Follow-up troubleshooting must remain available even when an
-        // external AI provider is slow or unavailable. These replies preserve
-        // the established service context and therefore never turn a WiFi
-        // complaint into an unrelated-question refusal or a 504 response.
-        if ($scope === 'allowed'
-            && $activeContext !== null
-            && ($this->isIssueSignal($normalized) || $this->isContextualHelpRequest($normalized))) {
-            $reply = $this->appendConsultationOfferIfNeeded(
-                $this->contextualTroubleshootingReply($activeContext),
-                $conversation,
-                $activeContext,
-            );
-
-            return $this->storeLocalReply(
-                $conversation,
-                $sessionId,
-                $reply,
-                'contextual_follow_up',
-            );
         }
 
         if ($scope === 'allowed' && $conversation->consultation_offer_pending && $activeContext !== null) {
@@ -220,7 +202,10 @@ class ChatbotService
             ? $followUpContext."\nPesan tindak lanjut pengguna: ".$message
             : $message;
 
-        $officialFaqReply = $this->buildQuickFaqAnswer($message);
+        $isUnresolvedFollowUp = $isContextualFollowUp
+            && ($this->isIssueSignal($normalized) || $this->isContextualHelpRequest($normalized));
+        $officialFaqReply = $this->buildQuickFaqAnswer($message)
+            ?? ($isUnresolvedFollowUp ? null : $this->buildRelevantFaqAnswer($message));
         if ($officialFaqReply !== null) {
             $officialFaqReply = $this->appendConsultationOfferIfNeeded(
                 $officialFaqReply,
@@ -841,29 +826,7 @@ class ChatbotService
      */
     private function buildFaqContext(string $message): string
     {
-        $terms = $this->faqSearchTerms($message);
-        if ($terms === []) {
-            return '';
-        }
-
-        $faqs = $this->faqService->getChatbotKnowledge()
-            ->map(function (Faq $faq) use ($terms): array {
-                $title = $this->plainText($faq->judul);
-                $detail = $this->plainText($faq->detail);
-                $topic = $this->plainText($faq->topik?->topik ?? '');
-
-                $score = 0;
-                foreach ($terms as $term) {
-                    $score += Str::contains(Str::lower($title), $term) ? 3 : 0;
-                    $score += Str::contains(Str::lower($topic), $term) ? 2 : 0;
-                    $score += Str::contains(Str::lower($detail), $term) ? 1 : 0;
-                }
-
-                return compact('title', 'detail', 'topic', 'score');
-            })
-            ->filter(fn (array $faq): bool => $faq['score'] > 0)
-            ->sortByDesc('score')
-            ->take(3);
+        $faqs = $this->rankRelevantFaqs($message, 3, strict: false);
 
         if ($faqs->isEmpty()) {
             return '';
@@ -874,6 +837,108 @@ class ChatbotService
 
             return "- Pertanyaan: {$faq['title']}{$topic}\n  Jawaban resmi: ".Str::limit($faq['detail'], 800);
         })->implode("\n\n");
+    }
+
+    /**
+     * Answer any sufficiently relevant active FAQ without waiting for an LLM.
+     * The complete FAQ collection is read from the versioned cache; only the
+     * best matching entries are returned to the user.
+     */
+    private function buildRelevantFaqAnswer(string $message): ?string
+    {
+        $faqs = $this->rankRelevantFaqs($message, 2);
+        if ($faqs->isEmpty()) {
+            return null;
+        }
+
+        $bestScore = (int) $faqs->first()['score'];
+        $faqs = $faqs
+            ->filter(fn (array $faq): bool => $faq['score'] >= max(4, (int) floor($bestScore * 0.65)))
+            ->values();
+
+        $intro = $faqs->count() > 1
+            ? 'Berikut panduan FAQ resmi Gelatik yang paling relevan:'
+            : 'Berikut panduan berdasarkan FAQ resmi Gelatik:';
+
+        return $intro."\n\n".$faqs->map(
+            fn (array $faq): string => $faq['title']."\n".$faq['detail']
+        )->implode("\n\n");
+    }
+
+    private function rankRelevantFaqs(string $message, int $limit, bool $strict = true)
+    {
+        $terms = $this->faqSearchTerms($message);
+        if ($terms === []) {
+            return collect();
+        }
+
+        $normalizedMessage = $this->normalizeSentence($message);
+
+        return $this->faqService->getChatbotKnowledge()
+            ->map(function (Faq $faq) use ($terms, $normalizedMessage): array {
+                $title = $this->plainText($faq->judul);
+                $detail = $this->plainChatText($faq->detail);
+                $topic = $this->plainText($faq->topik?->topik ?? '');
+                $normalizedTitle = $this->normalizeSentence($title);
+                $normalizedDetail = $this->normalizeSentence($detail);
+                $normalizedTopic = $this->normalizeSentence($topic);
+                $titleMatches = 0;
+                $topicMatches = 0;
+                $detailMatches = 0;
+                $matchedTermCount = 0;
+
+                foreach ($terms as $term) {
+                    $inTitle = Str::contains($normalizedTitle, $term);
+                    $inTopic = Str::contains($normalizedTopic, $term);
+                    $inDetail = Str::contains($normalizedDetail, $term);
+                    $titleMatches += $inTitle ? 1 : 0;
+                    $topicMatches += $inTopic ? 1 : 0;
+                    $detailMatches += $inDetail ? 1 : 0;
+                    $matchedTermCount += ($inTitle || $inTopic || $inDetail) ? 1 : 0;
+                }
+
+                $coverage = $matchedTermCount / max(1, count($terms));
+                $score = ($titleMatches * 5) + ($topicMatches * 3) + $detailMatches;
+                $phraseMatch = Str::contains($normalizedMessage, $normalizedTitle)
+                    || (count($terms) >= 2 && Str::contains($normalizedTitle, $normalizedMessage));
+                if ($phraseMatch) {
+                    $score += 12;
+                }
+
+                return compact(
+                    'title',
+                    'detail',
+                    'topic',
+                    'score',
+                    'coverage',
+                    'titleMatches',
+                    'topicMatches',
+                    'detailMatches',
+                    'matchedTermCount',
+                    'phraseMatch',
+                );
+            })
+            ->filter(function (array $faq) use ($strict): bool {
+                if ($faq['detail'] === '' || $faq['score'] < 1) {
+                    return false;
+                }
+
+                if (! $strict) {
+                    return true;
+                }
+
+                return $faq['phraseMatch']
+                    || $faq['titleMatches'] >= 2
+                    || ($faq['titleMatches'] >= 1 && ($faq['topicMatches'] + $faq['detailMatches']) >= 1)
+                    || ($faq['matchedTermCount'] >= 2 && $faq['coverage'] >= 0.6);
+            })
+            ->sortBy([
+                ['score', 'desc'],
+                ['coverage', 'desc'],
+                ['title', 'asc'],
+            ])
+            ->take($limit)
+            ->values();
     }
 
     /**
@@ -930,9 +995,11 @@ class ChatbotService
             'adalah', 'anda', 'atau', 'bagaimana', 'bagi', 'bisa', 'dengan',
             'dan', 'dari', 'ini', 'itu', 'jika', 'kapan', 'karena', 'ke',
             'saya', 'sudah', 'tentang', 'untuk', 'yang', 'cara', 'tolong',
+            'mohon', 'dong', 'nih', 'sih', 'banget', 'tidak', 'belum', 'masih',
+            'apa', 'harus', 'dilakukan', 'kantor', 'dinas', 'tadi',
         ];
 
-        return collect(preg_split('/[^\\p{L}\\p{N}]+/u', Str::lower($message), -1, PREG_SPLIT_NO_EMPTY))
+        return collect(preg_split('/\s+/u', $this->normalizeSentence($message), -1, PREG_SPLIT_NO_EMPTY))
             ->filter(fn (string $term): bool => Str::length($term) >= 3 && ! in_array($term, $stopWords, true))
             ->unique()
             ->values()
@@ -1011,6 +1078,10 @@ class ChatbotService
             return ['success' => false, 'reason' => 'not_configured'];
         }
 
+        if ($this->providerCircuitIsOpen('gemini')) {
+            return ['success' => false, 'reason' => 'circuit_open'];
+        }
+
         $model = config('services.chatbot.gemini.model', 'gemini-flash-latest');
         $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
@@ -1046,10 +1117,12 @@ class ChatbotService
             try {
                 $response = $this->aiHttpClient()->post($url, $payload);
             } catch (ConnectionException) {
+                $this->markProviderUnavailable('gemini');
                 Log::warning('Gemini provider request timed out or could not connect.');
 
                 return ['success' => false, 'reason' => 'timeout'];
             } catch (\Throwable) {
+                $this->markProviderUnavailable('gemini');
                 Log::warning('Gemini provider request failed unexpectedly.');
 
                 return ['success' => false, 'reason' => 'unavailable'];
@@ -1058,6 +1131,8 @@ class ChatbotService
             if ($response->successful()) {
                 $data = $response->json();
                 if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                    $this->clearProviderCircuit('gemini');
+
                     return [
                         'success' => true,
                         'text' => $data['candidates'][0]['content']['parts'][0]['text'],
@@ -1075,6 +1150,8 @@ class ChatbotService
             break; // Break if not 429 or max retries reached
         }
 
+        $this->markProviderUnavailable('gemini');
+
         return ['success' => false, 'reason' => 'unavailable'];
     }
 
@@ -1087,6 +1164,10 @@ class ChatbotService
             return ['success' => false, 'reason' => 'not_configured'];
         }
 
+        if ($this->providerCircuitIsOpen('groq')) {
+            return ['success' => false, 'reason' => 'circuit_open'];
+        }
+
         $model = config('services.chatbot.groq.model', 'llama-3.3-70b-versatile');
         $url = 'https://api.groq.com/openai/v1/chat/completions';
 
@@ -1096,10 +1177,12 @@ class ChatbotService
                 'messages' => $messages,
             ]);
         } catch (ConnectionException) {
+            $this->markProviderUnavailable('groq');
             Log::warning('Groq provider request timed out or could not connect.');
 
             return ['success' => false, 'reason' => 'timeout'];
         } catch (\Throwable) {
+            $this->markProviderUnavailable('groq');
             Log::warning('Groq provider request failed unexpectedly.');
 
             return ['success' => false, 'reason' => 'unavailable'];
@@ -1108,6 +1191,8 @@ class ChatbotService
         if ($response->successful()) {
             $data = $response->json();
             if (isset($data['choices'][0]['message']['content'])) {
+                $this->clearProviderCircuit('groq');
+
                 return [
                     'success' => true,
                     'text' => $data['choices'][0]['message']['content'],
@@ -1115,7 +1200,25 @@ class ChatbotService
             }
         }
 
+        $this->markProviderUnavailable('groq');
+
         return ['success' => false, 'reason' => 'unavailable'];
+    }
+
+    private function providerCircuitIsOpen(string $provider): bool
+    {
+        return Cache::has('chatbot:provider:'.$provider.':unavailable');
+    }
+
+    private function markProviderUnavailable(string $provider): void
+    {
+        $seconds = max(5, min(120, (int) config('services.chatbot.provider_cooldown', 30)));
+        Cache::put('chatbot:provider:'.$provider.':unavailable', true, now()->addSeconds($seconds));
+    }
+
+    private function clearProviderCircuit(string $provider): void
+    {
+        Cache::forget('chatbot:provider:'.$provider.':unavailable');
     }
 
     private function aiHttpClient()

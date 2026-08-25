@@ -10,17 +10,21 @@ use Illuminate\Support\Str;
 
 class FaqService
 {
+    private const CACHE_SHAPE = 'array-v2';
+
     /**
      * Ambil list FAQ aktif (opsional filter by topik_id)
      */
     public function getFaqByTopik(?int $topikId = null, ?string $search = null): Collection
     {
         if (! filled($search)) {
-            return Cache::remember(
+            $rows = Cache::remember(
                 $this->versionedCacheKey('reference:faq:active:'.($topikId ?? 'all')),
                 now()->addMinutes(10),
-                fn (): Collection => $this->queryFaq($topikId),
+                fn (): array => $this->queryFaq($topikId)->toArray(),
             );
+
+            return $this->hydrateFaqs($rows);
         }
 
         return $this->queryFaq($topikId, $search);
@@ -28,11 +32,13 @@ class FaqService
 
     public function getChatbotKnowledge(): Collection
     {
-        return Cache::remember(
+        $rows = Cache::remember(
             $this->versionedCacheKey('chatbot:faq:active'),
             now()->addMinutes(10),
-            fn (): Collection => $this->queryFaq(),
+            fn (): array => $this->queryFaq()->toArray(),
         );
+
+        return $this->hydrateFaqs($rows);
     }
 
     private function queryFaq(?int $topikId = null, ?string $search = null): Collection
@@ -57,11 +63,13 @@ class FaqService
     public function getAllTopik(?string $search = null): Collection
     {
         if (! filled($search)) {
-            return Cache::remember(
+            $rows = Cache::remember(
                 $this->versionedCacheKey('reference:topik:active'),
                 now()->addMinutes(10),
-                fn (): Collection => $this->queryTopik(),
+                fn (): array => $this->queryTopik()->toArray(),
             );
+
+            return MasterTopik::hydrate($rows);
         }
 
         return $this->queryTopik($search);
@@ -88,6 +96,30 @@ class FaqService
     {
         $version = (int) Cache::get('reference:knowledge:version', 1);
 
-        return $key.':v'.$version;
+        return $key.':'.self::CACHE_SHAPE.':v'.$version;
+    }
+
+    /**
+     * File/database cache must contain scalar arrays, never serialized Eloquent
+     * objects. Otherwise a fresh PHP worker can restore __PHP_Incomplete_Class.
+     */
+    private function hydrateFaqs(array $rows): Collection
+    {
+        $models = array_map(function (array $row): Faq {
+            $topik = $row['topik'] ?? null;
+            unset($row['topik']);
+
+            /** @var Faq $faq */
+            $faq = (new Faq)->newFromBuilder($row);
+            if (is_array($topik)) {
+                $faq->setRelation('topik', (new MasterTopik)->newFromBuilder($topik));
+            } else {
+                $faq->setRelation('topik', null);
+            }
+
+            return $faq;
+        }, $rows);
+
+        return new Collection($models);
     }
 }
