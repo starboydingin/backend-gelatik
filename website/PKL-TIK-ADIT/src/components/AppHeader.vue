@@ -14,6 +14,7 @@ const titles = {
     'email-resmi': ['Pengajuan email resmi Pemerintah Provinsi Lampung', 'Usulan Email ASN'],
     router: ['Informasi perangkat jaringan unit kerja', 'Router OPD'],
     'umpan-balik': ['Masukan untuk peningkatan layanan TIK', 'Kritik, Saran & Rating'],
+    'riwayat-kritik-saran': ['Riwayat masukan layanan Anda', 'Riwayat Kritik & Saran'],
     rating: ['Nilai pengalaman menggunakan layanan TIK', 'Rating Layanan'],
     notifikasi: ['Pembaruan aktivitas layanan Anda', 'Notifikasi'],
     profil: ['Kelola informasi dan keamanan akun Anda', 'Profil & Akun'],

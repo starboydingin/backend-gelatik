@@ -58,7 +58,12 @@ const userItems = [
     { label: 'Pengumuman', to: '/app/pengumuman', icon: MegaphoneIcon, group: 'Informasi' },
     { label: 'Notifikasi', to: '/app/notifikasi', icon: BellIcon, group: 'Interaksi' },
     { label: 'FAQ', to: '/app/faq', icon: QuestionMarkCircleIcon, group: 'Informasi' },
-    { label: 'Riwayat Kritik & Saran', to: '/app/umpan-balik', icon: StarIcon, group: 'Interaksi' },
+    {
+        label: 'Riwayat Kritik & Saran',
+        to: '/app/riwayat-kritik-saran',
+        icon: StarIcon,
+        group: 'Interaksi',
+    },
     {
         label: 'WhatsApp',
         to: '/app/whatsapp',
@@ -151,7 +156,11 @@ function routeUsesResource(resource) {
         return path.includes('email-resmi') || path.includes('laporan-email')
     if (resource === 'notification') return path.endsWith('/notifikasi')
     if (resource === 'kritik_saran')
-        return path.endsWith('/umpan-balik') || path.endsWith('/kritik-saran')
+        return (
+            path.endsWith('/umpan-balik') ||
+            path.endsWith('/riwayat-kritik-saran') ||
+            path.endsWith('/kritik-saran')
+        )
     if (resource === 'rating') return path.endsWith('/rating') || path.endsWith('/dashboard')
     if (resource === 'user') return path.endsWith('/profil')
     if (resource === 'whatsapp_subscription') return path.endsWith('/whatsapp')
@@ -172,7 +181,12 @@ function activeRouteResource() {
     if (path.includes('konsultasi') || path.includes('laporan-konsultasi')) return 'konsultasi'
     if (path.includes('email-resmi') || path.includes('laporan-email')) return 'usulan_email'
     if (path.endsWith('/notifikasi')) return 'notification'
-    if (path.endsWith('/umpan-balik') || path.endsWith('/kritik-saran')) return 'kritik_saran'
+    if (
+        path.endsWith('/umpan-balik') ||
+        path.endsWith('/riwayat-kritik-saran') ||
+        path.endsWith('/kritik-saran')
+    )
+        return 'kritik_saran'
     if (path.endsWith('/rating')) return 'rating'
     if (path.endsWith('/profil')) return 'user'
     if (path.endsWith('/whatsapp')) return 'whatsapp_subscription'

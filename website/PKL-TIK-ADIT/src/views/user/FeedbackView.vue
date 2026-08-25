@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ChatBubbleBottomCenterTextIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import { api, errorMessage } from '../../lib/api'
@@ -14,6 +14,7 @@ const form = ref({ kritik: '', saran: '' }),
     selectedDetail = ref(null),
     route = useRoute(),
     router = useRouter()
+const historyOnly = computed(() => route.meta.feedbackHistory === true)
 
 async function loadHistory() {
     try {
@@ -24,10 +25,13 @@ async function loadHistory() {
     }
 }
 async function loadDetail() {
+    selectedDetail.value = null
     const id = Number(route.query.detail)
     if (!Number.isInteger(id) || id < 1) return
     try {
-        selectedDetail.value = responseData(await api.get(`/kritik-saran/mine/${id}`, { cache: false }))
+        selectedDetail.value = responseData(
+            await api.get(`/kritik-saran/mine/${id}`, { cache: false })
+        )
     } catch (_) {
         selectedDetail.value = null
     }
@@ -55,33 +59,45 @@ async function submit() {
     }
 }
 onMounted(async () => {
-    await Promise.all([loadHistory(), loadDetail()])
+    await loadHistory()
 })
+watch(() => route.query.detail, loadDetail, { immediate: true })
 </script>
 <template>
     <div class="page-stack">
         <PageHeader
-            eyebrow="Suara pengguna"
-            title="Kritik & Saran"
-            description="Sampaikan pengalaman Anda agar layanan TIK dapat terus diperbaiki."
+            :eyebrow="historyOnly ? 'Riwayat masukan' : 'Suara pengguna'"
+            :title="historyOnly ? 'Riwayat Kritik & Saran' : 'Kritik & Saran'"
+            :description="
+                historyOnly
+                    ? 'Pantau masukan yang pernah Anda kirim beserta tanggapan petugas.'
+                    : 'Sampaikan pengalaman Anda agar layanan TIK dapat terus diperbaiki.'
+            "
         />
         <AlertMessage :message="error" /><AlertMessage :message="message" type="success" />
-        <section v-if="selectedDetail" class="card mx-auto max-w-5xl p-6 md:p-8">
+        <section v-if="historyOnly && selectedDetail" class="card mx-auto max-w-5xl p-6 md:p-8">
             <p class="eyebrow">Detail masukan</p>
             <h2 class="mt-2 text-xl font-bold text-navy">Kritik & saran Anda</h2>
             <p class="mt-5 text-sm"><strong>Kritik:</strong> {{ selectedDetail.kritik }}</p>
             <p class="mt-2 text-sm"><strong>Saran:</strong> {{ selectedDetail.saran }}</p>
-            <div v-if="selectedDetail.balasan" class="mt-5 rounded-xl bg-brand-50 p-4 text-sm text-slate-700">
-                <strong class="text-navy">Tanggapan {{ selectedDetail.responder?.name || 'Petugas' }}</strong>
+            <div
+                v-if="selectedDetail.balasan"
+                class="mt-5 rounded-xl bg-brand-50 p-4 text-sm text-slate-700"
+            >
+                <strong class="text-navy"
+                    >Tanggapan {{ selectedDetail.responder?.name || 'Petugas' }}</strong
+                >
                 <p class="mt-2 whitespace-pre-line">{{ selectedDetail.balasan }}</p>
             </div>
             <p v-else class="mt-5 text-sm text-slate-500">Masukan Anda sedang ditinjau petugas.</p>
         </section>
-        <div class="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[.75fr_1.25fr]">
+        <div v-if="!historyOnly" class="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[.75fr_1.25fr]">
             <aside
                 class="flex flex-col items-start rounded-xl bg-[var(--color-brand-primary-strong)] p-6 text-white shadow-[var(--shadow-surface)] md:p-7"
             >
-                <ChatBubbleBottomCenterTextIcon class="size-10 text-[var(--color-brand-secondary)]" />
+                <ChatBubbleBottomCenterTextIcon
+                    class="size-10 text-[var(--color-brand-secondary)]"
+                />
                 <div class="relative z-10">
                     <p class="eyebrow !text-[var(--color-brand-secondary)]">Suara pengguna</p>
                     <h2 class="mt-3 font-brand text-3xl font-bold leading-tight !text-white">
@@ -100,7 +116,9 @@ onMounted(async () => {
                             :key="tip"
                             class="flex items-center gap-3 rounded-lg border border-white/20 bg-white/10 p-3 text-sm font-semibold text-white"
                         >
-                            <CheckIcon class="size-5 text-[var(--color-brand-secondary)]" />{{ tip }}
+                            <CheckIcon class="size-5 text-[var(--color-brand-secondary)]" />{{
+                                tip
+                            }}
                         </div>
                     </div>
                 </div>
@@ -144,21 +162,41 @@ onMounted(async () => {
                 </div>
             </form>
         </div>
-        <section v-if="history.length" class="card mx-auto max-w-5xl p-6 md:p-8">
+        <section v-else class="card mx-auto max-w-5xl p-6 md:p-8">
             <p class="eyebrow">Riwayat masukan</p>
             <h2 class="mt-2 text-xl font-bold text-navy">Tanggapan untuk kritik & saran Anda</h2>
-            <div class="mt-5 divide-y divide-stroke">
+            <div v-if="history.length" class="mt-5 divide-y divide-stroke">
                 <article v-for="item in history" :key="item.id" class="py-5 first:pt-0 last:pb-0">
-                    <p class="text-xs text-slate-500">Dikirim {{ formatDateTime(item.created_at) }}</p>
+                    <p class="text-xs text-slate-500">
+                        Dikirim {{ formatDateTime(item.created_at) }}
+                    </p>
                     <p class="mt-2 text-sm"><strong>Kritik:</strong> {{ item.kritik }}</p>
                     <p class="mt-1 text-sm"><strong>Saran:</strong> {{ item.saran }}</p>
-                    <div v-if="item.balasan" class="mt-4 rounded-xl bg-brand-50 p-4 text-sm text-slate-700">
-                        <strong class="text-navy">Balasan {{ item.responder?.name || 'Petugas' }}</strong>
+                    <div
+                        v-if="item.balasan"
+                        class="mt-4 rounded-xl bg-brand-50 p-4 text-sm text-slate-700"
+                    >
+                        <strong class="text-navy"
+                            >Balasan {{ item.responder?.name || 'Petugas' }}</strong
+                        >
                         <p class="mt-2 whitespace-pre-line">{{ item.balasan }}</p>
-                        <p class="mt-2 text-xs text-slate-500">{{ formatDateTime(item.dibalas_pada) }}</p>
+                        <p class="mt-2 text-xs text-slate-500">
+                            {{ formatDateTime(item.dibalas_pada) }}
+                        </p>
                     </div>
-                    <p v-else class="mt-4 text-sm text-slate-500">Masukan Anda sedang ditinjau petugas.</p>
+                    <p v-else class="mt-4 text-sm text-slate-500">
+                        Masukan Anda sedang ditinjau petugas.
+                    </p>
                 </article>
+            </div>
+            <div v-else class="mt-6 rounded-xl border border-dashed border-stroke p-8 text-center">
+                <p class="font-semibold text-navy">Belum ada riwayat kritik & saran</p>
+                <p class="mt-2 text-sm text-slate-500">
+                    Masukan yang Anda kirim akan tampil di halaman ini.
+                </p>
+                <RouterLink to="/app/umpan-balik" class="btn-primary mt-5 inline-flex">
+                    Buat kritik & saran
+                </RouterLink>
             </div>
         </section>
     </div>

@@ -60,6 +60,11 @@ const routes = [
             { path: 'chatbot', component: () => import('../views/user/ChatbotView.vue') },
             { path: 'profil', component: () => import('../views/user/ProfileView.vue') },
             { path: 'umpan-balik', component: () => import('../views/user/FeedbackView.vue') },
+            {
+                path: 'riwayat-kritik-saran',
+                component: () => import('../views/user/FeedbackView.vue'),
+                meta: { feedbackHistory: true },
+            },
         ],
     },
     {

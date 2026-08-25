@@ -4,9 +4,7 @@
  * newer `resource_*` accessors are present in every API response.
  */
 export function notificationRoute(notification, admin = false) {
-    const type = String(
-        notification.resource_type || notification.type || notification.jenis || ''
-    )
+    const type = String(notification.resource_type || notification.type || notification.jenis || '')
         .trim()
         .toLowerCase()
     const content = `${notification.judul || ''} ${notification.message || ''}`.toLowerCase()
@@ -31,7 +29,7 @@ export function notificationRoute(notification, admin = false) {
     if (describes('kritik_saran', 'kritik', 'saran', 'feedback')) {
         return admin
             ? `${prefix}/kritik-saran`
-            : `${prefix}/umpan-balik?detail=${encodeURIComponent(id)}`
+            : `${prefix}/riwayat-kritik-saran?detail=${encodeURIComponent(id)}`
     }
 
     return `${prefix}/notifikasi`
