@@ -82,7 +82,7 @@ watch(
             :title="historyOnly ? 'Riwayat Kritik & Saran' : 'Kritik & Saran'"
             :description="
                 historyOnly
-                    ? 'Pantau masukan yang pernah Anda kirim beserta tanggapan petugas.'
+                    ? 'Lihat kembali kritik dan saran yang pernah Anda kirim.'
                     : 'Sampaikan pengalaman Anda agar layanan TIK dapat terus diperbaiki.'
             "
         />
@@ -101,7 +101,6 @@ watch(
                 >
                 <p class="mt-2 whitespace-pre-line">{{ selectedDetail.balasan }}</p>
             </div>
-            <p v-else class="mt-5 text-sm text-slate-500">Masukan Anda sedang ditinjau petugas.</p>
         </section>
         <div v-if="!historyOnly" class="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[.75fr_1.25fr]">
             <aside
@@ -177,9 +176,7 @@ watch(
         <section v-else class="mx-auto w-full max-w-6xl">
             <div class="mb-5">
                 <p class="eyebrow">Riwayat masukan</p>
-                <h2 class="mt-2 text-xl font-bold text-navy">
-                    Tanggapan untuk kritik & saran Anda
-                </h2>
+                <h2 class="mt-2 text-xl font-bold text-navy">Daftar kritik & saran Anda</h2>
             </div>
             <div v-if="historyLoading" class="card mt-6 flex items-center justify-center py-12">
                 <span
@@ -195,23 +192,11 @@ watch(
             </div>
             <div v-else-if="history.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <article v-for="item in history" :key="item.id" class="card flex min-h-80 flex-col">
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <p class="eyebrow">Masukan #{{ item.id }}</p>
-                            <p class="mt-1 text-xs text-slate-500">
-                                {{ formatDateTime(item.created_at) }}
-                            </p>
-                        </div>
-                        <span
-                            class="shrink-0 rounded-full px-3 py-1 text-[11px] font-bold"
-                            :class="
-                                item.balasan
-                                    ? 'bg-emerald-50 text-emerald-700'
-                                    : 'bg-amber-50 text-amber-700'
-                            "
-                        >
-                            {{ item.balasan ? 'Sudah ditanggapi' : 'Menunggu tanggapan' }}
-                        </span>
+                    <div>
+                        <p class="eyebrow">Masukan #{{ item.id }}</p>
+                        <p class="mt-1 text-xs text-slate-500">
+                            {{ formatDateTime(item.created_at) }}
+                        </p>
                     </div>
                     <div class="mt-5 rounded-xl bg-slate-50 p-4">
                         <p class="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -241,9 +226,6 @@ watch(
                             {{ formatDateTime(item.dibalas_pada) }}
                         </p>
                     </div>
-                    <p v-else class="mt-4 text-sm leading-6 text-slate-500">
-                        Masukan sedang ditinjau petugas. Tanggapan akan muncul di kartu ini.
-                    </p>
                     <RouterLink
                         :to="{
                             path: '/app/riwayat-kritik-saran',
