@@ -226,15 +226,6 @@ watch(
                             {{ formatDateTime(item.dibalas_pada) }}
                         </p>
                     </div>
-                    <RouterLink
-                        :to="{
-                            path: '/app/riwayat-kritik-saran',
-                            query: { detail: item.id },
-                        }"
-                        class="mt-auto pt-5 text-sm font-bold text-blue-800 hover:text-blue-600"
-                    >
-                        Lihat detail →
-                    </RouterLink>
                 </article>
             </div>
             <div

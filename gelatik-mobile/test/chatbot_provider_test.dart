@@ -49,6 +49,16 @@ class _FakeRepository extends ChatbotRepository {
   Future<String?> getLatestSessionId() async => latestSessionId;
 
   @override
+  Future<ChatbotConversationSnapshot?> getLatestConversation() async {
+    if (historyError != null) throw historyError!;
+    final sessionId =
+        latestSessionId ?? (history.isNotEmpty ? 'session-1' : null);
+    return sessionId == null
+        ? null
+        : ChatbotConversationSnapshot(sessionId: sessionId, messages: history);
+  }
+
+  @override
   Future<List<ChatMessageModel>> getHistory(String sessionId) async {
     if (historyError != null) throw historyError!;
     return history;
@@ -189,6 +199,26 @@ void main() {
       await first;
     });
 
+    test('event realtime saat mengirim tidak membuang response REST', () async {
+      final completer = Completer<ChatbotResponseModel>();
+      final repository = _FakeRepository()..sendCompleter = completer;
+      final notifier = ChatbotNotifier(
+        repository: repository,
+        storage: _MemoryStorage(),
+        autoLoad: false,
+      );
+      final send = notifier.sendMessage('Halo');
+      await notifier.syncFromRealtime('session-1');
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      completer.complete(repository.response);
+      await send;
+      expect(
+        notifier.state.messages.where((item) => item.isAssistant),
+        hasLength(1),
+      );
+      notifier.dispose();
+    });
+
     test(
       '26. stale response tidak masuk setelah generation berganti',
       () async {
@@ -265,6 +295,53 @@ void main() {
         expect(repository.deleteCalls, 1);
         expect(storage.sessionId, isNull);
         expect(notifier.state.messages, isEmpty);
+      },
+    );
+
+    test(
+      'hapus realtime dari perangkat lain langsung membersihkan state',
+      () async {
+        final storage = _MemoryStorage()..sessionId = 'session-1';
+        final repository = _FakeRepository()
+          ..history = [_message('1', ChatMessageSender.user, 'Halo')];
+        final notifier = ChatbotNotifier(
+          repository: repository,
+          storage: storage,
+          autoLoad: false,
+        );
+        await notifier.loadHistory();
+        await notifier.syncFromRealtime(
+          'session-perangkat-lain',
+          deleted: true,
+        );
+        expect(notifier.state.messages, isEmpty);
+        expect(notifier.state.sessionId, isNull);
+        expect(storage.sessionId, isNull);
+      },
+    );
+
+    test(
+      'pesan realtime dari perangkat lain mengambil snapshot terbaru',
+      () async {
+        final repository = _FakeRepository()
+          ..history = [_message('1', ChatMessageSender.user, 'Dari website')];
+        final notifier = ChatbotNotifier(
+          repository: repository,
+          storage: _MemoryStorage(),
+          autoLoad: false,
+        );
+        await notifier.loadHistory();
+        repository.history = [
+          ...repository.history,
+          _message('2', ChatMessageSender.assistant, 'Jawaban terbaru'),
+        ];
+        await notifier.syncFromRealtime('session-1');
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+        expect(notifier.state.messages.map((item) => item.text), [
+          'Dari website',
+          'Jawaban terbaru',
+        ]);
+        notifier.dispose();
       },
     );
   });

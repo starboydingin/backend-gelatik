@@ -81,12 +81,8 @@ class ChatbotController extends Controller
     {
         $request->validate(['session_id' => 'required|string']);
 
-        $deleted = $this->chatbotService->deleteHistory($request->user(), $request->session_id);
+        $this->chatbotService->deleteHistory($request->user(), $request->session_id);
 
-        if ($deleted) {
-            return response()->json(['success' => true, 'message' => 'Berhasil menghapus riwayat percakapan.']);
-        }
-
-        return response()->json(['success' => false, 'message' => 'Percakapan tidak ditemukan.'], 404);
+        return response()->json(['success' => true, 'message' => 'Berhasil menghapus riwayat percakapan.']);
     }
 }

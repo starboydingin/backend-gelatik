@@ -12,6 +12,7 @@ import 'package:gelatik/features/chatbot/models/chatbot_request.dart';
 import 'package:gelatik/features/chatbot/models/chatbot_response_model.dart';
 import 'package:gelatik/features/chatbot/presentation/screens/chatbot_native_screen.dart';
 import 'package:gelatik/features/chatbot/repositories/chatbot_repository.dart';
+import 'package:gelatik/features/chatbot/services/chatbot_visit_tracker.dart';
 import 'package:gelatik/features/home/models/home_dashboard_model.dart';
 import 'package:gelatik/features/home/presentation/screens/home_screen.dart';
 import 'package:gelatik/features/home/providers/home_provider.dart';
@@ -47,6 +48,16 @@ class _WidgetRepository extends ChatbotRepository {
 
   @override
   Future<String?> getLatestSessionId() async => latestSessionId;
+
+  @override
+  Future<ChatbotConversationSnapshot?> getLatestConversation() async {
+    if (historyError != null) throw historyError!;
+    final sessionId =
+        latestSessionId ?? (history.isNotEmpty ? 'session-1' : null);
+    return sessionId == null
+        ? null
+        : ChatbotConversationSnapshot(sessionId: sessionId, messages: history);
+  }
 
   @override
   Future<List<ChatMessageModel>> getHistory(String sessionId) async {
@@ -86,13 +97,16 @@ ChatbotRepositoryException _error(ChatbotErrorType type, String message) =>
 Future<void> _pumpChat(
   WidgetTester tester,
   _WidgetRepository repository,
-  _MemoryStorage storage,
-) async {
+  _MemoryStorage storage, {
+  ChatbotVisitTracker? visitTracker,
+}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         chatbotRepositoryProvider.overrideWithValue(repository),
         secureStorageServiceProvider.overrideWithValue(storage),
+        if (visitTracker != null)
+          chatbotVisitTrackerProvider.overrideWithValue(visitTracker),
       ],
       child: const MaterialApp(home: ChatbotNativeScreen()),
     ),
@@ -302,14 +316,21 @@ void main() {
       final storage = _MemoryStorage()..sessionId = 'session-1';
       final repository = _WidgetRepository()
         ..history = [_historyMessage('1', 'Akan dihapus')];
-      await _pumpChat(tester, repository, storage);
+      final visitTracker = ChatbotVisitTracker()
+        ..markLeft('current-session', DateTime.now());
+      await _pumpChat(tester, repository, storage, visitTracker: visitTracker);
       await tester.pumpAndSettle();
+      expect(find.byKey(const Key('chatbot-welcome')), findsNothing);
       await tester.tap(find.byKey(const Key('chatbot-delete')));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Hapus'));
       await tester.pumpAndSettle();
       expect(repository.deleteCalls, 1);
       expect(find.byKey(const Key('chatbot-empty')), findsOneWidget);
+      expect(find.byKey(const Key('chatbot-welcome')), findsOneWidget);
+      for (var index = 0; index < 5; index++) {
+        expect(find.byKey(Key('chatbot-quick-$index')), findsOneWidget);
+      }
     });
 
     testWidgets('Home tile membuka Chatbot Native', (tester) async {
@@ -358,4 +379,11 @@ class _BlockingHistoryRepository extends _WidgetRepository {
   @override
   Future<List<ChatMessageModel>> getHistory(String sessionId) =>
       completer.future;
+
+  @override
+  Future<ChatbotConversationSnapshot?> getLatestConversation() async =>
+      ChatbotConversationSnapshot(
+        sessionId: 'session-1',
+        messages: await completer.future,
+      );
 }

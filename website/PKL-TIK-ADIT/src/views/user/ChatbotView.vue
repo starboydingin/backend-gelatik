@@ -8,7 +8,8 @@ import AlertMessage from '../../components/AlertMessage.vue'
 const auth = useAuthStore()
 const starterResetAfter = 5 * 60 * 1000
 const visitKey = `gelatik_chat_left_at:${auth.user?.id || 'current-session'}`
-const sessionId = ref(sessionStorage.getItem('gelatik_chat_session') || '')
+const sessionStorageKey = `gelatik_chat_session:${auth.user?.id || 'current-session'}`
+const sessionId = ref(sessionStorage.getItem(sessionStorageKey) || '')
 const messages = ref([]),
     input = ref(''),
     error = ref(''),
@@ -16,6 +17,8 @@ const messages = ref([]),
     initialized = ref(false)
 const quickQuestionStrip = ref(null)
 let inactivityTimer = null
+let realtimeSyncTimer = null
+let syncGeneration = 0
 let lastChatActivityAt = Date.now()
 const quickQuestionDrag = {
     pointerId: null,
@@ -123,42 +126,61 @@ function sendQuickQuestion(question) {
     if (Date.now() < quickQuestionDrag.suppressClickUntil) return
     void send(question)
 }
-async function history() {
-    if (!sessionId.value) return
-    try {
-        const remoteMessages =
-            payload(
-                await api.get('/chatbot/history', { params: { session_id: sessionId.value } })
-            ) || []
-        const retainedMessages = messages.value.filter(
-            (localMessage) =>
-                localMessage.localStarter ||
-                !remoteMessages.some(
-                    (remoteMessage) =>
-                        remoteMessage.role === localMessage.role &&
-                        chatText(remoteMessage) === chatText(localMessage)
-                )
-        )
-        messages.value = [...remoteMessages, ...retainedMessages]
-    } catch {
-        // A locally stored session can outlive a deleted server conversation.
-        sessionId.value = ''
-        sessionStorage.removeItem('gelatik_chat_session')
+function applyRemoteMessages(remoteMessages) {
+    const starters = messages.value.filter((item) => item.localStarter)
+    const uniqueRemote = []
+    const seenIds = new Set()
+    for (const message of remoteMessages || []) {
+        const id = String(message.id || '')
+        if (id && seenIds.has(id)) continue
+        const messageTime = Date.parse(message.created_at || '')
+        const duplicate = uniqueRemote.some((existing) => {
+            if (existing.role !== message.role || chatText(existing) !== chatText(message)) return false
+            const existingTime = Date.parse(existing.created_at || '')
+            return Number.isFinite(messageTime) &&
+                Number.isFinite(existingTime) &&
+                Math.abs(messageTime - existingTime) <= 10_000
+        })
+        if (duplicate) continue
+        if (id) seenIds.add(id)
+        uniqueRemote.push(message)
     }
+    const unmatchedLocal = messages.value.filter(
+        (localMessage) =>
+            localMessage.localMessage &&
+            !uniqueRemote.some(
+                (remoteMessage) =>
+                    remoteMessage.role === localMessage.role &&
+                    chatText(remoteMessage) === chatText(localMessage)
+            )
+    )
+    messages.value = [...starters, ...uniqueRemote, ...unmatchedLocal]
 }
-async function syncLatestConversation(preferredSession = '') {
+async function syncLatestConversation() {
+    const generation = ++syncGeneration
     try {
         const latest = payload(await api.get('/chatbot/conversations/latest', { cache: false }))
-        const nextSession = preferredSession || latest?.session_id || ''
-        if (!nextSession) return
-        if (sessionId.value !== nextSession) {
-            sessionId.value = nextSession
-            sessionStorage.setItem('gelatik_chat_session', nextSession)
+        if (generation !== syncGeneration) return
+        const nextSession = String(latest?.session_id || '')
+        if (!nextSession) {
+            sessionId.value = ''
+            sessionStorage.removeItem(sessionStorageKey)
+            messages.value = messages.value.filter((item) => item.localStarter)
+            return
         }
-        await history()
+        sessionId.value = nextSession
+        sessionStorage.setItem(sessionStorageKey, nextSession)
+        applyRemoteMessages(Array.isArray(latest.messages) ? latest.messages : [])
     } catch {
         // The local greeting and current history remain usable while offline.
     }
+}
+function scheduleRealtimeSync() {
+    if (realtimeSyncTimer) window.clearTimeout(realtimeSyncTimer)
+    realtimeSyncTimer = window.setTimeout(() => {
+        realtimeSyncTimer = null
+        void syncLatestConversation()
+    }, 100)
 }
 async function handleRealtimeChat(event) {
     const data = event.detail || {}
@@ -166,14 +188,16 @@ async function handleRealtimeChat(event) {
     const remoteSession = String(data.session_id || '')
     if (!eventType.startsWith('chatbot.')) return
 
-    if (eventType === 'chatbot.conversation.deleted' && remoteSession === sessionId.value) {
+    if (eventType === 'chatbot.conversation.deleted') {
+        syncGeneration++
+        if (realtimeSyncTimer) window.clearTimeout(realtimeSyncTimer)
+        realtimeSyncTimer = null
         sessionId.value = ''
-        sessionStorage.removeItem('gelatik_chat_session')
+        sessionStorage.removeItem(sessionStorageKey)
         messages.value = messages.value.filter((item) => item.localStarter)
-        await syncLatestConversation()
         return
     }
-    await syncLatestConversation(remoteSession)
+    if (remoteSession) scheduleRealtimeSync()
 }
 async function send(text = input.value) {
     if (!String(text).trim() || sending.value) return
@@ -181,7 +205,12 @@ async function send(text = input.value) {
     resetInactivityTimer()
     input.value = ''
     error.value = ''
-    messages.value.push({ role: 'user', message: prompt, localMessage: true })
+    messages.value.push({
+        id: `local-user-${Date.now()}`,
+        role: 'user',
+        message: prompt,
+        localMessage: true,
+    })
     sending.value = true
     try {
         const result = payload(
@@ -192,13 +221,18 @@ async function send(text = input.value) {
         )
         if (result.session_id) {
             sessionId.value = result.session_id
-            sessionStorage.setItem('gelatik_chat_session', result.session_id)
+            sessionStorage.setItem(sessionStorageKey, result.session_id)
         }
-        messages.value.push({
-            role: 'assistant',
-            message: result.reply || result.message || result.answer || 'Respons diterima.',
-            localMessage: true,
-        })
+        const reply = result.reply || result.message || result.answer || 'Respons diterima.'
+        if (!messages.value.some((item) => item.role === 'assistant' && chatText(item) === reply)) {
+            messages.value.push({
+                id: `local-assistant-${Date.now()}`,
+                role: 'assistant',
+                message: reply,
+                localMessage: true,
+            })
+        }
+        scheduleRealtimeSync()
     } catch (requestError) {
         error.value = errorMessage(requestError)
     } finally {
@@ -206,19 +240,24 @@ async function send(text = input.value) {
     }
 }
 async function clear() {
-    if (!sessionId.value) {
-        messages.value = []
-        appendStarterIfDue()
-        return
-    }
+    const previousMessages = messages.value
+    const previousSession = sessionId.value
+    syncGeneration++
+    if (realtimeSyncTimer) window.clearTimeout(realtimeSyncTimer)
+    realtimeSyncTimer = null
+    messages.value = []
+    sessionId.value = ''
+    sessionStorage.removeItem(sessionStorageKey)
+    sessionStorage.removeItem(visitKey)
+    appendStarterIfDue()
     try {
-        await api.delete('/chatbot/history', { params: { session_id: sessionId.value } })
-        messages.value = []
-        sessionId.value = ''
-        sessionStorage.removeItem('gelatik_chat_session')
-        sessionStorage.removeItem(visitKey)
-        appendStarterIfDue()
+        await api.delete('/chatbot/history', {
+            params: { session_id: previousSession || '__all__' },
+        })
     } catch (requestError) {
+        messages.value = previousMessages
+        sessionId.value = previousSession
+        if (previousSession) sessionStorage.setItem(sessionStorageKey, previousSession)
         error.value = errorMessage(requestError)
     }
 }
@@ -236,6 +275,7 @@ async function initialize() {
 onMounted(() => {
     initialize()
     window.addEventListener('gelatik:chatbot', handleRealtimeChat)
+    window.addEventListener('gelatik:reconnected', syncLatestConversation)
     // Vue's declarative wheel listener can be passive in some embedded Windows
     // runtimes. This explicit listener keeps mouse-wheel scrolling cancellable.
     quickQuestionStrip.value?.addEventListener('wheel', scrollQuickQuestions, { passive: false })
@@ -251,7 +291,9 @@ onBeforeUnmount(() => {
     document.removeEventListener('visibilitychange', handleVisibilityChange)
     quickQuestionStrip.value?.removeEventListener('wheel', scrollQuickQuestions)
     window.removeEventListener('gelatik:chatbot', handleRealtimeChat)
+    window.removeEventListener('gelatik:reconnected', syncLatestConversation)
     if (inactivityTimer) window.clearTimeout(inactivityTimer)
+    if (realtimeSyncTimer) window.clearTimeout(realtimeSyncTimer)
     sessionStorage.setItem(visitKey, String(Date.now()))
 })
 </script>
@@ -279,7 +321,7 @@ onBeforeUnmount(() => {
             <div class="min-h-[420px] space-y-4 p-4 sm:p-6">
                 <div
                     v-for="(item, index) in messages"
-                    :key="index"
+                    :key="item.id || `${item.role || item.sender}-${index}-${chatText(item)}`"
                     class="flex"
                     :class="
                         item.role === 'user' || item.sender === 'user'

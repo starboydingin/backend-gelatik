@@ -83,7 +83,7 @@ void main() {
       expect(result.sessionId, 'session-1');
       expect(adapter.lastRequest!.data, {'message': 'Pinjam alat'});
       expect(adapter.lastRequest!.data, isNot(contains('user_id')));
-      expect(adapter.lastRequest!.receiveTimeout, const Duration(seconds: 35));
+      expect(adapter.lastRequest!.receiveTimeout, const Duration(seconds: 15));
     });
 
     test('8. history success dan query session', () async {
@@ -111,6 +111,36 @@ void main() {
       ).getHistory('session-1');
       expect(result, isEmpty);
     });
+
+    test(
+      'latest conversation memuat session dan history dalam satu request',
+      () async {
+        final adapter = _Adapter(
+          body: {
+            'success': true,
+            'data': {
+              'session_id': 'session-1',
+              'messages': [
+                {
+                  'id': 1,
+                  'role': 'user',
+                  'content': 'Halo',
+                  'created_at': '2026-08-06T10:00:00Z',
+                },
+              ],
+            },
+          },
+        );
+        final result = await _repository(adapter).getLatestConversation();
+        expect(result?.sessionId, 'session-1');
+        expect(result?.messages.single.text, 'Halo');
+        expect(
+          adapter.lastRequest!.path,
+          endsWith('/chatbot/conversations/latest'),
+        );
+        expect(adapter.lastRequest!.extra['skipShortCache'], isTrue);
+      },
+    );
 
     for (final entry in <(int, ChatbotErrorType)>[
       (400, ChatbotErrorType.invalidRequest),

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Events\KonsultasiCreated;
 use App\Models\Faq;
 use App\Models\Konsultasi;
 use App\Models\Pinjam;
@@ -141,6 +142,44 @@ class AuthorizationTest extends TestCase
             'user_id' => $this->userA->id,
             'session_id' => $response['session_id'],
         ]);
+
+        $secondDevice = app(ChatbotService::class)->sendMessage(
+            $this->userA,
+            'Terima kasih',
+            'mobile-session-yang-sudah-kedaluwarsa',
+        );
+        $this->assertSame($response['session_id'], $secondDevice['session_id']);
+        $this->assertDatabaseCount('chatbot_conversations', 1);
+
+        $latest = app(ChatbotService::class)->latestConversation($this->userA);
+        $this->assertSame($response['session_id'], $latest['session_id']);
+        $this->assertCount(4, $latest['messages']);
+
+        $otherConversationId = \DB::table('chatbot_conversations')->insertGetId([
+            'user_id' => $this->userA->id,
+            'session_id' => 'old-mobile-session',
+            'created_at' => now()->subDay(),
+            'updated_at' => now()->subDay(),
+        ]);
+        \DB::table('chatbot_messages')->insert([
+            'conversation_id' => $otherConversationId,
+            'role' => 'user',
+            'content' => 'Pesan lama',
+            'provider_used' => 'gemini',
+            'created_at' => now()->subDay(),
+            'updated_at' => now()->subDay(),
+        ]);
+
+        $this->assertTrue(app(ChatbotService::class)->deleteHistory(
+            $this->userA,
+            $response['session_id'],
+        ));
+        $this->assertDatabaseCount('chatbot_conversations', 0);
+        $this->assertDatabaseCount('chatbot_messages', 0);
+        $this->assertTrue(app(ChatbotService::class)->deleteHistory(
+            $this->userA,
+            'stale-session',
+        ));
     }
 
     public function test_chatbot_answers_a_relevant_active_faq_without_waiting_for_ai(): void
@@ -327,11 +366,65 @@ class AuthorizationTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertStringContainsString('konsultasi', strtolower($result['reply']));
+        $this->assertStringContainsString("Nama:\nOPD:\nDetail Permasalahan:", $result['reply']);
+        $this->assertStringNotContainsString('Lokasi/OPD:', $result['reply']);
+        $this->assertStringNotContainsString('Detail tambahan:', $result['reply']);
         $this->assertDatabaseHas('chatbot_conversations', [
             'user_id' => $this->userA->id,
             'session_id' => $first['session_id'],
             'consultation_offer_pending' => true,
         ]);
+
+        $consultationCountBefore = \DB::table('tr_konsultasi')->count();
+        $partial = $service->sendMessage(
+            $this->userA,
+            'Nama: Adwika',
+            $first['session_id'],
+        );
+        $this->assertSame('consultation_offer', $partial['provider']);
+        $this->assertStringContainsString("Nama:\nOPD:\nDetail Permasalahan:", $partial['reply']);
+        $this->assertDatabaseCount('tr_konsultasi', $consultationCountBefore);
+
+        $created = $service->sendMessage(
+            $this->userA,
+            "Nama: Adwika\nOPD: Dinas Kesehatan\nDetail Permasalahan: WiFi kantor tetap tidak terhubung setelah perangkat dan router dimulai ulang.",
+            $first['session_id'],
+        );
+
+        $this->assertTrue($created['success']);
+        $this->assertTrue($created['escalated']);
+        $this->assertSame('consultation_created', $created['provider']);
+        $this->assertStringContainsString('Konsultasi sudah saya buatkan', $created['reply']);
+        $this->assertStringContainsString('Jika ada pertanyaan lain, silakan ditanyakan yaa.', $created['reply']);
+        $this->assertStringContainsString('#'.$created['konsultasi_id'], $created['reply']);
+        $this->assertDatabaseHas('tr_konsultasi', [
+            'id' => $created['konsultasi_id'],
+            'user_id' => $this->userA->id,
+            'faq_id' => 601,
+            'status' => 'Menunggu',
+            'created_by' => $this->userA->id,
+        ]);
+        $consultationMessage = (string) \DB::table('tr_konsultasi')
+            ->where('id', $created['konsultasi_id'])
+            ->value('pesan');
+        $this->assertStringContainsString('Nama: Adwika', $consultationMessage);
+        $this->assertStringContainsString('OPD: Dinas Kesehatan', $consultationMessage);
+        $this->assertStringContainsString('Detail Permasalahan: WiFi kantor', $consultationMessage);
+        $this->assertDatabaseHas('notification', [
+            'user_id' => 0,
+            'type' => 'konsultasi',
+            'item_id' => $created['konsultasi_id'],
+            'read' => false,
+        ]);
+        Event::assertDispatched(KonsultasiCreated::class);
+        $this->assertDatabaseCount('tr_konsultasi', $consultationCountBefore + 1);
+
+        $service->sendMessage(
+            $this->userA,
+            "Nama: Adwika\nOPD: Dinas Kesehatan\nDetail Permasalahan: WiFi kantor tetap tidak terhubung.",
+            $first['session_id'],
+        );
+        $this->assertDatabaseCount('tr_konsultasi', $consultationCountBefore + 1);
     }
 
     public function test_user_can_view_own_pinjam_but_not_another_users_pinjam(): void

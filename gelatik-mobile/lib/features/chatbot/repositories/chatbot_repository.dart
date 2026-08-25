@@ -92,6 +92,16 @@ class ChatbotRepositoryException extends ApiException {
       );
 }
 
+class ChatbotConversationSnapshot {
+  final String sessionId;
+  final List<ChatMessageModel> messages;
+
+  const ChatbotConversationSnapshot({
+    required this.sessionId,
+    required this.messages,
+  });
+}
+
 class ChatbotRepository {
   final ApiClient apiClient;
 
@@ -107,8 +117,8 @@ class ChatbotRepository {
         options: Options(
           // Laravel may try Gemini and then Groq. This remains bounded above
           // the server provider budget without changing other API requests.
-          receiveTimeout: const Duration(seconds: 35),
-          sendTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 15),
+          sendTimeout: const Duration(seconds: 10),
         ),
       );
       final data = _dataEnvelope(response.data);
@@ -173,6 +183,47 @@ class ChatbotRepository {
       return sessionId == null || sessionId.trim().isEmpty ? null : sessionId;
     } on DioException catch (error) {
       throw ChatbotRepositoryException.fromDioException(error);
+    }
+  }
+
+  Future<ChatbotConversationSnapshot?> getLatestConversation() async {
+    try {
+      final response = await apiClient.dio.get(
+        '/chatbot/conversations/latest',
+        options: Options(extra: {'skipShortCache': true}),
+      );
+      final data = _dataEnvelope(response.data);
+      if (data == null) return null;
+      if (data is! Map) {
+        throw ChatbotRepositoryException.malformed(
+          'Data percakapan terbaru bukan object JSON.',
+        );
+      }
+      final sessionId = data['session_id']?.toString().trim() ?? '';
+      final rawMessages = data['messages'];
+      if (sessionId.isEmpty || rawMessages is! List) {
+        throw ChatbotRepositoryException.malformed(
+          'Data percakapan terbaru tidak lengkap.',
+        );
+      }
+      final messages = rawMessages
+          .map((entry) {
+            if (entry is! Map) {
+              throw const FormatException('Pesan history bukan object JSON.');
+            }
+            return ChatMessageModel.fromJson(Map<String, dynamic>.from(entry));
+          })
+          .toList(growable: false);
+      return ChatbotConversationSnapshot(
+        sessionId: sessionId,
+        messages: messages,
+      );
+    } on DioException catch (error) {
+      throw ChatbotRepositoryException.fromDioException(error);
+    } on ChatbotRepositoryException {
+      rethrow;
+    } on FormatException catch (error) {
+      throw ChatbotRepositoryException.malformed(error.message);
     }
   }
 

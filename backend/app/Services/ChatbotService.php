@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\UsulanEmail;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -58,23 +59,34 @@ class ChatbotService
 
     public function sendMessage(User $user, string $message, ?string $sessionId)
     {
-        if ($sessionId) {
-            $conversation = ChatbotConversation::where('user_id', $user->id)
-                ->where('session_id', $sessionId)
-                ->first();
-        }
+        $created = false;
+        $conversation = DB::transaction(function () use ($user, &$created) {
+            // Serialize first-use requests from web and mobile. Both clients
+            // must converge on one server-owned conversation for this account.
+            User::query()->whereKey($user->id)->lockForUpdate()->first();
 
-        // Browser storage may outlive a manually deleted conversation or a
-        // local database reset. Start a new private conversation instead of
-        // surfacing a ModelNotFound error to the user. A supplied session is
-        // always scoped to the authenticated user, so another user's history
-        // can never be reused.
-        if (! isset($conversation) || ! $conversation) {
-            $sessionId = Str::uuid()->toString();
-            $conversation = ChatbotConversation::create([
-                'user_id' => $user->id,
-                'session_id' => $sessionId,
-            ]);
+            // The server is authoritative. A stale device session may still
+            // point at an older row, so always continue the account's latest
+            // conversation instead of splitting web and mobile histories.
+            $conversation = ChatbotConversation::query()
+                ->where('user_id', $user->id)
+                ->latest('updated_at')
+                ->latest('id')
+                ->first();
+
+            if (! $conversation) {
+                $created = true;
+                $conversation = ChatbotConversation::create([
+                    'user_id' => $user->id,
+                    'session_id' => Str::uuid()->toString(),
+                ]);
+            }
+
+            return $conversation;
+        });
+
+        $sessionId = $conversation->session_id;
+        if ($created) {
             $this->broadcastConversation($user, $conversation, 'chatbot.conversation.created');
         }
 
@@ -143,10 +155,14 @@ class ChatbotService
             $conversation->refresh();
         }
 
-        if ($scope === 'allowed' && $conversation->consultation_offer_pending && $activeContext !== null) {
+        if ($conversation->consultation_offer_pending
+            && $activeContext !== null
+            && ! $this->isPromptInjection($normalized)) {
             $consultationData = $this->extractConsultationData($message);
             if ($consultationData['confirmed']) {
-                if ($consultationData['location'] === null || $consultationData['detail'] === null) {
+                if ($consultationData['name'] === null
+                    || $consultationData['opd'] === null
+                    || $consultationData['detail'] === null) {
                     return $this->storeLocalReply(
                         $conversation,
                         $sessionId,
@@ -165,7 +181,7 @@ class ChatbotService
                 return $this->storeLocalReply(
                     $conversation,
                     $sessionId,
-                    'Baik, konsultasi TIK telah dibuat untuk Anda. Nomor konsultasi: #'.$konsultasi->id.'. Petugas akan menindaklanjuti, dan statusnya dapat dipantau pada menu Konsultasi.',
+                    'Konsultasi sudah saya buatkan 😊 Nomor konsultasi: #'.$konsultasi->id.'. Petugas akan menindaklanjuti, dan statusnya dapat dipantau pada menu Konsultasi. Jika ada pertanyaan lain, silakan ditanyakan yaa.',
                     'consultation_created',
                     ['escalated' => true, 'konsultasi_id' => $konsultasi->id]
                 );
@@ -406,33 +422,65 @@ class ChatbotService
     {
         $conversation = ChatbotConversation::query()
             ->where('user_id', $user->id)
-            ->withCount('messages')
+            ->with(['messages' => fn ($query) => $query
+                ->select(['id', 'conversation_id', 'role', 'content', 'created_at'])
+                ->orderBy('created_at')
+                ->orderBy('id')])
             ->latest('updated_at')
+            ->latest('id')
             ->first();
 
         return $conversation ? [
             'id' => (int) $conversation->id,
             'session_id' => $conversation->session_id,
-            'messages_count' => (int) $conversation->messages_count,
+            'messages_count' => $conversation->messages->count(),
+            'messages' => $conversation->messages->map(fn (ChatbotMessage $message) => [
+                'id' => (int) $message->id,
+                'role' => $message->role,
+                'content' => $message->content,
+                'created_at' => $message->created_at?->toISOString(),
+            ])->values(),
             'updated_at' => $conversation->updated_at?->toISOString(),
         ] : null;
     }
 
     public function deleteHistory(User $user, string $sessionId)
     {
-        $conversation = ChatbotConversation::where('user_id', $user->id)
-            ->where('session_id', $sessionId)
-            ->first();
+        $conversations = DB::transaction(function () use ($user) {
+            User::query()->whereKey($user->id)->lockForUpdate()->first();
+            $conversations = ChatbotConversation::query()
+                ->where('user_id', $user->id)
+                ->get();
 
-        if ($conversation) {
-            ChatbotMessage::where('conversation_id', $conversation->id)->delete();
-            $conversation->delete();
+            if ($conversations->isNotEmpty()) {
+                ChatbotMessage::query()
+                    ->whereIn('conversation_id', $conversations->modelKeys())
+                    ->delete();
+                ChatbotConversation::query()
+                    ->whereIn('id', $conversations->modelKeys())
+                    ->delete();
+            }
+
+            return $conversations;
+        });
+
+        foreach ($conversations as $conversation) {
             $this->broadcastConversation($user, $conversation, 'chatbot.conversation.deleted');
-
-            return true;
         }
 
-        return false;
+        if ($conversations->isEmpty()) {
+            $this->realtime->eventToUser(
+                $user->id,
+                'chatbot.conversation.deleted',
+                RealtimeEventPayload::make('chatbot.conversation.deleted', 0, [
+                    'session_id' => $sessionId,
+                ]),
+            );
+        }
+
+        // Deletion is intentionally idempotent. A stale second device must be
+        // able to clear its local state even if another client deleted first.
+        return true;
     }
 
     private function buildContext(User $user, string $message): string
@@ -619,27 +667,39 @@ class ChatbotService
 
     private function consultationDataPrompt(string $context): string
     {
-        return 'Jika kendala '.($this->contextLabel($context)).' ini masih belum selesai, saya dapat membantu membuatkan konsultasi TIK untuk Anda. Nama akun dan ringkasan kendala akan saya siapkan. Jika Anda setuju, balas dengan format berikut:'
-            ."\nKONFIRMASI KONSULTASI"
-            ."\nLokasi/OPD: lokasi atau unit kerja Anda"
-            ."\nDetail tambahan: gejala terakhir, perangkat yang dipakai, atau waktu kejadian"
+        return 'Jika kendala '.($this->contextLabel($context)).' ini masih belum selesai, saya dapat langsung membuatkan konsultasi TIK untuk Anda. Isi dan kirim data berikut:'
+            ."\nNama:"
+            ."\nOPD:"
+            ."\nDetail Permasalahan:"
+            ."\n\nSetelah ketiga data tersebut lengkap, konsultasi akan langsung dibuat dan diteruskan kepada petugas."
             ."\n\nJika ingin mencoba saran lain terlebih dahulu, tulis pertanyaan Anda—saya akan bantu lanjutkan tanpa membuat konsultasi.";
     }
 
     private function extractConsultationData(string $message): array
     {
         $normalized = $this->normalizeSentence($message);
-        $confirmed = Str::contains($normalized, [
-            'konfirmasi konsultasi',
-            'buatkan konsultasi',
-            'buat konsultasi',
-            'iya buatkan',
-            'ya buatkan',
+        $name = $this->extractLabeledValue($message, ['nama']);
+        $opd = $this->extractLabeledValue($message, ['opd', 'lokasi opd', 'lokasi']);
+        $detail = $this->extractLabeledValue($message, [
+            'detail permasalahan',
+            'detail tambahan',
+            'detail',
+            'keterangan',
         ]);
-        $location = $this->extractLabeledValue($message, ['lokasi', 'opd', 'lokasi opd']);
-        $detail = $this->extractLabeledValue($message, ['detail tambahan', 'detail', 'keterangan']);
+        $containsTemplateField = preg_match(
+            '/^\s*(nama|opd|detail\s+permasalahan)\s*:/imu',
+            $message
+        ) === 1;
+        $confirmed = $containsTemplateField
+            || Str::contains($normalized, [
+                'konfirmasi konsultasi',
+                'buatkan konsultasi',
+                'buat konsultasi',
+                'iya buatkan',
+                'ya buatkan',
+            ]);
 
-        return compact('confirmed', 'location', 'detail');
+        return compact('confirmed', 'name', 'opd', 'detail');
     }
 
     private function extractLabeledValue(string $message, array $labels): ?string
@@ -663,22 +723,47 @@ class ChatbotService
         string $context,
         array $data
     ): Konsultasi {
-        $history = $this->buildFollowUpContext($conversation, 0);
-        $topik = $this->resolveEscalationTopic($context) ?? MasterTopik::aktif()->first();
-        if (! $topik) {
-            throw new \RuntimeException('Topik konsultasi aktif belum tersedia.');
-        }
+        $konsultasi = DB::transaction(function () use ($conversation, $user, $context, $data) {
+            $lockedConversation = ChatbotConversation::query()
+                ->whereKey($conversation->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $konsultasi = $this->konsultasiService->buatKonsultasi($user, [
-            'topik_id' => $topik->id,
-            'judul' => 'Kendala '.ucfirst($this->contextLabel($context)).' dari Asisten Gelatik',
-            'deskripsi' => "Konsultasi dibuat atas konfirmasi pengguna melalui Asisten Gelatik.\n\nLokasi/OPD: {$data['location']}\nDetail tambahan: {$data['detail']}\n\nRingkasan percakapan:\n{$history}",
-        ]);
+            if ($lockedConversation->escalated_konsultasi_id) {
+                return Konsultasi::query()->findOrFail($lockedConversation->escalated_konsultasi_id);
+            }
 
-        $conversation->update([
-            'escalated_konsultasi_id' => $konsultasi->id,
-            'consultation_offer_pending' => false,
-        ]);
+            $history = $this->buildFollowUpContext($lockedConversation, 0);
+            $topik = $this->resolveEscalationTopic($context) ?? MasterTopik::aktif()->first();
+            if (! $topik) {
+                throw new \RuntimeException('Topik konsultasi aktif belum tersedia.');
+            }
+
+            $konsultasi = $this->konsultasiService->buatKonsultasi($user, [
+                'topik_id' => $topik->id,
+                'judul' => 'Kendala '.ucfirst($this->contextLabel($context)).' dari Asisten Gelatik',
+                'deskripsi' => "Konsultasi dibuat melalui Asisten Gelatik.\n\nNama: {$data['name']}\nOPD: {$data['opd']}\nDetail Permasalahan: {$data['detail']}\n\nRingkasan percakapan:\n{$history}",
+            ]);
+
+            $lockedConversation->update([
+                'escalated_konsultasi_id' => $konsultasi->id,
+                'consultation_offer_pending' => false,
+            ]);
+
+            return $konsultasi;
+        });
+
+        // The manual consultation flow already notifies admin/superadmin.
+        // This user-scoped event additionally refreshes the same account's
+        // open consultation pages on web and mobile.
+        $this->realtime->eventToUser(
+            $user->id,
+            'konsultasi.created',
+            RealtimeEventPayload::make('konsultasi.created', (int) $konsultasi->id, [
+                'status' => $konsultasi->status,
+                'message' => 'Konsultasi dari Asisten Gelatik berhasil dibuat.',
+            ]),
+        );
 
         return $konsultasi;
     }

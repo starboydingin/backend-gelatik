@@ -67,6 +67,7 @@ class ChatbotNotifier extends StateNotifier<ChatbotState> {
   final SecureStorageService storage;
   int _generation = 0;
   int _localId = 0;
+  Timer? _realtimeSyncTimer;
 
   ChatbotNotifier({
     required this.repository,
@@ -83,35 +84,24 @@ class ChatbotNotifier extends StateNotifier<ChatbotState> {
       clearError: true,
     );
     try {
-      final localSessionId =
-          state.sessionId ?? await storage.getChatbotSessionId();
-      final sessionId = localSessionId ?? await repository.getLatestSessionId();
+      final latest = await repository.getLatestConversation();
       if (generation != _generation) return;
-      if (sessionId == null || sessionId.trim().isEmpty) {
-        state = state.copyWith(
-          phase: ChatbotPhase.ready,
-          messages: const [],
-          clearSession: true,
-        );
-        return;
-      }
-      await storage.saveChatbotSessionId(sessionId);
-      final messages = await repository.getHistory(sessionId);
-      if (generation != _generation) return;
-      if (messages.isEmpty) {
+      if (latest == null) {
         await storage.deleteChatbotSessionId();
         if (generation != _generation) return;
         state = state.copyWith(
           phase: ChatbotPhase.ready,
           messages: const [],
           clearSession: true,
-          clearError: true,
         );
         return;
       }
+      final sessionId = latest.sessionId;
+      await storage.saveChatbotSessionId(sessionId);
+      if (generation != _generation) return;
       state = state.copyWith(
         phase: ChatbotPhase.ready,
-        messages: messages,
+        messages: _deduplicate(latest.messages),
         sessionId: sessionId,
         clearError: true,
       );
@@ -127,16 +117,28 @@ class ChatbotNotifier extends StateNotifier<ChatbotState> {
     String? sessionId, {
     bool deleted = false,
   }) async {
-    if (sessionId != null && sessionId.isNotEmpty) {
-      if (deleted && sessionId == state.sessionId) {
-        await storage.deleteChatbotSessionId();
-        state = state.copyWith(messages: const [], clearSession: true);
-      } else {
-        await storage.saveChatbotSessionId(sessionId);
-        state = state.copyWith(sessionId: sessionId);
-      }
+    if (deleted) {
+      _realtimeSyncTimer?.cancel();
+      ++_generation;
+      await storage.deleteChatbotSessionId();
+      state = const ChatbotState(phase: ChatbotPhase.ready);
+      return;
     }
-    await loadHistory(refresh: true);
+    _scheduleRealtimeSync();
+  }
+
+  void _scheduleRealtimeSync() {
+    _realtimeSyncTimer?.cancel();
+    _realtimeSyncTimer = Timer(const Duration(milliseconds: 100), () {
+      // The server emits the user-message event before the AI response is
+      // returned. Refreshing at that moment would invalidate the in-flight
+      // REST response, so reconcile immediately after sending finishes.
+      if (state.sendInFlight) {
+        _scheduleRealtimeSync();
+        return;
+      }
+      unawaited(loadHistory(refresh: true));
+    });
   }
 
   Future<void> sendMessage(String text) async {
@@ -242,23 +244,47 @@ class ChatbotNotifier extends StateNotifier<ChatbotState> {
     if (state.sendInFlight) return;
     final sessionId = state.sessionId;
     final generation = ++_generation;
-    if (sessionId == null) {
-      await storage.deleteChatbotSessionId();
-      if (generation == _generation) {
-        state = const ChatbotState(phase: ChatbotPhase.ready);
-      }
-      return;
-    }
-    state = state.copyWith(phase: ChatbotPhase.refreshing, clearError: true);
+    final previousState = state;
+    _realtimeSyncTimer?.cancel();
+    await storage.deleteChatbotSessionId();
+    state = const ChatbotState(phase: ChatbotPhase.ready);
     try {
-      await repository.deleteHistory(sessionId);
-      await storage.deleteChatbotSessionId();
+      await repository.deleteHistory(sessionId ?? '__all__');
       if (generation != _generation) return;
-      state = const ChatbotState(phase: ChatbotPhase.ready);
     } on ChatbotRepositoryException catch (error) {
       if (generation != _generation) return;
+      state = previousState;
+      if (sessionId != null) await storage.saveChatbotSessionId(sessionId);
       await _handleFailure(error);
     }
+  }
+
+  List<ChatMessageModel> _deduplicate(List<ChatMessageModel> messages) {
+    final seen = <String>{};
+    final accepted = <ChatMessageModel>[];
+    return messages
+        .where((message) {
+          final key = message.id.isNotEmpty
+              ? 'id:${message.id}'
+              : '${message.sender.name}:${message.text.trim()}';
+          if (!seen.add(key)) return false;
+          final duplicate = accepted.any(
+            (existing) =>
+                existing.sender == message.sender &&
+                existing.text.trim() == message.text.trim() &&
+                existing.timestamp.difference(message.timestamp).abs() <=
+                    const Duration(seconds: 10),
+          );
+          if (!duplicate) accepted.add(message);
+          return !duplicate;
+        })
+        .toList(growable: false);
+  }
+
+  @override
+  void dispose() {
+    _realtimeSyncTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _handleFailure(
@@ -289,7 +315,11 @@ final chatbotProvider =
       final subscription = ref
           .watch(realtimeSocketServiceProvider)
           .events
-          .where((event) => event.type.startsWith('chatbot.'))
+          .where(
+            (event) =>
+                event.type.startsWith('chatbot.') ||
+                (event.type == 'data.sync' && event.resource == 'session'),
+          )
           .listen(
             (event) => unawaited(
               notifier.syncFromRealtime(

@@ -237,15 +237,14 @@ class _ChatbotNativeScreenState extends ConsumerState<ChatbotNativeScreen>
       0,
       state.messages.length,
     );
+    // An empty server conversation must never render as a blank chat. This
+    // also covers account-scoped realtime deletion from the website.
+    final showStarterPrompts = _showStarterPrompts || state.messages.isEmpty;
     final timeline = <Widget>[const _DayChip()];
     for (var index = 0; index <= state.messages.length; index++) {
-      if (_showStarterPrompts && index == starterAnchor) {
+      if (showStarterPrompts && index == starterAnchor) {
         timeline.add(
-          _AssistantWelcome(
-            primaryTeal: primaryTeal,
-            strokeColor: strokeColor,
-            mutedText: mutedText,
-          ),
+          _AssistantWelcome(primaryTeal: primaryTeal, strokeColor: strokeColor),
         );
         timeline.add(
           Padding(
@@ -422,12 +421,10 @@ class _QuickQuestions extends StatelessWidget {
 class _AssistantWelcome extends StatelessWidget {
   final Color primaryTeal;
   final Color strokeColor;
-  final Color mutedText;
 
   const _AssistantWelcome({
     required this.primaryTeal,
     required this.strokeColor,
-    required this.mutedText,
   });
 
   @override
@@ -465,17 +462,12 @@ class _AssistantWelcome extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Halo, saya Asisten Konsultasi TIK Gelatik. Ada yang bisa saya bantu hari ini? 😊',
+            'Halo, saya Asisten Konsultasi TIK Gelatik. Ada yang bisa saya bantu hari ini? Pilih salah satu pertanyaan cepat di bawah atau tulis pertanyaan Anda sendiri.',
             style: TextStyle(
               fontSize: 13,
               height: 1.4,
               color: Theme.of(context).colorScheme.onSurface,
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Pilih salah satu pertanyaan di bawah atau ketik pertanyaan Anda sendiri.',
-            style: TextStyle(fontSize: 11, color: mutedText),
           ),
         ],
       ),
