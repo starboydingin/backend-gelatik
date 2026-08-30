@@ -59,16 +59,27 @@ async function submit() {
                 /><AppInput
                     id="email"
                     v-model="form.email"
-                    label="Email"
+                    label="Email resmi dinas"
                     type="email"
+                    hint="Gunakan email resmi dinas yang terdaftar."
                     required
-                /><AppInput id="phone" v-model="form.no_hp" label="Nomor HP" required /><SearchableSelect
+                /><AppInput
+                    id="phone"
+                    v-model="form.no_hp"
+                    label="Nomor HP"
+                    required
+                /><SearchableSelect
                     v-model="form.nama_opd"
                     class="md:col-span-2"
                     label="Perangkat daerah / OPD"
                     placeholder="Pilih OPD"
                     search-placeholder="Cari nama OPD…"
-                    :options="opds.map((opd) => ({ value: opd.nama_opd || opd, label: opd.nama_opd || opd }))"
+                    :options="
+                        opds.map((opd) => ({
+                            value: opd.nama_opd || opd,
+                            label: opd.nama_opd || opd,
+                        }))
+                    "
                 />
                 <AppInput
                     id="new-password"

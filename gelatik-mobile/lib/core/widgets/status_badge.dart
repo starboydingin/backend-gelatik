@@ -14,37 +14,33 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     final normalized = status.trim().toLowerCase();
 
     Color bgColor;
     Color textColor;
 
-    if (normalized == 'menunggu' || normalized == 'draft' || normalized == 'diajukan') {
-      bgColor = isDark ? AppColors.statusInfoDark.withValues(alpha: 0.2) : AppColors.primaryContainerLight;
-      textColor = isDark ? AppColors.statusInfoDark : AppColors.statusInfoLight;
+    if (normalized == 'menunggu' ||
+        normalized == 'draft' ||
+        normalized == 'diajukan') {
+      bgColor = AppColors.colorAccent.withValues(alpha: 0.14);
+      textColor = const Color(0xFF9A5B00);
     } else if (normalized == 'proses' || normalized == 'diproses') {
-      bgColor = isDark ? AppColors.statusWarningDark.withValues(alpha: 0.2) : const Color(0xFFFEF3C7);
-      textColor = isDark ? AppColors.statusWarningDark : AppColors.statusWarningLight;
+      bgColor = AppColors.colorSecondary.withValues(alpha: 0.12);
+      textColor = AppColors.colorSecondary;
     } else if (normalized == 'selesai' || normalized == 'disetujui') {
-      bgColor = isDark ? AppColors.statusSuccessDark.withValues(alpha: 0.2) : const Color(0xFFDCFCE7);
-      textColor = isDark ? AppColors.statusSuccessDark : AppColors.statusSuccessLight;
+      bgColor = AppColors.colorSuccess.withValues(alpha: 0.12);
+      textColor = AppColors.colorSuccess;
     } else if (normalized == 'ditolak') {
-      bgColor = isDark ? AppColors.statusErrorDark.withValues(alpha: 0.2) : const Color(0xFFFEE2E2);
-      textColor = isDark ? AppColors.statusErrorDark : AppColors.statusErrorLight;
+      bgColor = AppColors.colorError.withValues(alpha: 0.1);
+      textColor = AppColors.colorError;
     } else {
-      bgColor = isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariantLight;
-      textColor = isDark ? AppColors.onSurfaceDark : AppColors.onSurfaceLight;
+      bgColor = AppColors.surfaceVariantLight;
+      textColor = AppColors.colorTextPrimary;
     }
 
     return Container(
       padding: padding,
-      decoration: ShapeDecoration(
-        color: bgColor,
-        shape: const StadiumBorder(),
-      ),
+      decoration: ShapeDecoration(color: bgColor, shape: const StadiumBorder()),
       child: Text(
         status,
         style: TextStyle(

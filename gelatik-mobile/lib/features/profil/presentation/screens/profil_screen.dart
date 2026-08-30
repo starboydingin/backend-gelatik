@@ -10,7 +10,7 @@ import '../../../auth/providers/auth_provider.dart';
 import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
 import '../../../internet/presentation/screens/self_assessment_screen.dart';
 import '../../../notifications/presentation/screens/notifications_screen.dart';
-import '../../../peminjaman/presentation/screens/ajukan_peminjaman_screen.dart';
+import '../../../services/presentation/screens/services_screen.dart';
 import '../../../../core/widgets/notification_badge_button.dart';
 import '../../providers/wa_notification_provider.dart';
 import 'edit_profil_screen.dart';
@@ -484,25 +484,34 @@ class ProfilScreen extends ConsumerWidget {
         ),
       ),
       bottomNavigationBar: AppBottomNav(
-        currentIndex: 2,
-        isAdmin: user != null &&
-            const {'admin', 'superadmin', 'bkd'}.contains(
-              user.role.toLowerCase(),
-            ),
+        currentIndex: 3,
+        isAdmin:
+            user != null &&
+            const {
+              'admin',
+              'superadmin',
+              'bkd',
+            }.contains(user.role.toLowerCase()),
         onTap: (index) {
           if (index == 0) {
             Navigator.of(context).popUntil((route) => route.isFirst);
           } else if (index == 1) {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const AjukanPeminjamanScreen()),
+              MaterialPageRoute(builder: (_) => const ServicesScreen()),
             );
           } else if (index == 2) {
-            // Already in ProfilScreen
-          } else if (index == 3 &&
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+            );
+          } else if (index == 3) {
+            // Already in ProfilScreen.
+          } else if (index == 4 &&
               user != null &&
-              const {'admin', 'superadmin', 'bkd'}.contains(
-                user.role.toLowerCase(),
-              )) {
+              const {
+                'admin',
+                'superadmin',
+                'bkd',
+              }.contains(user.role.toLowerCase())) {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
             );

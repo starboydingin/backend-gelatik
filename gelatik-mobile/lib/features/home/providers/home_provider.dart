@@ -109,7 +109,10 @@ class HomeNotifier extends StateNotifier<HomeState> {
   Future<void> refreshFromRealtime() =>
       _fetch(refreshing: true, bypassCache: true);
 
-  Future<void> _fetch({required bool refreshing, bool bypassCache = false}) async {
+  Future<void> _fetch({
+    required bool refreshing,
+    bool bypassCache = false,
+  }) async {
     final aggregateRepository = dashboardRepository;
     if (aggregateRepository != null) {
       final generation = ++_generation;

@@ -11,9 +11,9 @@ use App\Models\RouterList;
 use App\Models\User;
 use App\Models\UsulanEmail;
 use App\Services\AdminAuditService;
+use App\Services\OfficialEmailValidator;
 use App\Services\PasswordResetOtpService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -24,9 +24,8 @@ class AuthController extends Controller
     public function __construct(
         private PasswordResetOtpService $passwordResetOtpService,
         private AdminAuditService $adminAudit,
-    )
-    {
-    }
+        private OfficialEmailValidator $officialEmailValidator,
+    ) {}
 
     /**
      * Login user dan dapatkan access token (Passport)
@@ -36,7 +35,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'identifier' => 'required|string',
-            'password'   => 'required|string',
+            'password' => 'required|string',
         ]);
 
         $user = User::where('email', $request->identifier)
@@ -64,10 +63,10 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Login berhasil.',
-            'data'    => [
-                'user'         => $user,
+            'data' => [
+                'user' => $user,
                 'access_token' => $token,
-                'token_type'   => 'Bearer',
+                'token_type' => 'Bearer',
             ],
         ]);
     }
@@ -79,13 +78,15 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
-            'nip'      => 'required|digits:18|unique:users,nip',
-            'no_hp'    => 'required|string',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'nip' => 'required|digits:18|unique:users,nip',
+            'no_hp' => 'required|string',
             'nama_opd' => 'required|string',
             'password' => 'required|string|min:6|confirmed',
         ]);
+
+        $this->officialEmailValidator->validateForRegistration((string) $request->email);
 
         // Validasi OPD harus ada di tabel unker_list_router
         $validOpd = RouterList::where('nama_opd', $request->nama_opd)->exists();
@@ -97,29 +98,29 @@ class AuthController extends Controller
 
         $authData = DB::transaction(function () use ($request): array {
             $user = User::create([
-                'name'     => $request->name,
-                'email'    => $request->email,
+                'name' => $request->name,
+                'email' => $request->email,
                 'username' => $request->nip,
-                'nip'      => $request->nip,
-                'no_hp'    => $request->no_hp,
+                'nip' => $request->nip,
+                'no_hp' => $request->no_hp,
                 'nama_opd' => $request->nama_opd,
                 'password' => Hash::make($request->password),
-                'status'   => '1',
+                'status' => '1',
             ]);
 
             $user->assignRole('user');
 
             return [
-                'user'         => $user,
+                'user' => $user,
                 'access_token' => $user->createToken('LayanantikToken')->accessToken,
-                'token_type'   => 'Bearer',
+                'token_type' => 'Bearer',
             ];
         });
 
         return response()->json([
             'success' => true,
             'message' => 'Registrasi berhasil. Akun Anda sudah aktif.',
-            'data'    => $authData,
+            'data' => $authData,
         ], 201);
     }
 
@@ -133,7 +134,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $user,
+            'data' => $user,
         ]);
     }
 

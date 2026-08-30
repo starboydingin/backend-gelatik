@@ -27,7 +27,7 @@ class UsulanEmailPolicy
 
     public function verify(User $user, UsulanEmail $usulanEmail): bool
     {
-        return $user->hasAnyRole(['admin', 'superadmin', 'bkd']);
+        return $user->hasRole('bkd');
     }
 
     public function createOfficialEmail(User $user, UsulanEmail $usulanEmail): bool
@@ -37,6 +37,6 @@ class UsulanEmailPolicy
 
     public function reject(User $user, UsulanEmail $usulanEmail): bool
     {
-        return $user->hasAnyRole(['admin', 'superadmin', 'bkd']);
+        return $user->hasRole('bkd');
     }
 }

@@ -1,7 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../storage/secure_storage_service.dart';
 
 class ApiClient {
@@ -76,6 +79,7 @@ class _ShortLivedGetCacheInterceptor extends Interceptor {
   static const _defaultTtl = Duration(seconds: 60);
   final Duration staleIfError = const Duration(minutes: 5);
   final Map<String, _CachedGetResponse> _responses = {};
+  final _PersistentGetCache _persistent = _PersistentGetCache();
   int _cacheGeneration = 0;
 
   _ShortLivedGetCacheInterceptor();
@@ -107,12 +111,15 @@ class _ShortLivedGetCacheInterceptor extends Interceptor {
         options.extra['shortCacheGeneration'] == _cacheGeneration &&
         (response.statusCode ?? 500) < 400) {
       _responses[_key(options)] = _CachedGetResponse.fromResponse(response);
+      if (_supportsPersistentCache(options.path)) {
+        unawaited(_persistent.write(_key(options), response));
+      }
     }
     handler.next(response);
   }
 
   @override
-  void onError(DioException error, ErrorInterceptorHandler handler) {
+  void onError(DioException error, ErrorInterceptorHandler handler) async {
     final options = error.requestOptions;
     final mayUseStale =
         options.method.toUpperCase() == 'GET' &&
@@ -125,8 +132,16 @@ class _ShortLivedGetCacheInterceptor extends Interceptor {
         DateTime.now().difference(cached.savedAt) <= staleIfError) {
       return handler.resolve(cached.toResponse(options, fromStaleCache: true));
     }
+    if (mayUseStale && _supportsPersistentCache(options.path)) {
+      final persisted = await _persistent.read(_key(options), options);
+      if (persisted != null) return handler.resolve(persisted);
+    }
     handler.next(error);
   }
+
+  bool _supportsPersistentCache(String path) => RegExp(
+    r'^/(dashboard|faq|pengumuman|slider|pinjam|konsul)(/|$)',
+  ).hasMatch(path);
 
   String _key(RequestOptions options) {
     final query = options.queryParameters.entries.toList()
@@ -202,6 +217,77 @@ class _ShortLivedGetCacheInterceptor extends Interceptor {
   void clear() {
     _cacheGeneration++;
     _responses.clear();
+    unawaited(_persistent.clear());
+  }
+}
+
+class _PersistentGetCache {
+  static const _prefix = 'gelatik_get_cache_v1_';
+  static const _maxAge = Duration(days: 7);
+
+  Future<void> write(String rawKey, Response<dynamic> response) async {
+    try {
+      final encoded = jsonEncode({
+        'saved_at': DateTime.now().toUtc().toIso8601String(),
+        'status_code': response.statusCode,
+        'data': response.data,
+      });
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(_storageKey(rawKey), encoded);
+    } catch (_) {
+      // Persistent cache is an optional resilience layer and must never make a
+      // successful REST response fail.
+    }
+  }
+
+  Future<Response<dynamic>?> read(String rawKey, RequestOptions options) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final encoded = preferences.getString(_storageKey(rawKey));
+      if (encoded == null) return null;
+      final record = jsonDecode(encoded);
+      if (record is! Map) return null;
+      final savedAt = DateTime.tryParse('${record['saved_at']}');
+      if (savedAt == null ||
+          DateTime.now().toUtc().difference(savedAt) > _maxAge) {
+        await preferences.remove(_storageKey(rawKey));
+        return null;
+      }
+      return Response<dynamic>(
+        requestOptions: options,
+        data: record['data'],
+        statusCode: int.tryParse('${record['status_code']}') ?? 200,
+        extra: const {
+          'persistentCache': true,
+          'staleCache': true,
+          'cacheLabel': 'Menampilkan data tersimpan',
+        },
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> clear() async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final keys = preferences.getKeys().where(
+        (key) => key.startsWith(_prefix),
+      );
+      await Future.wait(keys.map(preferences.remove));
+    } catch (_) {
+      // Some pure Dart tests do not initialize Flutter's services binding.
+      // Cache cleanup must remain best-effort and never block logout.
+    }
+  }
+
+  String _storageKey(String value) {
+    var hash = 0xcbf29ce484222325;
+    for (final byte in utf8.encode(value)) {
+      hash ^= byte;
+      hash = (hash * 0x100000001b3) & 0x7fffffffffffffff;
+    }
+    return '$_prefix${hash.toRadixString(16)}';
   }
 }
 

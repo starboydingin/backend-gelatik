@@ -5,11 +5,7 @@ class ApiException implements Exception {
   final int? statusCode;
   final Map<String, dynamic>? errors;
 
-  ApiException({
-    required this.message,
-    this.statusCode,
-    this.errors,
-  });
+  ApiException({required this.message, this.statusCode, this.errors});
 
   factory ApiException.fromDioException(DioException dioException) {
     int? statusCode = dioException.response?.statusCode;

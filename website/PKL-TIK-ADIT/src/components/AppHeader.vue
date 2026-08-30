@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import NotificationDropdown from './NotificationDropdown.vue'
 import GelatikLogo from './GelatikLogo.vue'
 
-defineProps({ user: Object, subtitle: String, adminArea: Boolean })
+defineProps({ user: Object, subtitle: String, adminArea: Boolean, notificationPrefix: String })
 const route = useRoute()
 const titles = {
     dashboard: ['Ringkasan aktivitas layanan', 'Dashboard'],
@@ -52,7 +52,7 @@ const initials = computed(() => (String(route.meta?.initials || '') || '').trim(
             <p class="eyebrow truncate">{{ current[0] }}</p>
             <h1 class="truncate font-brand text-xl font-bold tracking-tight">{{ current[1] }}</h1>
         </div>
-        <NotificationDropdown :admin-area="adminArea" />
+        <NotificationDropdown :admin-area="adminArea" :portal-prefix="notificationPrefix" />
         <div class="hidden min-w-0 items-center gap-3 sm:flex">
             <span
                 class="grid size-11 shrink-0 place-items-center rounded-lg bg-amber-400 font-bold text-slate-950"

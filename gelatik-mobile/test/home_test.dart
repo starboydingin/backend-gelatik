@@ -413,6 +413,7 @@ void main() {
         ),
       );
       await tester.pump();
+      await _scrollHomeTo(tester, find.byType(CircularProgressIndicator));
       expect(find.byType(CircularProgressIndicator), findsNWidgets(4));
     });
 
@@ -430,12 +431,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Pengguna Home'), findsOneWidget);
+      await _scrollHomeTo(tester, find.text('12'));
       expect(find.text('12'), findsOneWidget);
-      await tester.drag(
-        find.byKey(const Key('home-scroll')),
-        const Offset(0, -900),
-      );
-      await tester.pumpAndSettle();
+      await _scrollHomeTo(tester, find.text('PIC Home'));
       expect(find.text('PIC Home'), findsOneWidget);
       expect(find.text('Konsultasi Home'), findsOneWidget);
       expect(find.text('Admin'), findsNothing);
@@ -465,6 +463,8 @@ void main() {
 
         await tester.pumpAndSettle();
 
+        await _scrollHomeTo(tester, find.text('Pengumuman terbaru'));
+
         expect(find.text('Pengumuman terbaru'), findsOneWidget);
         expect(find.text('Pemeliharaan layanan'), findsOneWidget);
         expect(find.text('Layanan akan dipelihara malam ini.'), findsOneWidget);
@@ -491,6 +491,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+
+      await _scrollHomeTo(
+        tester,
+        find.byKey(const Key('announcement-carousel')),
+      );
 
       PageView carousel() => tester.widget<PageView>(
         find.byKey(const Key('announcement-carousel')),
@@ -546,11 +551,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.drag(
-        find.byKey(const Key('home-scroll')),
-        const Offset(0, -900),
-      );
-      await tester.pumpAndSettle();
+      await _scrollHomeTo(tester, find.text('Belum ada peminjaman.'));
       expect(find.text('Belum ada peminjaman.'), findsOneWidget);
       expect(find.text('Belum ada konsultasi.'), findsOneWidget);
     });
@@ -574,6 +575,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _scrollHomeTo(tester, find.byKey(const Key('home-partial-error')));
       expect(find.byKey(const Key('home-partial-error')), findsOneWidget);
       expect(find.text('12'), findsOneWidget);
       expect(find.text('—'), findsNothing);
@@ -629,11 +631,7 @@ void main() {
       fail = false;
       await tester.tap(find.byKey(const Key('home-retry')));
       await tester.pumpAndSettle();
-      await tester.drag(
-        find.byKey(const Key('home-scroll')),
-        const Offset(0, -900),
-      );
-      await tester.pumpAndSettle();
+      await _scrollHomeTo(tester, find.text('PIC Home'));
       expect(find.text('PIC Home'), findsOneWidget);
     });
 
@@ -670,6 +668,7 @@ void main() {
 
     testWidgets('summary borrowing navigates to Peminjaman', (tester) async {
       await _pumpNavigationHome(tester);
+      await _scrollHomeTo(tester, find.text('Peminjaman aktif'));
       await tester.tap(find.text('Peminjaman aktif'));
       await tester.pumpAndSettle();
       expect(find.byType(PeminjamanListScreen), findsOneWidget);
@@ -677,11 +676,24 @@ void main() {
 
     testWidgets('summary consultation navigates to Konsultasi', (tester) async {
       await _pumpNavigationHome(tester);
+      await _scrollHomeTo(tester, find.text('Konsultasi aktif'));
       await tester.tap(find.text('Konsultasi aktif'));
       await tester.pumpAndSettle();
       expect(find.byType(KonsultasiListScreen), findsOneWidget);
     });
   });
+}
+
+Future<void> _scrollHomeTo(WidgetTester tester, Finder target) async {
+  final homeScroll = find.byKey(const Key('home-scroll'));
+  for (var attempt = 0; attempt < 12 && target.evaluate().isEmpty; attempt++) {
+    await tester.drag(homeScroll, const Offset(0, -360));
+    await tester.pump(const Duration(milliseconds: 120));
+  }
+  if (target.evaluate().isNotEmpty) {
+    await tester.ensureVisible(target.first);
+  }
+  await tester.pump(const Duration(milliseconds: 120));
 }
 
 Future<void> _pumpNavigationHome(WidgetTester tester) async {

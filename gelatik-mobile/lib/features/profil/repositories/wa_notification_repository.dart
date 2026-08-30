@@ -28,10 +28,7 @@ class WaNotificationRepository {
     try {
       final response = await apiClient.dio.post(
         '/notifikasi/wa/subscribe',
-        data: {
-          'nomor_wa': waNumber,
-          'is_opt_in': isSubscribed,
-        },
+        data: {'nomor_wa': waNumber, 'is_opt_in': isSubscribed},
       );
       return _subscriptionFromEnvelope(response.data);
     } on DioException catch (error) {
@@ -40,7 +37,9 @@ class WaNotificationRepository {
   }
 
   WaSubscriptionModel _subscriptionFromEnvelope(dynamic response) {
-    if (response is! Map || response['success'] != true || response['data'] is! Map) {
+    if (response is! Map ||
+        response['success'] != true ||
+        response['data'] is! Map) {
       throw const FormatException('Status notifikasi WhatsApp tidak valid.');
     }
 

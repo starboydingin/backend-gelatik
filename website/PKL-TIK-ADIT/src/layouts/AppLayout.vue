@@ -120,16 +120,32 @@ const adminItems = [
     { label: 'Notifikasi', to: '/admin/notifikasi', icon: BellIcon, group: 'Sistem' },
     { label: 'Profil & Pengaturan', to: '/admin/pengaturan', icon: Cog6ToothIcon, group: 'Sistem' },
 ]
+const bkdItems = [
+    { label: 'Dasbor Verifikasi', to: '/bkd/dashboard', icon: HomeIcon, group: 'Portal BKD' },
+    {
+        label: 'Verifikasi Email ASN',
+        to: '/bkd/email-resmi',
+        icon: EnvelopeIcon,
+        group: 'Operasional',
+    },
+    { label: 'Notifikasi', to: '/bkd/notifikasi', icon: BellIcon, group: 'Akun' },
+    { label: 'Profil', to: '/bkd/profil', icon: UserCircleIcon, group: 'Akun' },
+]
 const adminArea = computed(() => route.path.startsWith('/admin'))
+const bkdArea = computed(() => route.path.startsWith('/bkd'))
+const staffArea = computed(() => adminArea.value || bkdArea.value)
 const items = computed(() => {
+    if (bkdArea.value) return bkdItems
     if (!adminArea.value) return userItems
     if (auth.roles.includes('superadmin')) return adminItems
     return adminItems.filter((item) => item.to !== '/admin/peran')
 })
 const mobileItems = computed(() =>
-    adminArea.value
-        ? [adminItems[0], adminItems[3], adminItems[1]]
-        : [userItems[0], userItems[1], userItems[3], userItems.at(-1)]
+    bkdArea.value
+        ? bkdItems
+        : adminArea.value
+          ? [adminItems[0], adminItems[3], adminItems[1]]
+          : [userItems[0], userItems[1], userItems[3], userItems.at(-1)]
 )
 async function logout() {
     await auth.logout()
@@ -246,13 +262,18 @@ onBeforeUnmount(() => {
             <AppSidebar
                 :items="items"
                 :active-path="route.path"
-                :admin-area="adminArea"
+                :admin-area="staffArea"
+                :area-label="bkdArea ? 'BKD' : adminArea ? 'Admin' : ''"
                 :open="open"
                 @close="open = false"
                 @logout="logout"
         /></template>
         <template #header
-            ><AppHeader :user="auth.user" :subtitle="auth.roles.join(', ')" :admin-area="adminArea"
+            ><AppHeader
+                :user="auth.user"
+                :subtitle="auth.roles.join(', ')"
+                :admin-area="staffArea"
+                :notification-prefix="bkdArea ? '/bkd' : adminArea ? '/admin' : '/app'"
         /></template>
         <PageContainer>
             <RouterView v-slot="{ Component }">

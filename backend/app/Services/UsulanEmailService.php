@@ -9,6 +9,7 @@ use App\Models\PegawaiBelumPunyaEmail;
 use App\Models\User;
 use App\Models\UsulanEmail;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -25,16 +26,21 @@ class UsulanEmailService
      */
     public function verifikasiDokumen(UsulanEmail $usulan, User $verifikator, ?string $catatan = null): UsulanEmail
     {
-        if ($usulan->status !== 'diajukan') {
-            throw new \InvalidArgumentException("Hanya usulan berstatus 'diajukan' yang dapat diverifikasi.");
-        }
+        $usulan = DB::transaction(function () use ($usulan, $verifikator, $catatan): UsulanEmail {
+            $locked = UsulanEmail::query()->lockForUpdate()->findOrFail($usulan->id);
+            if ($locked->status !== 'diajukan' || $locked->tanggal_verifikasi !== null) {
+                throw new \InvalidArgumentException('Usulan ini sudah diverifikasi atau tidak lagi menunggu verifikasi BKD.');
+            }
 
-        $usulan->update([
-            'diverifikasi_oleh' => $verifikator->name ?? $verifikator->username,
-            'tanggal_verifikasi' => now(),
-            'catatan' => $catatan,
-            'updated_by' => $verifikator->id,
-        ]);
+            $locked->update([
+                'diverifikasi_oleh' => $verifikator->name ?? $verifikator->username,
+                'tanggal_verifikasi' => now(),
+                'catatan' => $catatan,
+                'updated_by' => $verifikator->id,
+            ]);
+
+            return $locked->fresh();
+        });
 
         $this->audit->record(
             $verifikator,
@@ -43,7 +49,36 @@ class UsulanEmailService
             $usulan,
         );
 
-        return $usulan->fresh();
+        $this->adminNotifications->announce(
+            'usulan_email.verified',
+            (int) $usulan->id,
+            'Usulan Email Terverifikasi BKD',
+            "Usulan email #{$usulan->id} telah diverifikasi BKD dan siap diproses Admin.",
+            'usulan_email',
+            ['verification_state' => 'verified'],
+        );
+        $ownerId = (int) ($usulan->created_by ?? 0);
+        if ($ownerId > 0) {
+            $notification = Notification::create([
+                'user_id' => $ownerId,
+                'judul' => 'Usulan email telah diverifikasi BKD',
+                'message' => "Usulan email #{$usulan->id} telah diteruskan kepada Admin untuk penerbitan.",
+                'type' => 'usulan_email_status',
+                'item_id' => $usulan->id,
+                'read' => false,
+            ]);
+            app(NotificationRealtimeService::class)->toUser($notification);
+            app(RealtimeDataSyncService::class)->eventToUser(
+                $ownerId,
+                'usulan_email.verified',
+                RealtimeEventPayload::make('usulan_email.verified', (int) $usulan->id, [
+                    'verification_state' => 'verified',
+                ]),
+            );
+        }
+        $this->forgetDashboardCache((int) $usulan->created_by);
+
+        return $usulan;
     }
 
     /**
@@ -78,6 +113,16 @@ class UsulanEmailService
             throw ValidationException::withMessages([
                 'id_peg' => 'Data pegawai tidak ditemukan.',
             ]);
+        }
+
+        if (! $user->hasAnyRole(['admin', 'superadmin', 'bkd'])) {
+            $userOpd = trim((string) $user->nama_opd);
+            $employeeOpd = [trim((string) $pegawai->Unit_Kerja), trim((string) $pegawai->NUnKer)];
+            if ($userOpd === '' || ! in_array(mb_strtolower($userOpd), array_map('mb_strtolower', $employeeOpd), true)) {
+                throw ValidationException::withMessages([
+                    'nip' => 'Pegawai yang dipilih tidak berada pada OPD akun Anda.',
+                ]);
+            }
         }
 
         // 3. Simpan usulan email dengan status awal 'diajukan'
@@ -128,26 +173,34 @@ class UsulanEmailService
      */
     public function verifikasiUsulan(UsulanEmail $usulan, User $verifikator, bool $disetujui, ?string $catatan = null, ?string $emailResmi = null): UsulanEmail
     {
-        if ($usulan->status !== 'diajukan') {
-            throw new \InvalidArgumentException("Hanya usulan berstatus 'diajukan' yang dapat diverifikasi.");
-        }
-
-        $oldStatus = $usulan->status;
+        $oldStatus = 'diajukan';
         $statusBaru = $disetujui ? 'disetujui' : 'ditolak';
+        $usulan = DB::transaction(function () use ($usulan, $verifikator, $disetujui, $catatan, $emailResmi, $statusBaru): UsulanEmail {
+            $locked = UsulanEmail::query()->lockForUpdate()->findOrFail($usulan->id);
+            if ($locked->status !== 'diajukan') {
+                throw new \InvalidArgumentException('Usulan ini sudah diproses oleh petugas lain.');
+            }
+            if ($disetujui && $locked->tanggal_verifikasi === null) {
+                throw new \InvalidArgumentException('Usulan harus diverifikasi BKD sebelum email resmi diterbitkan.');
+            }
 
-        $updateData = [
-            'diverifikasi_oleh' => $verifikator->name ?? $verifikator->username,
-            'tanggal_verifikasi' => now(),
-            'catatan' => $catatan,
-            'status' => $statusBaru,
-            'updated_by' => $verifikator->id,
-        ];
+            $updateData = [
+                'catatan' => $catatan ?? $locked->catatan,
+                'status' => $statusBaru,
+                'updated_by' => $verifikator->id,
+            ];
+            if (! $disetujui) {
+                $updateData['diverifikasi_oleh'] = $verifikator->name ?? $verifikator->username;
+                $updateData['tanggal_verifikasi'] = now();
+            }
+            if ($disetujui && ! empty($emailResmi)) {
+                $updateData['email_resmi'] = $emailResmi;
+            }
 
-        if ($disetujui && ! empty($emailResmi)) {
-            $updateData['email_resmi'] = $emailResmi;
-        }
+            $locked->update($updateData);
 
-        $usulan->update($updateData);
+            return $locked->fresh();
+        });
 
         $action = $disetujui ? 'usulan_email.approved' : 'usulan_email.rejected';
         $description = $disetujui

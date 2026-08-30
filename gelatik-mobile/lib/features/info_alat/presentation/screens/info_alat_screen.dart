@@ -14,6 +14,8 @@ import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 import '../../../peminjaman/presentation/screens/ajukan_peminjaman_screen.dart';
 import '../../../profil/presentation/screens/profil_screen.dart';
+import '../../../notifications/presentation/screens/notifications_screen.dart';
+import '../../../services/presentation/screens/services_screen.dart';
 import '../../models/master_item_model.dart';
 import '../../repositories/master_item_repository.dart';
 import 'package:gelatik/features/info_alat/providers/info_alat_provider.dart';
@@ -172,12 +174,13 @@ class _InfoAlatScreenState extends ConsumerState<InfoAlatScreen> {
             ),
           ),
           AppBottomNav(
-            currentIndex: 0,
+            currentIndex: 1,
             onTap: (index) {
               final destination = switch (index) {
                 0 => const HomeScreen(),
-                1 => const AjukanPeminjamanScreen(),
-                _ => const ProfilScreen(),
+                2 => const NotificationsScreen(),
+                3 => const ProfilScreen(),
+                _ => const ServicesScreen(),
               };
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => destination),

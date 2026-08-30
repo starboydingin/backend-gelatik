@@ -7,6 +7,9 @@ import '../../../../core/widgets/empty_state.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../home/presentation/screens/home_screen.dart';
+import '../../../notifications/presentation/screens/notifications_screen.dart';
+import '../../../profil/presentation/screens/profil_screen.dart';
+import '../../../services/presentation/screens/services_screen.dart';
 import '../../providers/peminjaman_provider.dart';
 import 'ajukan_peminjaman_screen.dart';
 import 'peminjaman_detail_screen.dart';
@@ -314,10 +317,16 @@ class _PeminjamanListScreenState extends ConsumerState<PeminjamanListScreen> {
               MaterialPageRoute(builder: (_) => const HomeScreen()),
             );
           } else if (index == 1) {
-            // Already here / Ajukan
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const ServicesScreen()),
+            );
           } else if (index == 2) {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
+              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+            );
+          } else if (index == 3) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const ProfilScreen()),
             );
           }
         },

@@ -63,12 +63,10 @@ class _NotificationBadgeButtonState
           .read(notificationRepositoryProvider)
           .getNotifications();
       if (mounted) {
-        setState(
-          () {
-            _unread = notifications.where((item) => !item.isRead).length;
-            _hasMobileSnapshot = true;
-          },
-        );
+        setState(() {
+          _unread = notifications.where((item) => !item.isRead).length;
+          _hasMobileSnapshot = true;
+        });
       }
     } catch (_) {
       // A failed badge refresh must never block the current screen.

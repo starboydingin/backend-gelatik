@@ -9,6 +9,9 @@ import '../../../../core/widgets/empty_state.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../home/presentation/screens/home_screen.dart';
+import '../../../notifications/presentation/screens/notifications_screen.dart';
+import '../../../profil/presentation/screens/profil_screen.dart';
+import '../../../services/presentation/screens/services_screen.dart';
 import '../../providers/konsultasi_provider.dart';
 import 'konsultasi_discovery_screen.dart';
 import 'konsultasi_detail_screen.dart';
@@ -62,10 +65,20 @@ class _KonsultasiListScreenState extends ConsumerState<KonsultasiListScreen> {
         label: const Text('Buat Konsultasi'),
       ),
       bottomNavigationBar: AppBottomNav(
-        currentIndex: 0,
-        onTap: (_) => Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        ),
+        currentIndex: 1,
+        onTap: (index) {
+          final destination = switch (index) {
+            0 => const HomeScreen(),
+            2 => const NotificationsScreen(),
+            3 => const ProfilScreen(),
+            _ => const ServicesScreen(),
+          };
+          if (index != 1) {
+            Navigator.of(
+              context,
+            ).pushReplacement(MaterialPageRoute(builder: (_) => destination));
+          }
+        },
       ),
     );
   }

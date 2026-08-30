@@ -33,58 +33,56 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.backgroundLight,
       textTheme: AppTypography.textTheme(AppColors.onBackgroundLight),
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.surfaceLight,
-        foregroundColor: AppColors.primaryLight,
+        backgroundColor: AppColors.colorPrimary,
+        foregroundColor: AppColors.onPrimaryLight,
         elevation: 0,
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
         titleTextStyle: TextStyle(
-          color: AppColors.primaryLight,
+          color: AppColors.onPrimaryLight,
           fontSize: 21,
           fontWeight: FontWeight.w700,
         ),
       ),
       cardTheme: CardThemeData(
         color: AppColors.surfaceLight,
-        elevation: 0,
+        elevation: 1,
+        shadowColor: const Color(0x14000000),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: AppColors.cardStrokeLight),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceVariantLight.withValues(alpha: 0.5),
+        fillColor: AppColors.surfaceLight,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(
             color: AppColors.cardStrokeLight,
             width: 1.5,
           ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(
             color: AppColors.cardStrokeLight,
             width: 1.5,
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(
-            color: AppColors.primaryLight,
-            width: 2,
-          ),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.primaryLight, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(
             color: AppColors.statusErrorLight,
             width: 1.5,
           ),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(
             color: AppColors.statusErrorLight,
             width: 2,
@@ -95,10 +93,12 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryLight,
-          foregroundColor: AppColors.onPrimaryLight,
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          backgroundColor: AppColors.colorAccent,
+          foregroundColor: AppColors.colorTextPrimary,
+          elevation: 1,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           textStyle: AppTypography.textTheme(
             AppColors.onPrimaryLight,
@@ -109,11 +109,36 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primaryLight,
           side: const BorderSide(color: AppColors.primaryLight, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           textStyle: AppTypography.textTheme(AppColors.primaryLight).labelLarge,
         ),
       ),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 72,
+        backgroundColor: AppColors.colorPrimary,
+        indicatorColor: AppColors.colorAccent,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          return IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? AppColors.colorTextPrimary
+                : AppColors.onPrimaryLight,
+          );
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          return AppTypography.textTheme(
+            AppColors.onPrimaryLight,
+          ).labelMedium?.copyWith(
+            color: AppColors.onPrimaryLight,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+          );
+        }),
+      ),
+      dividerColor: AppColors.colorBorder,
     );
   }
 

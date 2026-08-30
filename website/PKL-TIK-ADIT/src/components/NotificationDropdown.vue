@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import { api, errorMessage, invalidateApiCache, payload, rows } from '../lib/api'
 import { notificationRoute } from '../lib/notificationRoute'
 
-const props = defineProps({ adminArea: Boolean })
+const props = defineProps({ adminArea: Boolean, portalPrefix: String })
 const router = useRouter()
 
 const open = ref(false)
@@ -46,7 +46,7 @@ async function openItem(item) {
     try {
         await markRead(item)
         open.value = false
-        await router.push(notificationRoute(item, props.adminArea))
+        await router.push(notificationRoute(item, props.portalPrefix || props.adminArea))
     } catch (requestError) {
         error.value = errorMessage(requestError)
     }
@@ -84,7 +84,7 @@ onUnmounted(() => window.removeEventListener('gelatik:notification', realtimeRef
             <div class="flex items-center justify-between border-b border-stroke px-4 py-3">
                 <strong class="text-sm text-navy">Notifikasi terbaru</strong
                 ><RouterLink
-                    :to="adminArea ? '/admin/notifikasi' : '/app/notifikasi'"
+                    :to="`${portalPrefix || (adminArea ? '/admin' : '/app')}/notifikasi`"
                     class="text-xs font-semibold text-brand-700"
                     @click="open = false"
                     >Lihat semua</RouterLink

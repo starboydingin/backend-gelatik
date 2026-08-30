@@ -38,18 +38,17 @@ class WaNotificationNotifier extends StateNotifier<WaNotificationState> {
   WaNotificationNotifier({
     required this.repository,
     WaSubscriptionModel? initialSubscription,
-  })
-      : super(
-          WaNotificationState(
-            subscription:
-                initialSubscription ??
-                const WaSubscriptionModel(
-                  userId: 0,
-                  waNumber: '',
-                  isSubscribed: false,
-                ),
-          ),
-        );
+  }) : super(
+         WaNotificationState(
+           subscription:
+               initialSubscription ??
+               const WaSubscriptionModel(
+                 userId: 0,
+                 waNumber: '',
+                 isSubscribed: false,
+               ),
+         ),
+       );
 
   /// Validasi format nomor WhatsApp:
   /// - Wajib diawali '08' atau '628'
@@ -130,7 +129,7 @@ class WaNotificationNotifier extends StateNotifier<WaNotificationState> {
 
 final waNotificationProvider =
     StateNotifierProvider<WaNotificationNotifier, WaNotificationState>((ref) {
-  return WaNotificationNotifier(
-    repository: ref.watch(waNotificationRepositoryProvider),
-  );
-});
+      return WaNotificationNotifier(
+        repository: ref.watch(waNotificationRepositoryProvider),
+      );
+    });

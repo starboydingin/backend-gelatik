@@ -21,7 +21,9 @@ class KritikSaranRepository {
       );
       final data = response.data;
       final feedback = data is Map ? data['data'] : null;
-      final id = feedback is Map ? int.tryParse('${feedback['id'] ?? ''}') : null;
+      final id = feedback is Map
+          ? int.tryParse('${feedback['id'] ?? ''}')
+          : null;
       if (response.statusCode != 201 ||
           data is! Map ||
           data['success'] != true ||

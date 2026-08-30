@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// Bottom navigation Gelatik: flat, mudah dibaca, dan sama pada mobile/desktop.
+/// Main navigation defined by DESIGN.md. Admin is a role-aware fifth tab.
 class AppBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -17,11 +17,11 @@ class AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final items = [
-      const _NavItem(label: 'Beranda', icon: Icons.home_rounded),
-      const _NavItem(label: 'Ajukan', icon: Icons.add_circle_outline_rounded),
+      const _NavItem(label: 'Beranda', icon: Icons.home_outlined),
+      const _NavItem(label: 'Layanan', icon: Icons.grid_view_outlined),
+      const _NavItem(label: 'Notifikasi', icon: Icons.notifications_outlined),
       const _NavItem(label: 'Profil', icon: Icons.person_outline_rounded),
       if (isAdmin)
         const _NavItem(
@@ -31,12 +31,12 @@ class AppBottomNav extends StatelessWidget {
     ];
 
     return SizedBox(
-      height: 88 + bottomInset,
+      height: 74 + bottomInset,
       child: Container(
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
+          color: AppColors.colorPrimary,
           border: Border(
-            top: BorderSide(color: AppColors.cardStroke(context), width: 1.5),
+            top: const BorderSide(color: AppColors.colorPrimaryDark),
           ),
         ),
         child: SafeArea(
@@ -45,24 +45,21 @@ class AppBottomNav extends StatelessWidget {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 8,
-                  horizontal: 12,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
                 child: Row(
                   children: List.generate(items.length, (index) {
                     final item = items[index];
                     final isSelected = index == currentIndex;
                     final color = isSelected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant;
+                        ? AppColors.colorAccent
+                        : AppColors.onPrimaryLight.withValues(alpha: .78);
 
                     return Expanded(
                       child: InkWell(
                         onTap: () => onTap(index),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(10),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -80,14 +77,14 @@ class AppBottomNav extends StatelessWidget {
                                   color: color,
                                 ),
                               ),
+                              const SizedBox(height: 3),
                               AnimatedContainer(
                                 duration: const Duration(milliseconds: 180),
-                                margin: const EdgeInsets.only(top: 3),
-                                width: isSelected ? 4 : 0,
-                                height: 4,
+                                width: isSelected ? 22 : 0,
+                                height: 3,
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary,
-                                  shape: BoxShape.circle,
+                                  color: AppColors.colorAccent,
+                                  borderRadius: BorderRadius.circular(3),
                                 ),
                               ),
                             ],

@@ -17,7 +17,8 @@ class AdminFeedbackScreen extends ConsumerStatefulWidget {
   const AdminFeedbackScreen({super.key});
 
   @override
-  ConsumerState<AdminFeedbackScreen> createState() => _AdminFeedbackScreenState();
+  ConsumerState<AdminFeedbackScreen> createState() =>
+      _AdminFeedbackScreenState();
 }
 
 class _AdminFeedbackScreenState extends ConsumerState<AdminFeedbackScreen> {
@@ -33,7 +34,9 @@ class _AdminFeedbackScreenState extends ConsumerState<AdminFeedbackScreen> {
     _realtimeSubscription = ref
         .read(realtimeSocketServiceProvider)
         .events
-        .where((event) => event.type == 'notification' || event.type == 'data.sync')
+        .where(
+          (event) => event.type == 'notification' || event.type == 'data.sync',
+        )
         .listen((_) => _load());
   }
 
@@ -45,8 +48,15 @@ class _AdminFeedbackScreenState extends ConsumerState<AdminFeedbackScreen> {
 
   Future<void> _load() async {
     try {
-      final items = await ref.read(kritikSaranRepositoryProvider).getAdminFeedback();
-      if (mounted) setState(() { _items = items; _error = null; });
+      final items = await ref
+          .read(kritikSaranRepositoryProvider)
+          .getAdminFeedback();
+      if (mounted) {
+        setState(() {
+          _items = items;
+          _error = null;
+        });
+      }
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     } finally {
@@ -55,17 +65,27 @@ class _AdminFeedbackScreenState extends ConsumerState<AdminFeedbackScreen> {
   }
 
   Future<void> _reply(Map<String, dynamic> item) async {
-    final controller = TextEditingController(text: item['balasan']?.toString() ?? '');
+    final controller = TextEditingController(
+      text: item['balasan']?.toString() ?? '',
+    );
     final submitted = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       builder: (sheetContext) => Padding(
-        padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.viewInsetsOf(sheetContext).bottom + 24),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          MediaQuery.viewInsetsOf(sheetContext).bottom + 24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Balas kritik & saran', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const Text(
+              'Balas kritik & saran',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 12),
             AppTextField(
               controller: controller,
@@ -79,10 +99,12 @@ class _AdminFeedbackScreenState extends ConsumerState<AdminFeedbackScreen> {
               onPressed: () async {
                 final reply = controller.text.trim();
                 if (reply.isEmpty) return;
-                await ref.read(kritikSaranRepositoryProvider).reply(
-                  id: int.tryParse('${item['id']}') ?? 0,
-                  balasan: reply,
-                );
+                await ref
+                    .read(kritikSaranRepositoryProvider)
+                    .reply(
+                      id: int.tryParse('${item['id']}') ?? 0,
+                      balasan: reply,
+                    );
                 if (sheetContext.mounted) Navigator.pop(sheetContext, true);
               },
             ),
@@ -102,7 +124,14 @@ class _AdminFeedbackScreenState extends ConsumerState<AdminFeedbackScreen> {
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-          ? ListView(children: [Padding(padding: const EdgeInsets.all(20), child: Text(_error!))])
+          ? ListView(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(_error!),
+                ),
+              ],
+            )
           : _items.isEmpty
           ? const Center(child: Text('Belum ada masukan pengguna.'))
           : ListView.separated(
@@ -111,27 +140,69 @@ class _AdminFeedbackScreenState extends ConsumerState<AdminFeedbackScreen> {
               separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final item = _items[index];
-                final user = item['user'] is Map ? item['user'] as Map : const {};
-                final repliedAt = DateTime.tryParse('${item['dibalas_pada'] ?? ''}');
-                final createdAt = DateTime.tryParse('${item['created_at'] ?? ''}');
+                final user = item['user'] is Map
+                    ? item['user'] as Map
+                    : const {};
+                final repliedAt = DateTime.tryParse(
+                  '${item['dibalas_pada'] ?? ''}',
+                );
+                final createdAt = DateTime.tryParse(
+                  '${item['created_at'] ?? ''}',
+                );
                 return AppCard(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('${user['name'] ?? 'Anonim'}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                    if (createdAt != null) Text(GelatikDateFormatter.dateTime(createdAt), style: TextStyle(fontSize: 11, color: AppColors.mutedText(context))),
-                    const SizedBox(height: 12),
-                    Text('Kritik: ${item['kritik'] ?? '-'}'),
-                    const SizedBox(height: 6),
-                    Text('Saran: ${item['saran'] ?? '-'}'),
-                    if (item['balasan'] != null) ...[
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${user['name'] ?? 'Anonim'}',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      if (createdAt != null)
+                        Text(
+                          GelatikDateFormatter.dateTime(createdAt),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.mutedText(context),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
+                      Text('Kritik: ${item['kritik'] ?? '-'}'),
+                      const SizedBox(height: 6),
+                      Text('Saran: ${item['saran'] ?? '-'}'),
+                      if (item['balasan'] != null) ...[
+                        const SizedBox(height: 14),
+                        Text(
+                          'Balasan',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primaryTeal(context),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text('${item['balasan']}'),
+                        if (repliedAt != null)
+                          Text(
+                            GelatikDateFormatter.dateTime(repliedAt),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.mutedText(context),
+                            ),
+                          ),
+                      ],
                       const SizedBox(height: 14),
-                      Text('Balasan', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primaryTeal(context))),
-                      const SizedBox(height: 4),
-                      Text('${item['balasan']}'),
-                      if (repliedAt != null) Text(GelatikDateFormatter.dateTime(repliedAt), style: TextStyle(fontSize: 11, color: AppColors.mutedText(context))),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => _reply(item),
+                          child: Text(
+                            item['balasan'] == null
+                                ? 'Balas'
+                                : 'Perbarui balasan',
+                          ),
+                        ),
+                      ),
                     ],
-                    const SizedBox(height: 14),
-                    Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () => _reply(item), child: Text(item['balasan'] == null ? 'Balas' : 'Perbarui balasan'))),
-                  ]),
+                  ),
                 );
               },
             ),

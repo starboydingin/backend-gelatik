@@ -42,7 +42,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         .read(realtimeSocketServiceProvider)
         .events
         .where(
-          (event) => event.type == 'notification' ||
+          (event) =>
+              event.type == 'notification' ||
               event.type == 'data.sync' ||
               event.type == 'insights.sync' ||
               event.type.startsWith('konsultasi.') ||
@@ -133,15 +134,19 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         .where((e) => e.status == 'diajukan')
         .length;
     final pendingPinjamCount = _count('peminjaman_open', fallbackPinjamCount);
-    final pendingKonsultasiCount =
-        _count('konsultasi_open', fallbackKonsultasiCount);
-    final pendingEmailCount =
-        _count('usulan_email_pending', fallbackEmailCount);
+    final pendingKonsultasiCount = _count(
+      'konsultasi_open',
+      fallbackKonsultasiCount,
+    );
+    final pendingEmailCount = _count(
+      'usulan_email_pending',
+      fallbackEmailCount,
+    );
 
     return Scaffold(
-      appBar: const GelatikPageHeader(
-        title: 'Panel Admin',
-        actions: [NotificationBadgeButton(), SizedBox(width: 8)],
+      appBar: GelatikPageHeader(
+        title: role == 'bkd' ? 'Portal Verifikator BKD' : 'Panel Admin',
+        actions: const [NotificationBadgeButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -165,7 +170,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   iconColor: accentGold,
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const AdminFeedbackScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const AdminFeedbackScreen(),
+                      ),
                     );
                   },
                 ),
@@ -230,7 +237,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Pusat Kendali Service Desk Diskominfotik',
+                            role == 'bkd'
+                                ? 'Verifikasi pengajuan email resmi ASN'
+                                : 'Pusat Kendali Service Desk Diskominfotik',
                             style: TextStyle(fontSize: 12, color: mutedText),
                           ),
                         ],
@@ -294,8 +303,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
               _buildAdminBentoCard(
                 context: context,
-                title: 'Kelola Usulan Email',
-                subtitle: 'Persetujuan usulan email resmi BKD & pembuatan akun',
+                title: role == 'bkd'
+                    ? 'Verifikasi Usulan Email'
+                    : 'Kelola Usulan Email',
+                subtitle: role == 'bkd'
+                    ? 'Periksa dokumen, verifikasi, atau tolak pengajuan ASN'
+                    : 'Persetujuan usulan email resmi BKD & pembuatan akun',
                 badgeText: '$pendingEmailCount usulan diajukan',
                 badgeColor: pendingEmailCount > 0 ? actionEmerald : mutedText,
                 icon: Icons.mark_email_read_rounded,
@@ -309,21 +322,23 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 },
               ),
 
-              const SizedBox(height: 12),
-              _buildAdminBentoCard(
-                context: context,
-                title: 'Agenda Operasional',
-                subtitle: 'Jadwal pengajuan layanan sesuai peran Anda',
-                badgeText: 'Buka kalender layanan',
-                badgeColor: primaryTeal,
-                icon: Icons.calendar_month_outlined,
-                iconColor: primaryTeal,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const CalendarScreen()),
-                  );
-                },
-              ),
+              if (canManageServices) ...[
+                const SizedBox(height: 12),
+                _buildAdminBentoCard(
+                  context: context,
+                  title: 'Agenda Operasional',
+                  subtitle: 'Jadwal pengajuan layanan sesuai peran Anda',
+                  badgeText: 'Buka kalender layanan',
+                  badgeColor: primaryTeal,
+                  icon: Icons.calendar_month_outlined,
+                  iconColor: primaryTeal,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const CalendarScreen()),
+                    );
+                  },
+                ),
+              ],
 
               const SizedBox(height: 24),
             ],
@@ -331,10 +346,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         ),
       ),
       bottomNavigationBar: AppBottomNav(
-        currentIndex: 3,
+        currentIndex: 4,
         isAdmin: true,
         onTap: (index) {
-          if (index == 0 || index == 1 || index == 2) {
+          if (index >= 0 && index < 4) {
             Navigator.of(context).popUntil((route) => route.isFirst);
           }
         },

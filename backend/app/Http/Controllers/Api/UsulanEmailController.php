@@ -50,7 +50,35 @@ class UsulanEmailController extends Controller
             $query->where('created_by', $request->user()->id);
         }
 
-        $usulan = $query->latest()->paginate(10);
+        $request->validate([
+            'search' => 'nullable|string|max:100',
+            'status' => 'nullable|in:diajukan,disetujui,ditolak',
+            'verification' => 'nullable|in:waiting,verified',
+            'per_page' => 'nullable|integer|min:5|max:50',
+        ]);
+
+        $query
+            ->when($request->filled('status'), fn ($builder) => $builder->where('status', $request->string('status')))
+            ->when($request->string('verification')->toString() === 'waiting', fn ($builder) => $builder
+                ->where('status', 'diajukan')
+                ->whereNull('tanggal_verifikasi'))
+            ->when($request->string('verification')->toString() === 'verified', fn ($builder) => $builder
+                ->where('status', 'diajukan')
+                ->whereNotNull('tanggal_verifikasi'))
+            ->when($request->filled('search'), function ($builder) use ($request): void {
+                $search = trim($request->string('search')->toString());
+                $builder->where(function ($scoped) use ($search): void {
+                    $scoped->where('email_pribadi', 'like', "%{$search}%")
+                        ->orWhere('email_resmi', 'like', "%{$search}%")
+                        ->orWhereHas('pegawaiBkd', function ($pegawai) use ($search): void {
+                            $pegawai->where('Nama', 'like', "%{$search}%")
+                                ->orWhere('NIP_Baru', 'like', "%{$search}%")
+                                ->orWhere('Unit_Kerja', 'like', "%{$search}%");
+                        });
+                });
+            });
+
+        $usulan = $query->latest()->paginate((int) $request->integer('per_page', 10));
         $usulan->getCollection()->transform(fn (UsulanEmail $item) => $this->present($item));
 
         return response()->json(['success' => true, 'data' => $usulan]);
@@ -178,6 +206,11 @@ class UsulanEmailController extends Controller
             'nip' => $pegawai?->NIP_Baru,
             'unit_kerja' => $pegawai?->Unit_Kerja,
             'jabatan' => $pegawai?->NJab,
+            'verification_state' => $usulan->status !== 'diajukan'
+                ? 'completed'
+                : ($usulan->tanggal_verifikasi ? 'verified' : 'waiting'),
+            'can_be_verified' => $usulan->status === 'diajukan' && $usulan->tanggal_verifikasi === null,
+            'can_be_published' => $usulan->status === 'diajukan' && $usulan->tanggal_verifikasi !== null,
         ]);
     }
 }

@@ -10,7 +10,8 @@ export function notificationRoute(notification, admin = false) {
     const content = `${notification.judul || ''} ${notification.message || ''}`.toLowerCase()
     const rawId = notification.resource_id ?? notification.item_id
     const id = Number(rawId)
-    const prefix = admin ? '/admin' : '/app'
+    const prefix = typeof admin === 'string' ? admin : admin ? '/admin' : '/app'
+    const adminArea = prefix === '/admin'
 
     // A resource link is only valid for a persisted positive primary key.
     // Broadcast/informational notifications intentionally remain in the inbox.
@@ -21,13 +22,13 @@ export function notificationRoute(notification, admin = false) {
 
     if (describes('konsultasi', 'konsul')) return `${prefix}/konsultasi/${id}`
     if (describes('peminjaman', 'pinjam')) {
-        return admin ? `${prefix}/peminjaman/${id}/kelola` : `${prefix}/peminjaman/${id}`
+        return adminArea ? `${prefix}/peminjaman/${id}/kelola` : `${prefix}/peminjaman/${id}`
     }
     if (describes('usulan_email', 'email resmi', 'usulan email')) {
         return `${prefix}/email-resmi/${id}`
     }
     if (describes('kritik_saran', 'kritik', 'saran', 'feedback')) {
-        return admin
+        return adminArea
             ? `${prefix}/kritik-saran`
             : `${prefix}/riwayat-kritik-saran?detail=${encodeURIComponent(id)}`
     }

@@ -9,7 +9,6 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_searchable_select.dart';
 import '../../../../core/widgets/app_text_field.dart';
-import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../theme/auth_typography.dart';
 
@@ -114,7 +113,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       isValid = false;
     }
 
-    // 3. Validasi Email (BAGIAN 3 - Validasi Format Standar Tanpa Domain Instansi Paksaan)
+    // Backend remains the authority for the deployment-specific official
+    // domain allow-list. Mobile only performs immediate format validation.
     if (email.isEmpty) {
       setState(() => _emailError = 'Email wajib diisi');
       isValid = false;
@@ -332,8 +332,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                                 // 3. Email (BAGIAN 3 - Label Email saja & Validasi Longgar)
                                 AppTextField(
-                                  labelText: 'Email',
-                                  hintText: 'contoh@email.com',
+                                  labelText: 'Email resmi dinas',
+                                  hintText: 'nama@domain-resmi.go.id',
                                   controller: _emailController,
                                   keyboardType: TextInputType.emailAddress,
                                   prefixIcon: const Icon(Icons.email_outlined),
@@ -565,8 +565,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 // Tombol Submit Utama (actionEmerald)
                                 AppButton(
                                   text: 'Daftar Sekarang',
-                                  backgroundColor: actionEmerald,
-                                  textColor: Colors.white,
+                                  backgroundColor: AppColors.colorAccent,
+                                  textColor: AppColors.colorTextPrimary,
                                   isLoading: authState.isLoading,
                                   allowTextWrap: true,
                                   onPressed: _handleRegister,
@@ -622,18 +622,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                 );
               },
-            ),
-          ),
-
-          // Floating Theme Toggle Button di Pojok Kanan Atas
-          Positioned(
-            top: 0,
-            right: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8, right: 12),
-                child: const ThemeToggleButton(),
-              ),
             ),
           ),
         ],

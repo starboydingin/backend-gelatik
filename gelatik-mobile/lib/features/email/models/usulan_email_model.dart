@@ -53,6 +53,13 @@ class UsulanEmailModel {
   String get namaPegawai => pegawai?['nama'] as String? ?? 'Pegawai OPD';
   String get nipPegawai =>
       (pegawai?['nip_baru'] ?? pegawai?['nip']) as String? ?? '-';
+  String get verificationState => status != 'diajukan'
+      ? 'completed'
+      : tanggalVerifikasi == null
+      ? 'waiting'
+      : 'verified';
+  bool get canBeVerified => status == 'diajukan' && tanggalVerifikasi == null;
+  bool get canBePublished => status == 'diajukan' && tanggalVerifikasi != null;
 
   factory UsulanEmailModel.fromJson(Map<String, dynamic> json) {
     // The regular endpoint may expose `pegawai`, while the aggregate

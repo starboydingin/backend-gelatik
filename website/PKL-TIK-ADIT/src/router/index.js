@@ -76,6 +76,26 @@ const routes = [
         ],
     },
     {
+        path: '/bkd',
+        component: () => import('../layouts/AppLayout.vue'),
+        meta: { auth: true, bkd: true },
+        children: [
+            { path: '', redirect: '/bkd/dashboard' },
+            { path: 'dashboard', component: () => import('../views/bkd/BkdDashboard.vue') },
+            { path: 'email-resmi', component: () => import('../views/shared/EmailView.vue') },
+            {
+                path: 'email-resmi/:id',
+                component: () => import('../views/shared/EmailDetailView.vue'),
+            },
+            {
+                path: 'pengajuan-email/:id',
+                redirect: (to) => `/bkd/email-resmi/${to.params.id}`,
+            },
+            { path: 'notifikasi', component: () => import('../views/user/NotificationsView.vue') },
+            { path: 'profil', component: () => import('../views/user/ProfileView.vue') },
+        ],
+    },
+    {
         path: '/admin',
         component: () => import('../layouts/AppLayout.vue'),
         meta: { auth: true, admin: true },
@@ -189,12 +209,12 @@ router.beforeEach(async (to) => {
             return `/login?redirect=${encodeURIComponent(to.fullPath)}`
         }
     }
-    if (to.meta.guest && auth.authenticated)
-        return auth.isAdmin ? '/admin/dashboard' : '/app/dashboard'
+    if (to.meta.guest && auth.authenticated) return auth.portalHome
+    if (to.meta.bkd && !auth.isBkd) return auth.portalHome
     if (to.meta.admin) {
-        if (!auth.isAdmin) return '/app/dashboard'
+        if (!auth.isAdmin) return auth.portalHome
     }
-    if (to.meta.userPortal && auth.isAdmin) return '/admin/dashboard'
+    if (to.meta.userPortal && (auth.isAdmin || auth.isBkd)) return auth.portalHome
     if (to.meta.feedbackFlow && !/^\d+$/.test(String(to.query.feedback_id || '')))
         return '/app/umpan-balik'
 })

@@ -267,7 +267,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Kelola Usulan Email'), findsOneWidget);
+      expect(find.text('Verifikasi Usulan Email'), findsOneWidget);
       expect(find.text('Kelola Peminjaman Aset'), findsNothing);
       expect(find.text('Kelola Konsultasi TIK'), findsNothing);
     });
@@ -313,7 +313,7 @@ void main() {
     testWidgets(
       '4. Rejecting email proposal without entering notes triggers validation error',
       (tester) async {
-        const usulanDiajukan = UsulanEmailModel(
+        final usulanDiajukan = UsulanEmailModel(
           id: 501,
           userId: 1,
           idPegBkd: 1,
@@ -334,7 +334,7 @@ void main() {
                     username: 'admin',
                     noHp: '0812',
                     namaOpd: 'Diskominfotik',
-                    role: 'admin',
+                    role: 'bkd',
                     status: '1',
                   ),
                 ),
@@ -508,12 +508,13 @@ void main() {
     testWidgets(
       '7. AdminUsulanEmailDetailScreen: Approving email with empty emailResmi triggers error and prevents submit',
       (tester) async {
-        const usulanDiajukan = UsulanEmailModel(
+        final usulanDiajukan = UsulanEmailModel(
           id: 502,
           userId: 1,
           idPegBkd: 1,
           emailPribadi: 'pegawai.test2@gmail.com',
           status: 'diajukan',
+          tanggalVerifikasi: DateTime(2026, 8, 20),
           pegawai: {'nama': 'Pegawai Test 2', 'nip': '199501012022031002'},
         );
 
@@ -536,7 +537,7 @@ void main() {
               ),
               emailProvider.overrideWith((ref) {
                 final notifier = EmailNotifier();
-                notifier.state = const EmailState(
+                notifier.state = EmailState(
                   listPegawai: [],
                   listUsulanEmail: [usulanDiajukan],
                 );
@@ -589,7 +590,7 @@ void main() {
         final pending = Completer<UsulanEmailModel>();
         final repository = _AdminFakeEmailRepository(verifyCompleter: pending);
         final notifier = EmailNotifier(repository: repository);
-        notifier.state = const EmailState(
+        notifier.state = EmailState(
           listUsulanEmail: [
             UsulanEmailModel(
               id: 601,

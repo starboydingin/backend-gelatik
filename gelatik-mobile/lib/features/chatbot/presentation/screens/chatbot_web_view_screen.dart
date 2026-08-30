@@ -54,7 +54,8 @@ class _ChatbotWebViewScreenState extends State<ChatbotWebViewScreen> {
     final tealColor = isDark ? '#2DD4BF' : '#0F766E';
     final strokeColor = isDark ? '#334155' : '#E2E8F0';
 
-    final htmlContent = '''
+    final htmlContent =
+        '''
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -169,26 +170,16 @@ class _ChatbotWebViewScreenState extends State<ChatbotWebViewScreen> {
         ),
         title: Text(
           'Chatbot AI',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: primaryTeal,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: primaryTeal),
         ),
         centerTitle: true,
-        actions: const [
-          ThemeToggleButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),
           if (_isLoading)
-            Center(
-              child: CircularProgressIndicator(
-                color: primaryTeal,
-              ),
-            ),
+            Center(child: CircularProgressIndicator(color: primaryTeal)),
         ],
       ),
     );

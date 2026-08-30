@@ -50,7 +50,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       if (mounted) {
         setState(() {
           _challengeId = challenge['challenge_id']?.toString();
-          _message = 'Kode verifikasi telah dikirim ke nomor WhatsApp terdaftar.';
+          _message =
+              'Kode verifikasi telah dikirim ke nomor WhatsApp terdaftar.';
         });
       }
     } catch (error) {
@@ -65,15 +66,22 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       setState(() => _error = 'Masukkan kode verifikasi 6 digit.');
       return;
     }
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
-      final resetToken = await ref.read(authRepositoryProvider).verifyPasswordResetOtp(
-        challengeId: _challengeId!,
-        otp: _otpController.text.trim(),
-      );
+      final resetToken = await ref
+          .read(authRepositoryProvider)
+          .verifyPasswordResetOtp(
+            challengeId: _challengeId!,
+            otp: _otpController.text.trim(),
+          );
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => ResetPasswordScreen(resetToken: resetToken)),
+        MaterialPageRoute(
+          builder: (_) => ResetPasswordScreen(resetToken: resetToken),
+        ),
       );
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
@@ -120,7 +128,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 ],
                 const SizedBox(height: 20),
                 AppButton(
-                  text: _challengeId == null ? 'Kirim kode WhatsApp' : 'Kirim ulang kode',
+                  text: _challengeId == null
+                      ? 'Kirim kode WhatsApp'
+                      : 'Kirim ulang kode',
                   backgroundColor: AppColors.actionEmerald(context),
                   isLoading: _loading,
                   onPressed: _submit,

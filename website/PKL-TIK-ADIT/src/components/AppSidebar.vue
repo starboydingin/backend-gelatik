@@ -7,6 +7,7 @@ const props = defineProps({
     items: { type: Array, default: () => [] },
     activePath: String,
     adminArea: Boolean,
+    areaLabel: { type: String, default: 'Admin' },
     open: Boolean,
 })
 defineEmits(['close', 'logout'])
@@ -23,7 +24,7 @@ const groups = computed(() => [...new Set(props.items.map((item) => item.group))
             <span
                 v-if="adminArea"
                 class="ml-auto rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-950"
-                >Admin</span
+                >{{ areaLabel }}</span
             >
         </div>
         <nav

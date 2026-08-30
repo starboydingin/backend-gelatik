@@ -231,7 +231,9 @@ class _AdminKonsultasiListScreenState
                                       ],
                                     ),
                                     Text(
-                                      GelatikDateFormatter.dateTime(item.createdAt),
+                                      GelatikDateFormatter.dateTime(
+                                        item.createdAt,
+                                      ),
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: mutedText,

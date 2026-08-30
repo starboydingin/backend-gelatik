@@ -22,6 +22,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _passwordController = TextEditingController();
   final _confirmationController = TextEditingController();
   bool _loading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmation = true;
   String? _error;
 
   @override
@@ -80,19 +82,55 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 AppTextField(
                   labelText: 'Password baru',
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _obscurePassword,
+                  suffixIcon: IconButton(
+                    tooltip: _obscurePassword
+                        ? 'Tampilkan password'
+                        : 'Sembunyikan password',
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Gunakan minimal 8 karakter.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.mutedText(context),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 AppTextField(
                   labelText: 'Konfirmasi password baru',
                   controller: _confirmationController,
-                  obscureText: true,
+                  obscureText: _obscureConfirmation,
+                  suffixIcon: IconButton(
+                    tooltip: _obscureConfirmation
+                        ? 'Tampilkan konfirmasi password'
+                        : 'Sembunyikan konfirmasi password',
+                    onPressed: () => setState(
+                      () => _obscureConfirmation = !_obscureConfirmation,
+                    ),
+                    icon: Icon(
+                      _obscureConfirmation
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                  ),
                   errorText: _error,
                 ),
                 const SizedBox(height: 22),
                 AppButton(
                   text: 'Simpan password baru',
-                  backgroundColor: AppColors.actionEmerald(context),
+                  backgroundColor: AppColors.colorAccent,
+                  textColor: AppColors.colorTextPrimary,
                   isLoading: _loading,
                   onPressed: _submit,
                 ),

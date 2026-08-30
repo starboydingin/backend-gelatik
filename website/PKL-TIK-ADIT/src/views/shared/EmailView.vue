@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api, payload, rows, errorMessage } from '../../lib/api'
 import AlertMessage from '../../components/AlertMessage.vue'
@@ -11,7 +11,10 @@ import SummaryModal from '../../components/SummaryModal.vue'
 import PaginationControls from '../../components/PaginationControls.vue'
 import { formatDateTime } from '../../lib/date'
 const route = useRoute(),
-    admin = computed(() => route.path.startsWith('/admin')),
+    staff = computed(() => route.path.startsWith('/admin') || route.path.startsWith('/bkd')),
+    portalPrefix = computed(() =>
+        route.path.startsWith('/bkd') ? '/bkd' : route.path.startsWith('/admin') ? '/admin' : '/app'
+    ),
     list = ref([]),
     employees = ref([]),
     loading = ref(true),
@@ -29,19 +32,8 @@ const selectedEmployee = computed(() =>
         (employee) => String(employee.NIP_Baru || employee.nip) === String(form.value.nip)
     )
 )
-const displayedList = computed(() =>
-    list.value.filter((item) => {
-        const matchesSearch = Object.values(item)
-            .join(' ')
-            .toLowerCase()
-            .includes(search.value.toLowerCase())
-        return (
-            matchesSearch &&
-            (statusFilter.value === 'all' ||
-                String(item.status).toLowerCase().includes(statusFilter.value))
-        )
-    })
-)
+const displayedList = computed(() => list.value)
+let filterTimer
 const stats = computed(() => [
     { label: 'Diajukan', value: list.value.filter((item) => item.status === 'diajukan').length },
     {
@@ -55,7 +47,22 @@ async function load({ fresh = false } = {}) {
     error.value = ''
     try {
         const data = payload(
-            await api.get('/pengajuan-email', { params: { page: page.value }, cache: !fresh })
+            await api.get('/pengajuan-email', {
+                params: {
+                    page: page.value,
+                    search: search.value || undefined,
+                    status: ['diajukan', 'disetujui', 'ditolak'].includes(statusFilter.value)
+                        ? statusFilter.value
+                        : undefined,
+                    verification:
+                        statusFilter.value === 'menunggu'
+                            ? 'waiting'
+                            : statusFilter.value === 'terverifikasi'
+                              ? 'verified'
+                              : undefined,
+                },
+                cache: !fresh,
+            })
         )
         list.value = rows(data)
         pagination.value = {
@@ -104,7 +111,15 @@ async function submit() {
         submitting.value = false
     }
 }
+watch([search, statusFilter], () => {
+    window.clearTimeout(filterTimer)
+    filterTimer = window.setTimeout(() => {
+        page.value = 1
+        load({ fresh: true })
+    }, 350)
+})
 onMounted(load)
+onBeforeUnmount(() => window.clearTimeout(filterTimer))
 </script>
 <template>
     <div class="page-stack">
@@ -113,7 +128,7 @@ onMounted(load)
             title="Ajukan email dinas dengan data pegawai yang terverifikasi"
             description="Pilih data pegawai BKD, lengkapi email pribadi pegawai tersebut, lalu pantau proses pengajuannya."
             :stats="stats"
-            ><button v-if="!admin" class="btn-primary" @click="open">
+            ><button v-if="!staff" class="btn-primary" @click="open">
                 Ajukan email ASN
             </button></ServiceHero
         >
@@ -181,6 +196,8 @@ onMounted(load)
                     placeholder="Cari nama, NIP, atau email…"
                 /><select v-model="statusFilter" class="input md:order-1">
                     <option value="all">Filter status: semua</option>
+                    <option value="menunggu">Menunggu verifikasi BKD</option>
+                    <option value="terverifikasi">Terverifikasi BKD</option>
                     <option value="diajukan">Diajukan</option>
                     <option value="disetujui">Disetujui</option>
                     <option value="ditolak">Ditolak</option>
@@ -198,6 +215,10 @@ onMounted(load)
                         <div class="flex items-start justify-between gap-3">
                             <p class="eyebrow">Usulan #{{ item.id }}</p>
                             <StatusBadge :status="item.status" />
+                            <StatusBadge
+                                v-if="item.verification_state === 'verified'"
+                                status="Terverifikasi BKD"
+                            />
                         </div>
                         <h2 class="mt-3 line-clamp-2 text-lg font-bold">
                             {{ item.nama || item.nama_pegawai || 'Pegawai ASN' }}
@@ -223,8 +244,8 @@ onMounted(load)
                                 Ringkasan</button
                             ><RouterLink
                                 class="btn-secondary min-h-9 px-3"
-                                :to="`${admin ? '/admin' : '/app'}/email-resmi/${item.id}`"
-                                >{{ admin ? 'Kelola' : 'Detail' }}</RouterLink
+                                :to="`${portalPrefix}/email-resmi/${item.id}`"
+                                >{{ staff ? 'Kelola' : 'Detail' }}</RouterLink
                             >
                         </div>
                     </article>

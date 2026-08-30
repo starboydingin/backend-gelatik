@@ -10,7 +10,6 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/pending_activation_banner.dart';
-import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../theme/auth_typography.dart';
 
@@ -134,7 +133,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     final primaryTeal = AppColors.primaryTeal(context);
-    final actionEmerald = AppColors.actionEmerald(context);
     final mutedText = AppColors.mutedText(context);
 
     return Scaffold(
@@ -319,8 +317,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 // Tombol Masuk Utama (KHUSUS actionEmerald)
                                 AppButton(
                                   text: 'Masuk',
-                                  backgroundColor: actionEmerald,
-                                  textColor: Colors.white,
+                                  backgroundColor: AppColors.colorAccent,
+                                  textColor: AppColors.colorTextPrimary,
                                   isLoading: authState.isLoading,
                                   allowTextWrap: true,
                                   onPressed: _handleLogin,
@@ -355,6 +353,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   },
                                   child: const Text('Lupa password?'),
                                 ),
+                                const Divider(height: 28),
+                                Theme(
+                                  data: theme.copyWith(
+                                    dividerColor: Colors.transparent,
+                                  ),
+                                  child: ExpansionTile(
+                                    tilePadding: EdgeInsets.zero,
+                                    childrenPadding: const EdgeInsets.only(
+                                      bottom: 8,
+                                    ),
+                                    leading: const Icon(
+                                      Icons.how_to_reg_outlined,
+                                      color: AppColors.colorSecondary,
+                                    ),
+                                    title: const Text(
+                                      'Cara Membuat Akun',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    children: const [
+                                      Text(
+                                        'Pilih Daftar Akun Baru, isi data pegawai dan email dinas yang valid, lalu tunggu aktivasi administrator sebelum masuk.',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          height: 1.45,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -381,18 +411,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 );
               },
-            ),
-          ),
-
-          // Floating Theme Toggle Button di Pojok Kanan Atas
-          Positioned(
-            top: 0,
-            right: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8, right: 12),
-                child: const ThemeToggleButton(),
-              ),
             ),
           ),
         ],

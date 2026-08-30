@@ -34,7 +34,9 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
     _realtimeSubscription = ref
         .read(realtimeSocketServiceProvider)
         .events
-        .where((event) => event.type == 'data.sync' || event.type == 'insights.sync')
+        .where(
+          (event) => event.type == 'data.sync' || event.type == 'insights.sync',
+        )
         .listen((_) => _load());
   }
 

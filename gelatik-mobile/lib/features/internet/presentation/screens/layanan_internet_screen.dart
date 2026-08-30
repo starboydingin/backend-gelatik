@@ -31,7 +31,9 @@ class _LayananInternetScreenState extends ConsumerState<LayananInternetScreen> {
         .read(realtimeSocketServiceProvider)
         .events
         .where((event) => event.type == 'data.sync')
-        .listen((_) => ref.read(internetProvider.notifier).refreshFromRealtime());
+        .listen(
+          (_) => ref.read(internetProvider.notifier).refreshFromRealtime(),
+        );
   }
 
   @override

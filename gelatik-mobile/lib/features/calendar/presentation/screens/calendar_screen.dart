@@ -33,7 +33,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     _realtimeSubscription = ref
         .read(realtimeSocketServiceProvider)
         .events
-        .where((event) => event.type == 'data.sync' || event.type == 'insights.sync')
+        .where(
+          (event) => event.type == 'data.sync' || event.type == 'insights.sync',
+        )
         .listen((_) => _load());
   }
 
@@ -91,13 +93,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             children: [
               Text(
                 '${day.day} ${_monthNames[day.month - 1]} ${day.year}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 12),
               ...events.map(
                 (event) => ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(_iconFor(event.type), color: _colorFor(context, event.type)),
+                  leading: Icon(
+                    _iconFor(event.type),
+                    color: _colorFor(context, event.type),
+                  ),
                   title: Text(event.title),
                   subtitle: Text(event.status),
                 ),
@@ -115,7 +123,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final totalDays = DateTime(_month.year, _month.month + 1, 0).day;
     final cells = List<DateTime?>.generate(42, (index) {
       final day = index - firstDay + 1;
-      return day < 1 || day > totalDays ? null : DateTime(_month.year, _month.month, day);
+      return day < 1 || day > totalDays
+          ? null
+          : DateTime(_month.year, _month.month, day);
     });
     final today = DateTime.now();
 
@@ -156,8 +166,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     const SizedBox(height: 12),
                     const Row(
                       children: [
-                        _Weekday('Sen'), _Weekday('Sel'), _Weekday('Rab'),
-                        _Weekday('Kam'), _Weekday('Jum'), _Weekday('Sab'),
+                        _Weekday('Sen'),
+                        _Weekday('Sel'),
+                        _Weekday('Rab'),
+                        _Weekday('Kam'),
+                        _Weekday('Jum'),
+                        _Weekday('Sab'),
                         _Weekday('Min'),
                       ],
                     ),
@@ -177,15 +191,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: cells.length,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 7,
-                          childAspectRatio: .82,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 7,
+                              childAspectRatio: .82,
+                            ),
                         itemBuilder: (context, index) {
                           final day = cells[index];
                           if (day == null) return const SizedBox.shrink();
                           final events = _eventsFor(day);
-                          final isToday = day.year == today.year &&
+                          final isToday =
+                              day.year == today.year &&
                               day.month == today.month &&
                               day.day == today.day;
                           return InkWell(
@@ -199,13 +215,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                       ? AppColors.accentNavy(context)
                                       : events.isEmpty
                                       ? Colors.transparent
-                                      : AppColors.primaryTeal(context).withValues(alpha: .08),
+                                      : AppColors.primaryTeal(
+                                          context,
+                                        ).withValues(alpha: .08),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(4),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         '${day.day}',
@@ -222,7 +241,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                           decoration: BoxDecoration(
                                             color: isToday
                                                 ? AppColors.accentGold(context)
-                                                : _colorFor(context, events.first.type),
+                                                : _colorFor(
+                                                    context,
+                                                    events.first.type,
+                                                  ),
                                             shape: BoxShape.circle,
                                           ),
                                         ),
@@ -272,12 +294,25 @@ class _Weekday extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Expanded(
     child: Center(
-      child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+      ),
     ),
   );
 }
 
 const _monthNames = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
 ];

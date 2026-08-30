@@ -26,7 +26,8 @@ class CalendarEvent {
       id: json['id']?.toString() ?? '',
       type: json['type']?.toString() ?? 'informasi',
       title: json['title']?.toString() ?? 'Informasi layanan',
-      start: DateTime.tryParse(json['start']?.toString() ?? '') ?? DateTime.now(),
+      start:
+          DateTime.tryParse(json['start']?.toString() ?? '') ?? DateTime.now(),
       status: json['status']?.toString() ?? 'Informasi',
       referenceId: json['reference_id'] is int
           ? json['reference_id'] as int
@@ -47,10 +48,7 @@ class CalendarRepository {
     try {
       final response = await _apiClient.dio.get(
         '/dashboard/calendar',
-        queryParameters: {
-          'start': _dateOnly(start),
-          'end': _dateOnly(end),
-        },
+        queryParameters: {'start': _dateOnly(start), 'end': _dateOnly(end)},
       );
       final root = response.data;
       final data = root is Map ? root['data'] : null;
@@ -59,7 +57,9 @@ class CalendarRepository {
       }
       return data
           .whereType<Map>()
-          .map((item) => CalendarEvent.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) => CalendarEvent.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList(growable: false);
     } on DioException catch (error) {
       throw ApiException.fromDioException(error);

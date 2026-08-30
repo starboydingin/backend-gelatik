@@ -34,6 +34,11 @@ export const useAuthStore = defineStore('auth', () => {
         roles.value.some((role) => ['admin', 'superadmin'].includes(role))
     )
     const isSuperAdmin = computed(() => roles.value.includes('superadmin'))
+    const isBkd = computed(() => roles.value.includes('bkd'))
+    const portalHome = computed(() => {
+        if (isBkd.value) return '/bkd/dashboard'
+        return isAdmin.value ? '/admin/dashboard' : '/app/dashboard'
+    })
 
     function save(data) {
         if (!data?.access_token || !data?.user) {
@@ -81,6 +86,8 @@ export const useAuthStore = defineStore('auth', () => {
         roles,
         isAdmin,
         isSuperAdmin,
+        isBkd,
+        portalHome,
         login,
         loadUser,
         logout,

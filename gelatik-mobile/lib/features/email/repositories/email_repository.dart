@@ -45,25 +45,51 @@ class EmailRepository {
     }
   }
 
-  Future<List<UsulanEmailModel>> getUsulan() async {
+  Future<EmailPage> getUsulanPage({
+    int page = 1,
+    int perPage = 20,
+    String? search,
+    String? status,
+    String? verification,
+  }) async {
     try {
-      final response = await apiClient.dio.get('/pengajuan-email');
+      final response = await apiClient.dio.get(
+        '/pengajuan-email',
+        queryParameters: {
+          'page': page,
+          'per_page': perPage,
+          if (search != null && search.trim().isNotEmpty)
+            'search': search.trim(),
+          if (status != null && status.isNotEmpty) 'status': status,
+          if (verification != null && verification.isNotEmpty)
+            'verification': verification,
+        },
+      );
       final data = _data(response.data);
       final entries = data is Map ? data['data'] : null;
       if (entries is! List) {
         throw const FormatException('Daftar usulan tidak valid.');
       }
-      return entries
+      final items = entries
           .whereType<Map>()
           .map(
             (entry) =>
                 UsulanEmailModel.fromJson(Map<String, dynamic>.from(entry)),
           )
           .toList(growable: false);
+      return EmailPage(
+        items: items,
+        currentPage: int.tryParse('${data['current_page']}') ?? page,
+        lastPage: int.tryParse('${data['last_page']}') ?? page,
+        total: int.tryParse('${data['total']}') ?? items.length,
+      );
     } on DioException catch (error) {
       throw ApiException.fromDioException(error);
     }
   }
+
+  Future<List<UsulanEmailModel>> getUsulan() async =>
+      (await getUsulanPage()).items;
 
   Future<UsulanEmailModel> submit({
     required String nip,
@@ -119,6 +145,20 @@ class EmailRepository {
     }
     return response['data'];
   }
+}
+
+class EmailPage {
+  final List<UsulanEmailModel> items;
+  final int currentPage;
+  final int lastPage;
+  final int total;
+
+  const EmailPage({
+    required this.items,
+    required this.currentPage,
+    required this.lastPage,
+    required this.total,
+  });
 }
 
 final emailRepositoryProvider = Provider<EmailRepository>(

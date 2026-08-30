@@ -39,14 +39,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final primaryTeal = AppColors.primaryTeal(context);
-    final actionEmerald = AppColors.actionEmerald(context);
-    final mutedText = AppColors.mutedText(context);
-
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: AppColors.colorPrimary,
       body: Stack(
         children: [
           Positioned(
@@ -55,7 +49,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             right: 0,
             child: Center(
               child: Opacity(
-                opacity: isDark ? 0.13 : 0.18,
+                opacity: 0.16,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final width = math.max(
@@ -113,7 +107,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                                         context,
                                         fontSize: 14,
                                       ).copyWith(
-                                        color: primaryTeal,
+                                        color: AppColors.colorAccent,
                                         letterSpacing: 1.8,
                                       ),
                                 ),
@@ -129,11 +123,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                                     borderRadius: BorderRadius.circular(4),
                                     child: LinearProgressIndicator(
                                       minHeight: 4,
-                                      backgroundColor: primaryTeal.withValues(
+                                      backgroundColor: Colors.white.withValues(
                                         alpha: 0.15,
                                       ),
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                        actionEmerald,
+                                        AppColors.colorAccent,
                                       ),
                                     ),
                                   ),
@@ -146,7 +140,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                                         context,
                                         fontSize: 11,
                                       ).copyWith(
-                                        color: mutedText,
+                                        color: Colors.white70,
                                         letterSpacing: 2,
                                       ),
                                 ),

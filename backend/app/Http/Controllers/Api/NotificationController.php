@@ -19,11 +19,16 @@ class NotificationController extends Controller
         // Regular users only see notifications created for their own account.
         // Admins may additionally see the admin broadcast stream (user_id=0).
         $isAdmin = $request->user()->hasAnyRole(['admin', 'superadmin']);
+        $isBkd = $request->user()->hasRole('bkd');
         $notifications = Notification::query()
-            ->where(function ($q) use ($userId, $isAdmin) {
+            ->where(function ($q) use ($userId, $isAdmin, $isBkd) {
                 $q->where('user_id', $userId);
                 if ($isAdmin) {
                     $q->orWhere('user_id', 0);
+                } elseif ($isBkd) {
+                    $q->orWhere(function ($broadcast): void {
+                        $broadcast->where('user_id', 0)->where('type', 'usulan_email');
+                    });
                 }
             })
             ->orderBy('id', 'desc')
@@ -42,13 +47,24 @@ class NotificationController extends Controller
         });
 
         $unreadCount = Notification::query()
-            ->where(function ($query) use ($userId, $isAdmin): void {
+            ->where(function ($query) use ($userId, $isAdmin, $isBkd): void {
                 $query->where(function ($personal) use ($userId): void {
                     $personal->where('user_id', $userId)->where('read', false);
                 });
                 if ($isAdmin) {
                     $query->orWhere(function ($broadcast) use ($userId): void {
                         $broadcast->where('user_id', 0)
+                            ->whereNotExists(function ($reads) use ($userId): void {
+                                $reads->selectRaw('1')
+                                    ->from('notification_reads')
+                                    ->whereColumn('notification_reads.notification_id', 'notification.id')
+                                    ->where('notification_reads.user_id', $userId);
+                            });
+                    });
+                } elseif ($isBkd) {
+                    $query->orWhere(function ($broadcast) use ($userId): void {
+                        $broadcast->where('user_id', 0)
+                            ->where('type', 'usulan_email')
                             ->whereNotExists(function ($reads) use ($userId): void {
                                 $reads->selectRaw('1')
                                     ->from('notification_reads')
@@ -72,9 +88,12 @@ class NotificationController extends Controller
         $notification = Notification::findOrFail($id);
         $userId = $request->user()->id;
         $isAdmin = $request->user()->hasAnyRole(['admin', 'superadmin']);
-        abort_unless((int) $notification->user_id === $userId || ($isAdmin && (int) $notification->user_id === 0), 403);
+        $isBkdBroadcast = $request->user()->hasRole('bkd')
+            && (int) $notification->user_id === 0
+            && $notification->type === 'usulan_email';
+        abort_unless((int) $notification->user_id === $userId || ($isAdmin && (int) $notification->user_id === 0) || $isBkdBroadcast, 403);
 
-        if ($isAdmin && (int) $notification->user_id === 0) {
+        if (($isAdmin || $isBkdBroadcast) && (int) $notification->user_id === 0) {
             NotificationRead::updateOrCreate(
                 ['notification_id' => $notification->id, 'user_id' => $userId],
                 ['read_at' => now()]
@@ -97,9 +116,12 @@ class NotificationController extends Controller
     {
         $userId = $request->user()->id;
         $isAdmin = $request->user()->hasAnyRole(['admin', 'superadmin']);
+        $isBkd = $request->user()->hasRole('bkd');
         Notification::where('user_id', $userId)->where('read', false)->update(['read' => true]);
-        if ($isAdmin) {
-            $broadcastIds = Notification::where('user_id', 0)->pluck('id');
+        if ($isAdmin || $isBkd) {
+            $broadcastIds = Notification::where('user_id', 0)
+                ->when($isBkd && ! $isAdmin, fn ($query) => $query->where('type', 'usulan_email'))
+                ->pluck('id');
             $alreadyRead = NotificationRead::where('user_id', $userId)
                 ->whereIn('notification_id', $broadcastIds)
                 ->pluck('notification_id');

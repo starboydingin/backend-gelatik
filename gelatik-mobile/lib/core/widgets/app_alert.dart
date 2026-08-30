@@ -24,12 +24,14 @@ class AppAlert extends StatelessWidget {
       AppAlertTone.warning => const Color(0xFFF59E0B),
       AppAlertTone.error => scheme.error,
     };
-    final effectiveIcon = icon ?? switch (tone) {
-      AppAlertTone.info => Icons.info_outline_rounded,
-      AppAlertTone.success => Icons.check_circle_outline_rounded,
-      AppAlertTone.warning => Icons.warning_amber_rounded,
-      AppAlertTone.error => Icons.error_outline_rounded,
-    };
+    final effectiveIcon =
+        icon ??
+        switch (tone) {
+          AppAlertTone.info => Icons.info_outline_rounded,
+          AppAlertTone.success => Icons.check_circle_outline_rounded,
+          AppAlertTone.warning => Icons.warning_amber_rounded,
+          AppAlertTone.error => Icons.error_outline_rounded,
+        };
 
     return Semantics(
       liveRegion: true,

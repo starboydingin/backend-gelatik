@@ -18,6 +18,8 @@ import '../../providers/peminjaman_provider.dart';
 import 'peminjaman_list_screen.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 import '../../../profil/presentation/screens/profil_screen.dart';
+import '../../../notifications/presentation/screens/notifications_screen.dart';
+import '../../../services/presentation/screens/services_screen.dart';
 
 /// AjukanPeminjamanScreen — Layar Wizard 2-Step Pengajuan Peminjaman Aset TIK
 class AjukanPeminjamanScreen extends ConsumerStatefulWidget {
@@ -989,15 +991,21 @@ class _AjukanPeminjamanScreenState
         ),
       ),
       bottomNavigationBar: AppBottomNav(
-        currentIndex: 1, // Tab Ajukan aktif
+        currentIndex: 1,
         onTap: (index) {
           if (index == 0) {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const HomeScreen()),
             );
           } else if (index == 1) {
-            // Sudah di Ajukan
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const ServicesScreen()),
+            );
           } else if (index == 2) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+            );
+          } else if (index == 3) {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const ProfilScreen()),
             );

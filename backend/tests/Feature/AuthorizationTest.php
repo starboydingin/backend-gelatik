@@ -6,6 +6,7 @@ use App\Events\KonsultasiCreated;
 use App\Models\Faq;
 use App\Models\Konsultasi;
 use App\Models\KritikSaran;
+use App\Models\Notification;
 use App\Models\Pengumuman;
 use App\Models\Pinjam;
 use App\Models\PinjamItem;
@@ -702,6 +703,11 @@ class AuthorizationTest extends TestCase
             'saran' => 'Tambahkan petunjuk yang lebih rinci.',
         ]);
 
+        $this->actingAsApi($this->bkd);
+        $this->postJson('/api/pengajuan-email/301/verifikasi', [
+            'catatan' => 'Dokumen sesuai.',
+        ])->assertOk();
+
         $this->actingAsApi($this->admin);
         $this->postJson('/api/pinjam/101/status', [
             'status' => 'Proses',
@@ -820,6 +826,10 @@ class AuthorizationTest extends TestCase
             ->assertJsonPath('data.diverifikasi_oleh', $this->bkd->name)
             ->assertJsonPath('data.catatan', 'Valid');
 
+        $this->postJson('/api/pengajuan-email/301/verifikasi', [
+            'catatan' => 'Verifikasi kedua',
+        ])->assertUnprocessable();
+
         $this->postJson('/api/pengajuan-email/301/buat-email-resmi', [
             'email_resmi' => 'pegawai@lampungprov.go.id',
         ])->assertForbidden();
@@ -836,10 +846,49 @@ class AuthorizationTest extends TestCase
             ->assertJsonPath('data.status', 'ditolak');
     }
 
+    public function test_bkd_inbox_only_exposes_relevant_email_broadcasts(): void
+    {
+        $emailNotification = Notification::create([
+            'user_id' => 0,
+            'judul' => 'Usulan email baru',
+            'message' => 'Perlu diverifikasi BKD.',
+            'type' => 'usulan_email',
+            'item_id' => 301,
+            'read' => false,
+        ]);
+        $unrelatedNotification = Notification::create([
+            'user_id' => 0,
+            'judul' => 'Konsultasi baru',
+            'message' => 'Perlu dijawab admin.',
+            'type' => 'konsultasi',
+            'item_id' => 201,
+            'read' => false,
+        ]);
+
+        $this->actingAsApi($this->bkd);
+        $this->getJson('/api/notifications')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.data')
+            ->assertJsonPath('data.data.0.id', $emailNotification->id);
+        $this->postJson("/api/notifications/{$emailNotification->id}/read")->assertOk();
+        $this->postJson("/api/notifications/{$unrelatedNotification->id}/read")->assertForbidden();
+    }
+
     public function test_admin_can_create_official_email(): void
     {
         $this->actingAsApi($this->admin);
 
+        $this->postJson('/api/pengajuan-email/301/buat-email-resmi', [
+            'email_resmi' => 'pegawai@lampungprov.go.id',
+        ])->assertUnprocessable()
+            ->assertJsonPath('message', 'Usulan harus diverifikasi BKD sebelum email resmi diterbitkan.');
+
+        $this->postJson('/api/pengajuan-email/301/verifikasi')->assertForbidden();
+
+        $this->actingAsApi($this->bkd);
+        $this->postJson('/api/pengajuan-email/301/verifikasi')->assertOk();
+
+        $this->actingAsApi($this->admin);
         $this->postJson('/api/pengajuan-email/301/buat-email-resmi', [
             'email_resmi' => 'pegawai@lampungprov.go.id',
         ])->assertOk()->assertJsonPath('data.status', 'disetujui');
@@ -867,6 +916,20 @@ class AuthorizationTest extends TestCase
         $this->postJson('/api/pengajuan-email', [
             'nip' => '000000000000000000',
             'email_pribadi' => 'missing@example.test',
+        ])->assertUnprocessable()->assertJsonValidationErrors('nip');
+
+        \DB::table('PegawaiBelumPunyaEMail')->insert([
+            'ID_Peg' => '9102',
+            'NIP_Baru' => '198001012010011002',
+            'Nama' => 'Pegawai OPD Lain',
+            'Unit_Kerja' => 'OPD Lain',
+        ]);
+        $this->getJson('/api/pegawai?search=Pegawai OPD Lain')
+            ->assertOk()
+            ->assertJsonCount(0, 'data.data');
+        $this->postJson('/api/pengajuan-email', [
+            'nip' => '198001012010011002',
+            'email_pribadi' => 'other-opd@example.test',
         ])->assertUnprocessable()->assertJsonValidationErrors('nip');
     }
 
@@ -1018,6 +1081,7 @@ class AuthorizationTest extends TestCase
             'name' => strtoupper($role).' '.$id,
             'username' => $role.$id,
             'email' => $email,
+            'nama_opd' => 'OPD Test',
             'password' => 'not-used',
             'status' => '1',
         ]);
@@ -1200,6 +1264,13 @@ class AuthorizationTest extends TestCase
             $table->boolean('read')->default(false);
             $table->timestamps();
         });
+        Schema::create('notification_reads', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('notification_id');
+            $table->unsignedBigInteger('user_id');
+            $table->timestamp('read_at');
+            $table->unique(['notification_id', 'user_id']);
+        });
         Schema::create('kritik_sarans', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('user_id')->nullable();
@@ -1269,6 +1340,7 @@ class AuthorizationTest extends TestCase
             'ID_Peg' => '9101',
             'NIP_Baru' => '198001012010011001',
             'Nama' => 'Pegawai Test',
+            'Unit_Kerja' => 'OPD Test',
         ]);
     }
 }

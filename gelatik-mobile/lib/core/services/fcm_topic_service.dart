@@ -7,7 +7,8 @@ import '../../features/auth/models/user_model.dart';
 class FcmTopicService {
   final List<String> _activeSubscribedTopics = [];
 
-  List<String> get activeSubscribedTopics => List.unmodifiable(_activeSubscribedTopics);
+  List<String> get activeSubscribedTopics =>
+      List.unmodifiable(_activeSubscribedTopics);
 
   /// FR-37: Subscribe ke topik pengguna saat login berhasil
   Future<void> subscribeToUserTopics(UserModel user) async {
@@ -28,7 +29,9 @@ class FcmTopicService {
       _subscribe('bkd');
     }
 
-    debugPrint('[FCM] Active subscribed topics for user ${user.id} (${user.role}): $_activeSubscribedTopics');
+    debugPrint(
+      '[FCM] Active subscribed topics for user ${user.id} (${user.role}): $_activeSubscribedTopics',
+    );
   }
 
   void _subscribe(String topic) {

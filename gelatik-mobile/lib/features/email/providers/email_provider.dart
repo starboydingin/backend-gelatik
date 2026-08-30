@@ -13,6 +13,9 @@ class EmailState {
   final bool pegawaiLoaded;
   final bool usulanLoaded;
   final String? errorMessage;
+  final int currentPage;
+  final int lastPage;
+  final int total;
   const EmailState({
     this.listPegawai = const [],
     this.listUsulanEmail = const [],
@@ -20,6 +23,9 @@ class EmailState {
     this.pegawaiLoaded = false,
     this.usulanLoaded = false,
     this.errorMessage,
+    this.currentPage = 1,
+    this.lastPage = 1,
+    this.total = 0,
   });
   EmailState copyWith({
     List<Map<String, dynamic>>? listPegawai,
@@ -29,6 +35,9 @@ class EmailState {
     bool? usulanLoaded,
     String? errorMessage,
     bool clearError = false,
+    int? currentPage,
+    int? lastPage,
+    int? total,
   }) => EmailState(
     listPegawai: listPegawai ?? this.listPegawai,
     listUsulanEmail: listUsulanEmail ?? this.listUsulanEmail,
@@ -36,6 +45,9 @@ class EmailState {
     pegawaiLoaded: pegawaiLoaded ?? this.pegawaiLoaded,
     usulanLoaded: usulanLoaded ?? this.usulanLoaded,
     errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+    currentPage: currentPage ?? this.currentPage,
+    lastPage: lastPage ?? this.lastPage,
+    total: total ?? this.total,
   );
 }
 
@@ -69,6 +81,43 @@ class EmailNotifier extends StateNotifier<EmailState> {
     () => repository.getUsulan(),
     (value) => state.copyWith(listUsulanEmail: value, usulanLoaded: true),
   );
+
+  Future<void> loadOperational({
+    int page = 1,
+    String? search,
+    String? status,
+    String? verification,
+    bool append = false,
+  }) async {
+    if (state.isLoading) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final result = await repository.getUsulanPage(
+        page: page,
+        perPage: 20,
+        search: search,
+        status: status,
+        verification: verification,
+      );
+      state = state.copyWith(
+        listUsulanEmail: append
+            ? [...state.listUsulanEmail, ...result.items]
+            : result.items,
+        usulanLoaded: true,
+        isLoading: false,
+        currentPage: result.currentPage,
+        lastPage: result.lastPage,
+        total: result.total,
+      );
+    } on ApiException catch (error) {
+      state = state.copyWith(isLoading: false, errorMessage: error.message);
+    } on FormatException catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Format response Email tidak valid.',
+      );
+    }
+  }
 
   Future<void> _load<T>(
     Future<T> Function() operation,

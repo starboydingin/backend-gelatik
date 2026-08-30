@@ -278,9 +278,9 @@ class _AdminUsulanEmailDetailScreenState
 
     final state = ref.watch(emailProvider);
     final role = ref.watch(authProvider).currentUser?.role.toLowerCase();
-    final canVerify = role == 'admin' || role == 'superadmin' || role == 'bkd';
+    final canVerify = role == 'bkd';
     final canApprove = role == 'admin' || role == 'superadmin';
-    final canReject = canVerify;
+    final canReject = role == 'bkd';
     final usulan = state.listUsulanEmail.firstWhere(
       (e) => e.id == widget.usulanId,
       orElse: () => state.listUsulanEmail.first,
@@ -353,7 +353,9 @@ class _AdminUsulanEmailDetailScreenState
                       _buildDetailRow(
                         context,
                         'Tanggal Verifikasi',
-                        GelatikDateFormatter.dateTime(usulan.tanggalVerifikasi!),
+                        GelatikDateFormatter.dateTime(
+                          usulan.tanggalVerifikasi!,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       _buildDetailRow(
@@ -415,7 +417,7 @@ class _AdminUsulanEmailDetailScreenState
               // ===============================================================
               if (usulan.status == 'diajukan' &&
                   canVerify &&
-                  usulan.diverifikasiOleh == null) ...[
+                  usulan.canBeVerified) ...[
                 AppButton(
                   key: const Key('verify-email-proposal'),
                   text: 'Verifikasi Dokumen',
@@ -448,7 +450,7 @@ class _AdminUsulanEmailDetailScreenState
                           text: 'Setujui & Buat',
                           icon: Icons.check_circle_outline_rounded,
                           variant: AppButtonVariant.filled,
-                          onPressed: state.isLoading
+                          onPressed: state.isLoading || !usulan.canBePublished
                               ? null
                               : () => _showSetujuDialog(
                                   context,

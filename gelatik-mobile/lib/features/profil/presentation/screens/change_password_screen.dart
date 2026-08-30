@@ -12,7 +12,8 @@ class ChangePasswordScreen extends ConsumerStatefulWidget {
   const ChangePasswordScreen({super.key});
 
   @override
-  ConsumerState<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
+  ConsumerState<ChangePasswordScreen> createState() =>
+      _ChangePasswordScreenState();
 }
 
 class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
@@ -34,7 +35,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     final currentPassword = _currentPasswordController.text;
     final password = _passwordController.text;
     final passwordConfirmation = _passwordConfirmationController.text;
-    if (currentPassword.isEmpty || password.length < 8 || password != passwordConfirmation) {
+    if (currentPassword.isEmpty ||
+        password.length < 8 ||
+        password != passwordConfirmation) {
       setState(() {
         _error = password != passwordConfirmation
             ? 'Konfirmasi password baru belum sama.'
@@ -48,13 +51,17 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       _error = null;
     });
     try {
-      final message = await ref.read(authRepositoryProvider).changePassword(
-        currentPassword: currentPassword,
-        password: password,
-        passwordConfirmation: passwordConfirmation,
-      );
+      final message = await ref
+          .read(authRepositoryProvider)
+          .changePassword(
+            currentPassword: currentPassword,
+            password: password,
+            passwordConfirmation: passwordConfirmation,
+          );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
       Navigator.of(context).pop();
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
@@ -93,7 +100,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                   padding: EdgeInsets.only(top: 8),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('Gunakan minimal 8 karakter yang mudah Anda ingat.', style: TextStyle(fontSize: 12)),
+                    child: Text(
+                      'Gunakan minimal 8 karakter yang mudah Anda ingat.',
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),

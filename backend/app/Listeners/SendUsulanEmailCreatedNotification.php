@@ -23,7 +23,7 @@ class SendUsulanEmailCreatedNotification implements ShouldQueue
         // Realtime and inbox persistence occur synchronously in the service.
         // This queued listener only sends the optional mobile push.
         try {
-            $fcm = new FcmNotificationService();
+            $fcm = new FcmNotificationService;
             $fcm->sendToTopic(
                 'admin',
                 'Usulan Email Resmi Baru',
@@ -33,8 +33,17 @@ class SendUsulanEmailCreatedNotification implements ShouldQueue
                     'reference_id' => (string) $event->usulan->id,
                 ]
             );
+            $fcm->sendToTopic(
+                'bkd',
+                'Usulan Email Resmi Baru',
+                'Pengajuan email resmi baru menunggu verifikasi BKD.',
+                [
+                    'type' => 'usulan_email',
+                    'reference_id' => (string) $event->usulan->id,
+                ]
+            );
         } catch (\Exception $e) {
-            Log::error('SendUsulanEmailCreatedNotification FCM Error: ' . $e->getMessage());
+            Log::error('SendUsulanEmailCreatedNotification FCM Error: '.$e->getMessage());
             throw $e;
         }
     }

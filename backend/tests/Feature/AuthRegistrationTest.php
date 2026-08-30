@@ -23,6 +23,8 @@ class AuthRegistrationTest extends TestCase
     {
         parent::setUp();
 
+        config()->set('official_email.allowed_domains', ['example.test']);
+
         $this->createAuthSchema();
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         Role::create(['name' => 'user', 'guard_name' => 'web']);
@@ -74,6 +76,16 @@ class AuthRegistrationTest extends TestCase
             ->assertJsonPath('data.user.status', '1')
             ->assertJsonPath('data.token_type', 'Bearer')
             ->assertJsonStructure(['data' => ['access_token']]);
+    }
+
+    public function test_new_registration_rejects_email_outside_configured_official_domains(): void
+    {
+        $this->postJson('/api/register', $this->validPayload([
+            'email' => 'pegawai.baru@personal.invalid',
+        ]))->assertUnprocessable()
+            ->assertJsonValidationErrors('email');
+
+        $this->assertDatabaseMissing('users', ['email' => 'pegawai.baru@personal.invalid']);
     }
 
     public function test_public_registration_cannot_self_assign_a_privileged_role(): void

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_logo.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../../core/widgets/notification_badge_button.dart';
 import '../../../../core/widgets/status_badge.dart';
@@ -30,6 +31,7 @@ import '../../../peminjaman/presentation/screens/peminjaman_detail_screen.dart';
 import '../../../peminjaman/presentation/screens/peminjaman_list_screen.dart';
 import '../../../peminjaman/models/pinjam_model.dart';
 import '../../../profil/presentation/screens/profil_screen.dart';
+import '../../../services/presentation/screens/services_screen.dart';
 import '../../models/home_dashboard_model.dart';
 import '../../providers/home_provider.dart';
 import '../../repositories/announcement_repository.dart';
@@ -82,6 +84,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: GelatikPageHeader(
         title: 'Beranda',
         actions: [
+          IconButton(
+            tooltip: 'Cari layanan',
+            onPressed: () => _open(const ServicesScreen(autofocusSearch: true)),
+            icon: const Icon(Icons.search_rounded),
+          ),
           NotificationBadgeButton(
             initialUnread: data.unreadNotificationCount ?? 0,
           ),
@@ -114,7 +121,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               // Announcements follow it so they do not push the brand message
               // above the main service context.
               _ServiceBanner(data: data),
-              const SizedBox(height: 14),
+              const SizedBox(height: 24),
+              if (state.status != HomeLoadStatus.error) ...[
+                _ServiceInsightsSection(data: data),
+                const SizedBox(height: 24),
+              ],
               if (announcements.isNotEmpty) ...[
                 _AnnouncementCarousel(announcements: announcements),
                 const SizedBox(height: 24),
@@ -149,8 +160,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   onAllConsultations: () => _open(const KonsultasiListScreen()),
                   onAllEmails: () => _open(const UsulanEmailListScreen()),
                 ),
-                const SizedBox(height: 28),
-                _ServiceInsightsSection(data: data),
               ],
             ],
           ),
@@ -172,10 +181,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         isAdmin: data.canAccessAdminPanel,
         onTap: (index) {
           if (index == 1) {
-            _open(const AjukanPeminjamanScreen());
+            _open(const ServicesScreen());
           } else if (index == 2) {
+            _open(const NotificationsScreen());
+          } else if (index == 3) {
             _open(const ProfilScreen());
-          } else if (index == 3 && data.canAccessAdminPanel) {
+          } else if (index == 4 && data.canAccessAdminPanel) {
             _open(const AdminDashboardScreen());
           }
         },
@@ -377,106 +388,92 @@ class _ServiceBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryTeal = AppColors.primaryTeal(context);
     return Container(
-      constraints: const BoxConstraints(minHeight: 180),
-      padding: const EdgeInsets.all(24),
+      constraints: const BoxConstraints(minHeight: 164),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3C7),
-        border: Border.all(color: AppColors.cardStroke(context), width: 1.5),
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.colorPrimary,
+        border: Border.all(color: AppColors.colorPrimaryDark),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Stack(
         children: [
           Positioned(
-            right: -20,
-            top: -24,
-            child: Icon(
-              Icons.tips_and_updates_outlined,
-              size: 144,
-              color: const Color(0xFFB28B18).withValues(alpha: .22),
-            ),
+            right: -22,
+            bottom: -34,
+            child: const LampungIconBadge(size: 150, opacity: .12),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.accentGold(context),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'Layanan Gelatik',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Semua layanan TIK\ndalam satu aplikasi',
-                style: TextStyle(
-                  color: primaryTeal,
-                  fontSize: 23,
-                  height: 1.25,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Halo,',
-                style: TextStyle(
-                  color: Color(0xFF704C24),
-                  fontSize: 15,
-                  height: 1.4,
-                ),
-              ),
-              Text(
-                data.userName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF704C24),
-                  fontSize: 15,
-                  height: 1.4,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Text(
-                'Kelola kebutuhan TIK Anda dengan lebih mudah.',
-                style: TextStyle(
-                  color: Color(0xFF704C24),
-                  fontSize: 15,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 16),
               Row(
                 children: [
                   Container(
-                    width: 8,
-                    height: 8,
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.accentGold(context),
-                      shape: BoxShape.circle,
+                      color: AppColors.colorAccent,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      data.userName.trim().isEmpty
+                          ? 'G'
+                          : data.userName.trim()[0].toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.colorTextPrimary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 20,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: AppColors.accentNavy(context),
-                      borderRadius: BorderRadius.circular(8),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Selamat datang,',
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                        Text(
+                          data.userName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 17,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 18),
+              Text(
+                data.namaOpd?.trim().isNotEmpty == true
+                    ? data.namaOpd!
+                    : 'Layanan TIK Pemerintah Provinsi Lampung',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.colorAccent,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Kelola kebutuhan layanan, pantau status, dan dapatkan bantuan dari satu aplikasi.',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .82),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
               ),
             ],
           ),
@@ -740,7 +737,7 @@ class _ServiceInsightsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Insight Layanan',
+          'Infografis Layanan',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
@@ -973,11 +970,20 @@ class _RatingInsightCard extends StatelessWidget {
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 300;
+              final scoreWidth = compact
+                  ? constraints.maxWidth
+                  : constraints.maxWidth - 140;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 16,
+                crossAxisAlignment: WrapCrossAlignment.end,
+                children: [
+                  SizedBox(
+                    width: scoreWidth,
+                    child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
@@ -1005,41 +1011,45 @@ class _RatingInsightCard extends StatelessWidget {
                     _RatingStars(value: average),
                   ],
                 ),
-              ),
-              Container(
-                constraints: const BoxConstraints(minWidth: 122),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 13,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.accentNavy(context).withValues(alpha: .08),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '$count',
-                      style: TextStyle(
-                        fontSize: 23,
-                        color: AppColors.accentNavy(context),
-                        fontWeight: FontWeight.w800,
-                      ),
+                  ),
+                  Container(
+                    width: compact ? constraints.maxWidth : 128,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 13,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'penilaian pengguna',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.accentNavy(context),
-                      ),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentNavy(
+                        context,
+                      ).withValues(alpha: .08),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
-                ),
-              ),
-            ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$count',
+                          style: TextStyle(
+                            fontSize: 23,
+                            color: AppColors.accentNavy(context),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'penilaian pengguna',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.accentNavy(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 22),
           ...List.generate(5, (index) {

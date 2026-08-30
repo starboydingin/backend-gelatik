@@ -61,7 +61,10 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
                     children: [
                       Text(_error!),
                       const SizedBox(height: 12),
-                      FilledButton(onPressed: _load, child: const Text('Coba lagi')),
+                      FilledButton(
+                        onPressed: _load,
+                        child: const Text('Coba lagi'),
+                      ),
                     ],
                   ),
                 ),
@@ -83,7 +86,9 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: AppColors.primaryTeal(context).withValues(alpha: .12),
+                          color: AppColors.primaryTeal(
+                            context,
+                          ).withValues(alpha: .12),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -99,7 +104,9 @@ class _ActivityLogScreenState extends ConsumerState<ActivityLogScreen> {
                           children: [
                             Text(
                               entry.description,
-                              style: const TextStyle(fontWeight: FontWeight.w700),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             if (entry.createdAt != null) ...[
                               const SizedBox(height: 4),

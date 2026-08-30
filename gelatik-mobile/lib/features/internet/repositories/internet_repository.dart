@@ -13,7 +13,9 @@ class InternetRepository {
     try {
       final response = await apiClient.dio.get('/list-router-opd');
       final data = _data(response.data);
-      if (data is! Map) throw const FormatException('Data Internet tidak valid.');
+      if (data is! Map) {
+        throw const FormatException('Data Internet tidak valid.');
+      }
       final bandwidth = data['bandwidth'] is Map
           ? Map<String, dynamic>.from(data['bandwidth'])
           : <String, dynamic>{'available': false, 'connections': const []};
@@ -25,7 +27,10 @@ class InternetRepository {
           .map((entry) {
             final value = Map<String, dynamic>.from(entry);
             return {
-              'nama_router': value['nama_router'] ?? value['identity_router'] ?? 'Router OPD',
+              'nama_router':
+                  value['nama_router'] ??
+                  value['identity_router'] ??
+                  'Router OPD',
               'ip_address': value['ip_address'] ?? '-',
               'tipe': value['tipe'] ?? value['interface'] ?? '-',
               'status': _status(value['status'] ?? value['is_active']),
@@ -34,14 +39,20 @@ class InternetRepository {
             };
           })
           .toList(growable: false);
-      final connections = bandwidth['connections'] is List ? bandwidth['connections'] as List : const [];
+      final connections = bandwidth['connections'] is List
+          ? bandwidth['connections'] as List
+          : const [];
       final primary = connections.whereType<Map>().firstOrNull;
       return {
         'routers': routers,
         'bandwidth': {
           'opd': bandwidth['opd'] ?? 'Informasi bandwidth belum tersedia',
-          'provider': bandwidth['available'] == true ? 'Data Router OPD' : 'Tidak tersedia dari API',
-          'status': bandwidth['available'] == true ? 'Tersedia' : 'Belum tersedia',
+          'provider': bandwidth['available'] == true
+              ? 'Data Router OPD'
+              : 'Tidak tersedia dari API',
+          'status': bandwidth['available'] == true
+              ? 'Tersedia'
+              : 'Belum tersedia',
           'available': bandwidth['available'] == true,
           'download_mbps': primary?['download_mbps'] ?? '-',
           'upload_mbps': primary?['upload_mbps'] ?? '-',

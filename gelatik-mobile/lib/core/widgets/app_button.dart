@@ -35,12 +35,12 @@ class AppButton extends StatelessWidget {
     final effectiveBgColor =
         backgroundColor ??
         (variant == AppButtonVariant.filled
-            ? theme.colorScheme.primary
+            ? theme.colorScheme.secondary
             : Colors.transparent);
     final effectiveTextColor =
         textColor ??
         (variant == AppButtonVariant.filled
-            ? theme.colorScheme.onPrimary
+            ? theme.colorScheme.onSecondary
             : theme.colorScheme.primary);
 
     final textWidget = Text(
@@ -82,7 +82,7 @@ class AppButton extends StatelessWidget {
       foregroundColor: effectiveTextColor,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         side: variant == AppButtonVariant.outlined && showBorder
             ? BorderSide(color: effectiveTextColor, width: 1.25)
             : BorderSide.none,

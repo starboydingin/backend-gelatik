@@ -16,7 +16,7 @@ class AppCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(16.0),
     this.onTap,
     this.backgroundColor,
-    this.elevation = 0.0,
+    this.elevation = 1.0,
     this.border,
   });
 
@@ -25,29 +25,28 @@ class AppCard extends StatelessWidget {
     final theme = Theme.of(context);
     final strokeColor = AppColors.cardStroke(context);
 
-    final effectiveBorder = border ??
-        Border.all(
-          color: strokeColor,
-          width: 1,
-        );
+    final effectiveBorder = border ?? Border.all(color: strokeColor, width: 1);
 
     final cardChild = Container(
       padding: padding,
       decoration: BoxDecoration(
         color: backgroundColor ?? theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(12),
         border: effectiveBorder,
         boxShadow: elevation > 0
             ? [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: elevation * 4,
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: elevation * 6,
                   offset: Offset(0, elevation),
-                )
+                ),
               ]
             : null,
       ),
-      child: child,
+      child: Material(
+        type: MaterialType.transparency,
+        child: child,
+      ),
     );
 
     if (onTap != null) {
@@ -55,7 +54,7 @@ class AppCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(12),
           child: cardChild,
         ),
       );

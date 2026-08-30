@@ -17,17 +17,33 @@ class PegawaiController extends Controller
     {
         $query = PegawaiBelumPunyaEmail::query();
 
+        // Data pegawai bersifat lintas-OPD bagi petugas operasional. Pengguna
+        // biasa hanya boleh memilih pegawai dari OPD akun mereka; pembatasan
+        // ini wajib di backend karena filter UI dapat dilewati.
+        if (! $request->user()->hasAnyRole(['admin', 'superadmin', 'bkd'])) {
+            $opd = trim((string) $request->user()->nama_opd);
+            if ($opd === '') {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where(function ($scoped) use ($opd): void {
+                    $scoped->where('Unit_Kerja', $opd)
+                        ->orWhere('NUnKer', $opd);
+                });
+            }
+        }
+
         // Support pencarian opsional
-        if ($request->has('search')) {
-            $search = $request->search;
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
             $query->where(function ($q) use ($search) {
                 $q->where('Nama', 'like', "%{$search}%")
-                  ->orWhere('NIP_Baru', 'like', "%{$search}%")
-                  ->orWhere('Unit_Kerja', 'like', "%{$search}%");
+                    ->orWhere('NIP_Baru', 'like', "%{$search}%")
+                    ->orWhere('Unit_Kerja', 'like', "%{$search}%");
             });
         }
 
-        $pegawai = $query->paginate(20);
+        $perPage = min(max((int) $request->integer('per_page', 20), 5), 50);
+        $pegawai = $query->orderBy('Nama')->paginate($perPage);
 
         return response()->json(['success' => true, 'data' => $pegawai]);
     }

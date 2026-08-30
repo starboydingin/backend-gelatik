@@ -8,10 +8,12 @@ import '../../../../core/realtime/realtime_socket_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../admin/presentation/screens/admin_peminjaman_detail_screen.dart';
 import '../../../admin/presentation/screens/admin_usulan_email_detail_screen.dart';
 import '../../../admin/presentation/screens/admin_feedback_screen.dart';
+import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../email/presentation/screens/usulan_email_detail_screen.dart';
 import '../../../email/repositories/email_repository.dart';
@@ -20,6 +22,8 @@ import '../../../konsultasi/repositories/konsultasi_repository.dart';
 import '../../../kritik_saran/presentation/screens/kritik_saran_detail_screen.dart';
 import '../../../peminjaman/presentation/screens/peminjaman_detail_screen.dart';
 import '../../../peminjaman/repositories/peminjaman_repository.dart';
+import '../../../profil/presentation/screens/profil_screen.dart';
+import '../../../services/presentation/screens/services_screen.dart';
 import '../../models/gelatik_notification.dart';
 import '../../repositories/notification_repository.dart';
 
@@ -210,102 +214,130 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: GelatikPageHeader(
-      title: 'Notifikasi',
-      showBack: true,
-      actions: [
-        TextButton(
-          onPressed: _items.any((item) => !item.isRead)
-              ? () async {
-                  await ref
-                      .read(notificationRepositoryProvider)
-                      .markAllRead(_items.map((item) => item.id));
-                  await _load();
-                }
-              : null,
-          child: const Text('Baca semua'),
-        ),
-      ],
-    ),
-    body: RefreshIndicator(
-      onRefresh: _load,
-      child: _loading && _items.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null && _items.isEmpty
-          ? ListView(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Text(_error!),
-                ),
-              ],
-            )
-          : _items.isEmpty
-          ? const Center(child: Text('Belum ada notifikasi.'))
-          : ListView.separated(
-              padding: const EdgeInsets.all(20),
-              itemCount: _items.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final item = _items[index];
-                return AppCard(
-                  onTap: () => _open(item),
-                  backgroundColor: item.isRead
-                      ? null
-                      : AppColors.actionEmerald(context).withValues(alpha: .08),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        item.isRead
-                            ? Icons.notifications_none_rounded
-                            : Icons.notifications_active_rounded,
-                        color: AppColors.primaryTeal(context),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              item.message,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (item.createdAt != null) ...[
-                              const SizedBox(height: 6),
+  Widget build(BuildContext context) {
+    final role = ref.watch(authProvider).currentUser?.role.toLowerCase() ?? '';
+    final canAccessAdmin = const {'admin', 'superadmin', 'bkd'}.contains(role);
+    return Scaffold(
+      appBar: GelatikPageHeader(
+        title: 'Notifikasi',
+        actions: [
+          TextButton(
+            onPressed: _items.any((item) => !item.isRead)
+                ? () async {
+                    await ref
+                        .read(notificationRepositoryProvider)
+                        .markAllRead(_items.map((item) => item.id));
+                    await _load();
+                  }
+                : null,
+            child: const Text('Baca semua'),
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: _loading && _items.isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null && _items.isEmpty
+            ? ListView(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(_error!),
+                  ),
+                ],
+              )
+            : _items.isEmpty
+            ? const Center(child: Text('Belum ada notifikasi.'))
+            : ListView.separated(
+                padding: const EdgeInsets.all(20),
+                itemCount: _items.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final item = _items[index];
+                  return AppCard(
+                    onTap: () => _open(item),
+                    backgroundColor: item.isRead
+                        ? null
+                        : AppColors.actionEmerald(
+                            context,
+                          ).withValues(alpha: .08),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          item.isRead
+                              ? Icons.notifications_none_rounded
+                              : Icons.notifications_active_rounded,
+                          color: AppColors.primaryTeal(context),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Text(
-                                GelatikDateFormatter.dateTime(item.createdAt!),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.mutedText(context),
+                                item.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
+                              const SizedBox(height: 4),
+                              Text(
+                                item.message,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (item.createdAt != null) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  GelatikDateFormatter.dateTime(
+                                    item.createdAt!,
+                                  ),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.mutedText(context),
+                                  ),
+                                ),
+                              ],
                             ],
-                          ],
-                        ),
-                      ),
-                      if (!item.isRead)
-                        const Padding(
-                          padding: EdgeInsets.only(left: 8, top: 4),
-                          child: CircleAvatar(
-                            radius: 4,
-                            backgroundColor: Color(0xFF10B981),
                           ),
                         ),
-                    ],
-                  ),
-                );
-              },
-            ),
-    ),
-  );
+                        if (!item.isRead)
+                          const Padding(
+                            padding: EdgeInsets.only(left: 8, top: 4),
+                            child: CircleAvatar(
+                              radius: 4,
+                              backgroundColor: Color(0xFF10B981),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+      ),
+      bottomNavigationBar: AppBottomNav(
+        currentIndex: 2,
+        isAdmin: canAccessAdmin,
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          } else if (index == 1) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const ServicesScreen()),
+            );
+          } else if (index == 3) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const ProfilScreen()),
+            );
+          } else if (index == 4 && canAccessAdmin) {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+            );
+          }
+        },
+      ),
+    );
+  }
 }

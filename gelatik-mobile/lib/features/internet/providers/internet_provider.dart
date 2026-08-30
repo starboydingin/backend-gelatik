@@ -59,7 +59,9 @@ class InternetNotifier extends StateNotifier<InternetState> {
       final overview = await repository.getInternetOverview();
       state = state.copyWith(
         bandwidthInfo: Map<String, dynamic>.from(overview['bandwidth'] as Map),
-        listRouter: List<Map<String, dynamic>>.from(overview['routers'] as List),
+        listRouter: List<Map<String, dynamic>>.from(
+          overview['routers'] as List,
+        ),
         isLoading: false,
         routersLoaded: true,
       );
@@ -80,7 +82,9 @@ class InternetNotifier extends StateNotifier<InternetState> {
       final overview = await repository.getInternetOverview();
       state = state.copyWith(
         bandwidthInfo: Map<String, dynamic>.from(overview['bandwidth'] as Map),
-        listRouter: List<Map<String, dynamic>>.from(overview['routers'] as List),
+        listRouter: List<Map<String, dynamic>>.from(
+          overview['routers'] as List,
+        ),
         isLoading: false,
         routersLoaded: true,
       );
@@ -106,7 +110,9 @@ class InternetNotifier extends StateNotifier<InternetState> {
       final faqs = results[1] as List<Map<String, dynamic>>;
       state = state.copyWith(
         bandwidthInfo: Map<String, dynamic>.from(overview['bandwidth'] as Map),
-        listRouter: List<Map<String, dynamic>>.from(overview['routers'] as List),
+        listRouter: List<Map<String, dynamic>>.from(
+          overview['routers'] as List,
+        ),
         listFaq: faqs,
         isLoading: false,
         routersLoaded: true,

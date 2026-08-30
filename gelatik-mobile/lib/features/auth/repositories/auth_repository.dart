@@ -175,9 +175,8 @@ class AuthRepository {
       return data
           .whereType<Map>()
           .map(
-            (entry) => AccountActivityEntry.fromJson(
-              Map<String, dynamic>.from(entry),
-            ),
+            (entry) =>
+                AccountActivityEntry.fromJson(Map<String, dynamic>.from(entry)),
           )
           .toList(growable: false);
     } on DioException catch (e) {

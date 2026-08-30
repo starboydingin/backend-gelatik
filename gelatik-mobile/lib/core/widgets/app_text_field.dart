@@ -53,10 +53,7 @@ class AppTextField extends StatelessWidget {
       readOnly: readOnly,
       onTap: onTap,
       onChanged: onChanged,
-      style: TextStyle(
-        fontSize: 15,
-        color: theme.colorScheme.onSurface,
-      ),
+      style: TextStyle(fontSize: 15, color: theme.colorScheme.onSurface),
       decoration: InputDecoration(
         labelText: labelText,
         hintText: hintText,
@@ -64,8 +61,13 @@ class AppTextField extends StatelessWidget {
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.5,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: strokeColor, width: 1.5),

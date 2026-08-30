@@ -7,6 +7,9 @@ import '../../../../core/widgets/empty_state.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../home/presentation/screens/home_screen.dart';
+import '../../../notifications/presentation/screens/notifications_screen.dart';
+import '../../../profil/presentation/screens/profil_screen.dart';
+import '../../../services/presentation/screens/services_screen.dart';
 import '../../providers/email_provider.dart';
 import 'daftar_pegawai_screen.dart';
 import 'usulan_email_detail_screen.dart';
@@ -190,11 +193,19 @@ class _UsulanEmailListScreenState extends ConsumerState<UsulanEmailListScreen> {
         ),
       ),
       bottomNavigationBar: AppBottomNav(
-        currentIndex: 0,
+        currentIndex: 1,
         onTap: (index) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-          );
+          final destination = switch (index) {
+            0 => const HomeScreen(),
+            2 => const NotificationsScreen(),
+            3 => const ProfilScreen(),
+            _ => const ServicesScreen(),
+          };
+          if (index != 1) {
+            Navigator.of(
+              context,
+            ).pushReplacement(MaterialPageRoute(builder: (_) => destination));
+          }
         },
       ),
     );
