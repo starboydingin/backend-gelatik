@@ -558,6 +558,57 @@ void main() {
       expect(find.text('Laptop API'), findsOneWidget);
     });
 
+    testWidgets('filters the asset catalog from the search field', (
+      tester,
+    ) async {
+      final masterRepository = _FakeMasterItemRepository(
+        () async => const [
+          MasterItemModel(
+            id: 3,
+            nama: 'Laptop API',
+            deskripsi: 'Komputer portabel',
+            stok: 2,
+          ),
+          MasterItemModel(
+            id: 4,
+            nama: 'Proyektor Epson',
+            deskripsi: 'Perangkat presentasi',
+            stok: 1,
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            masterItemRepositoryProvider.overrideWithValue(masterRepository),
+            peminjamanRepositoryProvider.overrideWithValue(_FakeRepository()),
+          ],
+          child: const MaterialApp(home: AjukanPeminjamanScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final searchField = find.descendant(
+        of: find.byKey(const Key('asset-search-field')),
+        matching: find.byType(TextField),
+      );
+      expect(searchField, findsOneWidget);
+
+      await tester.enterText(searchField, 'PROYEKTOR');
+      await tester.pump();
+      expect(find.text('Proyektor Epson'), findsOneWidget);
+      expect(find.text('Laptop API'), findsNothing);
+
+      await tester.enterText(searchField, 'printer');
+      await tester.pump();
+      expect(find.text('Aset "printer" tidak ditemukan.'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('clear-asset-search')));
+      await tester.pump();
+      expect(find.text('Laptop API'), findsOneWidget);
+      expect(find.text('Proyektor Epson'), findsOneWidget);
+    });
+
     testWidgets('shows local required-field validation before submit', (
       tester,
     ) async {

@@ -36,6 +36,8 @@ class _AjukanPeminjamanScreenState
 
   // Step 1: Selected quantities (itemId -> qty)
   final Map<int, int> _selectedQuantities = {};
+  late TextEditingController _assetSearchController;
+  String _assetSearchQuery = '';
 
   // Step 2: Form Controllers & State
   late TextEditingController _namaPicController;
@@ -68,6 +70,7 @@ class _AjukanPeminjamanScreenState
     super.initState();
     final user = ref.read(authProvider).currentUser;
 
+    _assetSearchController = TextEditingController();
     _namaPicController = TextEditingController(text: user?.name ?? '');
     _instansiPicController = TextEditingController(text: user?.namaOpd ?? '');
     _kontakPicController = TextEditingController(text: user?.noHp ?? '');
@@ -80,6 +83,7 @@ class _AjukanPeminjamanScreenState
 
   @override
   void dispose() {
+    _assetSearchController.dispose();
     _namaPicController.dispose();
     _instansiPicController.dispose();
     _kontakPicController.dispose();
@@ -321,6 +325,18 @@ class _AjukanPeminjamanScreenState
     final peminjamanState = ref.watch(peminjamanProvider);
     final infoAlatState = ref.watch(infoAlatProvider);
     final masterItems = infoAlatState.items;
+    final normalizedAssetQuery = _assetSearchQuery.trim().toLowerCase();
+    final filteredMasterItems = normalizedAssetQuery.isEmpty
+        ? masterItems
+        : masterItems
+              .where((item) {
+                return item.nama.toLowerCase().contains(normalizedAssetQuery) ||
+                    item.deskripsi.toLowerCase().contains(
+                      normalizedAssetQuery,
+                    ) ||
+                    item.kondisi.toLowerCase().contains(normalizedAssetQuery);
+              })
+              .toList(growable: false);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final horizontalPadding = screenWidth >= 900
         ? (screenWidth - 760) / 2
@@ -379,6 +395,29 @@ class _AjukanPeminjamanScreenState
                     ),
                     const SizedBox(height: 16),
 
+                    AppTextField(
+                      key: const Key('asset-search-field'),
+                      controller: _assetSearchController,
+                      labelText: 'Cari aset',
+                      hintText: 'Cari nama atau keterangan aset...',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _assetSearchQuery.isEmpty
+                          ? null
+                          : IconButton(
+                              key: const Key('clear-asset-search'),
+                              tooltip: 'Hapus pencarian',
+                              onPressed: () {
+                                _assetSearchController.clear();
+                                setState(() => _assetSearchQuery = '');
+                              },
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                      onChanged: (value) {
+                        setState(() => _assetSearchQuery = value);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
                     if (infoAlatState.status == InfoAlatStatus.loading)
                       const Center(
                         child: Padding(
@@ -412,9 +451,26 @@ class _AjukanPeminjamanScreenState
                           textAlign: TextAlign.center,
                         ),
                       )
+                    else if (filteredMasterItems.isEmpty)
+                      AppCard(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.search_off_rounded,
+                              color: mutedText,
+                              size: 30,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Aset "${_assetSearchQuery.trim()}" tidak ditemukan.',
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      )
                     else
                       PilihAsetWidget(
-                        masterItems: masterItems,
+                        masterItems: filteredMasterItems,
                         selectedQuantities: _selectedQuantities,
                         onQuantityChanged: (item, newQty) {
                           setState(() {

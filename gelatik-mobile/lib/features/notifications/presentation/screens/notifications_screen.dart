@@ -28,7 +28,9 @@ import '../../models/gelatik_notification.dart';
 import '../../repositories/notification_repository.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
-  const NotificationsScreen({super.key});
+  final bool embedded;
+
+  const NotificationsScreen({super.key, this.embedded = false});
 
   @override
   ConsumerState<NotificationsScreen> createState() =>
@@ -250,7 +252,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             : _items.isEmpty
             ? const Center(child: Text('Belum ada notifikasi.'))
             : ListView.separated(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  20,
+                  20,
+                  widget.embedded ? 118 : 20,
+                ),
                 itemCount: _items.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
@@ -317,27 +324,31 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 },
               ),
       ),
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: 2,
-        isAdmin: canAccessAdmin,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          } else if (index == 1) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const ServicesScreen()),
-            );
-          } else if (index == 3) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const ProfilScreen()),
-            );
-          } else if (index == 4 && canAccessAdmin) {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-            );
-          }
-        },
-      ),
+      bottomNavigationBar: widget.embedded
+          ? null
+          : AppBottomNav(
+              currentIndex: 2,
+              isAdmin: canAccessAdmin,
+              onTap: (index) {
+                if (index == 0) {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                } else if (index == 1) {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const ServicesScreen()),
+                  );
+                } else if (index == 3) {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const ProfilScreen()),
+                  );
+                } else if (index == 4 && canAccessAdmin) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AdminDashboardScreen(),
+                    ),
+                  );
+                }
+              },
+            ),
     );
   }
 }

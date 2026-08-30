@@ -42,7 +42,16 @@ class InternetRepository {
       final connections = bandwidth['connections'] is List
           ? bandwidth['connections'] as List
           : const [];
-      final primary = connections.whereType<Map>().firstOrNull;
+      final typedConnections = connections.whereType<Map>();
+      final primary =
+          typedConnections
+              .where(
+                (connection) =>
+                    connection['download_mbps'] != null ||
+                    connection['upload_mbps'] != null,
+              )
+              .firstOrNull ??
+          typedConnections.firstOrNull;
       return {
         'routers': routers,
         'bandwidth': {
@@ -56,6 +65,12 @@ class InternetRepository {
           'available': bandwidth['available'] == true,
           'download_mbps': primary?['download_mbps'] ?? '-',
           'upload_mbps': primary?['upload_mbps'] ?? '-',
+          'connection_name':
+              primary?['identity_router'] ??
+              primary?['interface'] ??
+              'Router OPD',
+          'location': primary?['lokasi'] ?? '-',
+          'connection_count': connections.length,
         },
       };
     } on DioException catch (error) {

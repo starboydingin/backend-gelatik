@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
-import '../../../home/presentation/screens/home_screen.dart';
+import '../../../shell/presentation/screens/main_shell.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/bento_block.dart';
+import '../../../../core/widgets/illustration_asset.dart';
 import '../../../../core/widgets/pending_activation_banner.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../theme/auth_typography.dart';
@@ -77,7 +79,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // 1. User aktif (status = '1') -> Navigasi ke HomeScreen
       Navigator.of(
         context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const MainShell()));
     } else if (result == AuthResultStatus.pendingActivation) {
       // 2. Response 403 (Akun belum aktif / status = '0') -> Tampilkan PendingActivationBanner & Dialog FR-35
       final authState = ref.read(authProvider);
@@ -147,10 +149,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   0.0,
                   constraints.maxHeight - keyboardInset - 24,
                 );
-                final logoWidth = math.max(
-                  150.0,
-                  math.min(constraints.maxWidth * 0.44, 180.0),
-                );
                 final sigerWidth = math.max(
                   65.0,
                   math.min(constraints.maxWidth * 0.19, 82.0),
@@ -163,26 +161,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // ---------------------------------------------------------------
-                        // Header: Logo Gelatik + Wordmark GELATIK + Subtitle
-                        // ---------------------------------------------------------------
-                        Image.asset(
-                          'assets/images/logo-tanpabackground.png',
-                          key: const Key('login_gelatik_logo'),
-                          width: logoWidth,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'GERBANG LAYANAN TIK',
-                          textAlign: TextAlign.center,
-                          style: AuthTypography.brandTitle(
-                            context,
-                            fontSize: 13,
-                          ).copyWith(color: mutedText, letterSpacing: 1.4),
+                        BentoBlock(
+                          tone: BentoBlockTone.navy,
+                          padding: const EdgeInsets.fromLTRB(20, 18, 10, 0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 18),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Image.asset(
+                                        'assets/images/logo-tanpabackground.png',
+                                        key: const Key('login_gelatik_logo'),
+                                        width: 126,
+                                        fit: BoxFit.contain,
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        'GERBANG LAYANAN TIK',
+                                        style:
+                                            AuthTypography.brandTitle(
+                                              context,
+                                              fontSize: 12,
+                                            ).copyWith(
+                                              color: AppColors.colorAccent,
+                                              letterSpacing: 1.2,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 7),
+                                      const Text(
+                                        'Mulai layanan Anda dengan cepat dan aman.',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const IllustrationAsset(width: 105, height: 154),
+                            ],
+                          ),
                         ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 14),
 
                         // ---------------------------------------------------------------
                         // Card Form Login (Design Token Compliant)
@@ -398,7 +426,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Opacity(
                           opacity: 0.5,
                           child: Image.asset(
-                            'assets/images/SIGER.png',
+                            'assets/images/icon lampung.png',
                             key: const Key('login_siger_logo'),
                             width: sigerWidth,
                             fit: BoxFit.contain,

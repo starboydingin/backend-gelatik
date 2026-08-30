@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../home/presentation/screens/home_screen.dart';
+import '../../../shell/presentation/screens/main_shell.dart';
 import '../../providers/auth_provider.dart';
 import '../theme/auth_typography.dart';
 import 'login_screen.dart';
@@ -32,7 +32,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => isLoggedIn ? const HomeScreen() : const LoginScreen(),
+        builder: (_) => isLoggedIn ? const MainShell() : const LoginScreen(),
       ),
     );
   }
@@ -40,7 +40,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.colorPrimary,
+      backgroundColor: AppColors.colorBackground,
       body: Stack(
         children: [
           Positioned(
@@ -49,7 +49,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             right: 0,
             child: Center(
               child: Opacity(
-                opacity: 0.16,
+                opacity: 0.06,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final width = math.max(
@@ -57,7 +57,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                       math.min(constraints.maxWidth * 0.72, 320.0),
                     );
                     return Image.asset(
-                      'assets/images/SIGER.png',
+                      'assets/images/icon lampung.png',
                       width: width,
                       fit: BoxFit.contain,
                     );
@@ -107,7 +107,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                                         context,
                                         fontSize: 14,
                                       ).copyWith(
-                                        color: AppColors.colorAccent,
+                                        color: AppColors.colorPrimary,
                                         letterSpacing: 1.8,
                                       ),
                                 ),
@@ -123,9 +123,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                                     borderRadius: BorderRadius.circular(4),
                                     child: LinearProgressIndicator(
                                       minHeight: 4,
-                                      backgroundColor: Colors.white.withValues(
-                                        alpha: 0.15,
-                                      ),
+                                      backgroundColor: AppColors.colorBorder,
                                       valueColor: AlwaysStoppedAnimation<Color>(
                                         AppColors.colorAccent,
                                       ),
@@ -140,7 +138,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                                         context,
                                         fontSize: 11,
                                       ).copyWith(
-                                        color: Colors.white70,
+                                        color: AppColors.colorTextMuted,
                                         letterSpacing: 2,
                                       ),
                                 ),

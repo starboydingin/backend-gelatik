@@ -282,10 +282,14 @@ class _PersistentGetCache {
   }
 
   String _storageKey(String value) {
-    var hash = 0xcbf29ce484222325;
+    // BigInt keeps FNV-1a deterministic on both the Dart VM and JavaScript.
+    // JavaScript numbers cannot represent the 64-bit literals exactly.
+    var hash = BigInt.parse('cbf29ce484222325', radix: 16);
+    final prime = BigInt.parse('100000001b3', radix: 16);
+    final mask = BigInt.parse('7fffffffffffffff', radix: 16);
     for (final byte in utf8.encode(value)) {
-      hash ^= byte;
-      hash = (hash * 0x100000001b3) & 0x7fffffffffffffff;
+      hash ^= BigInt.from(byte);
+      hash = (hash * prime) & mask;
     }
     return '$_prefix${hash.toRadixString(16)}';
   }

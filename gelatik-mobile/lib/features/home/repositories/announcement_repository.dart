@@ -35,7 +35,10 @@ class AnnouncementRepository {
           )
           .toList(growable: false);
     } on DioException {
-      return const [];
+      // Preserve the provider error state so Home can use its dashboard
+      // fallback. Returning an empty list here incorrectly hides a valid
+      // cached announcement whenever this independent request is interrupted.
+      rethrow;
     }
   }
 }

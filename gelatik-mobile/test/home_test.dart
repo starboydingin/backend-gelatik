@@ -468,6 +468,52 @@ void main() {
         expect(find.text('Pengumuman terbaru'), findsOneWidget);
         expect(find.text('Pemeliharaan layanan'), findsOneWidget);
         expect(find.text('Layanan akan dipelihara malam ini.'), findsOneWidget);
+        expect(
+          tester.getTopLeft(find.byKey(const Key('announcement-carousel'))).dy,
+          lessThan(
+            tester
+                .getTopLeft(find.byKey(const Key('bandwidth-traffic-block')))
+                .dy,
+          ),
+        );
+      },
+    );
+
+    testWidgets(
+      'keeps the announcement visible when the dashboard request fails',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              activeAnnouncementsProvider.overrideWith(
+                (ref) async => const [
+                  Announcement(
+                    title: 'Pengumuman tetap tampil',
+                    content: 'Informasi aktif tidak bergantung pada dashboard.',
+                  ),
+                ],
+              ),
+              homeProvider.overrideWith(
+                (ref) => HomeNotifier.preview(
+                  _dashboard(),
+                  status: HomeLoadStatus.error,
+                  errorMessage: 'Data Home tidak dapat dimuat.',
+                  errorType: HomeErrorType.network,
+                ),
+              ),
+            ],
+            child: const MaterialApp(home: HomeScreen()),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(find.text('Pengumuman tetap tampil'), findsOneWidget);
+        expect(
+          find.text('Informasi aktif tidak bergantung pada dashboard.'),
+          findsOneWidget,
+        );
+        expect(find.text('Data Home tidak dapat dimuat.'), findsOneWidget);
       },
     );
 
@@ -512,6 +558,10 @@ void main() {
       await tester.pump(const Duration(seconds: 5));
       await tester.pump(const Duration(milliseconds: 500));
       expect(carousel().controller?.page, closeTo(0, 0.01));
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(carousel().controller?.page, closeTo(1, 0.01));
     });
 
     testWidgets('admin sees role-aware Admin tab', (tester) async {

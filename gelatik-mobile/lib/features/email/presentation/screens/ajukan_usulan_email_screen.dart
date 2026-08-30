@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/civic_form.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../providers/email_provider.dart';
 import 'usulan_email_list_screen.dart';
@@ -101,6 +102,14 @@ class _AjukanUsulanEmailScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const CivicFormIntro(
+                eyebrow: 'Administrasi akun dinas',
+                title: 'Verifikasi usulan email ASN',
+                description:
+                    'Periksa identitas pegawai terpilih, lalu tentukan alamat kontak untuk menerima informasi aktivasi.',
+                icon: Icons.alternate_email_rounded,
+              ),
+              const SizedBox(height: 16),
               // Ringkasan Data Pegawai Terpilih (Read-only Bento Card)
               AppCard(
                 child: Column(

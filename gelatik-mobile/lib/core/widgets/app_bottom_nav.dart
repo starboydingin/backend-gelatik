@@ -30,14 +30,21 @@ class AppBottomNav extends StatelessWidget {
         ),
     ];
 
-    return SizedBox(
-      height: 74 + bottomInset,
+    return Padding(
+      padding: EdgeInsets.fromLTRB(12, 0, 12, bottomInset > 0 ? 0 : 10),
       child: Container(
+        height: 74 + bottomInset,
         decoration: BoxDecoration(
           color: AppColors.colorPrimary,
-          border: Border(
-            top: const BorderSide(color: AppColors.colorPrimaryDark),
-          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+          border: Border.all(color: AppColors.colorPrimaryDark),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x260F172A),
+              blurRadius: 18,
+              offset: Offset(0, 6),
+            ),
+          ],
         ),
         child: SafeArea(
           top: false,
@@ -45,46 +52,44 @@ class AppBottomNav extends StatelessWidget {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                 child: Row(
                   children: List.generate(items.length, (index) {
                     final item = items[index];
                     final isSelected = index == currentIndex;
                     final color = isSelected
-                        ? AppColors.colorAccent
+                        ? AppColors.colorTextPrimary
                         : AppColors.onPrimaryLight.withValues(alpha: .78);
 
                     return Expanded(
                       child: InkWell(
                         onTap: () => onTap(index),
                         borderRadius: BorderRadius.circular(10),
-                        child: Padding(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
                           padding: const EdgeInsets.symmetric(vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.colorAccent
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(item.icon, color: color, size: 24),
-                              const SizedBox(height: 4),
+                              Icon(item.icon, color: color, size: 22),
+                              const SizedBox(height: 2),
                               Text(
                                 item.label,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   fontWeight: isSelected
                                       ? FontWeight.w700
                                       : FontWeight.w500,
                                   color: color,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 180),
-                                width: isSelected ? 22 : 0,
-                                height: 3,
-                                decoration: BoxDecoration(
-                                  color: AppColors.colorAccent,
-                                  borderRadius: BorderRadius.circular(3),
                                 ),
                               ),
                             ],

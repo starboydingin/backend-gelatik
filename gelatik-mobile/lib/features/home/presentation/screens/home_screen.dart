@@ -1,14 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_logo.dart';
-import '../../../../core/widgets/gelatik_page_header.dart';
+import '../../../../core/widgets/bento_block.dart';
+import '../../../../core/widgets/bento_dashboard_grid.dart';
 import '../../../../core/widgets/notification_badge_button.dart';
+import '../../../../core/widgets/personal_greeting.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
@@ -21,6 +24,7 @@ import '../../../email/presentation/screens/usulan_email_list_screen.dart';
 import '../../../info_alat/presentation/screens/info_alat_screen.dart';
 import '../../../internet/presentation/screens/layanan_internet_screen.dart';
 import '../../../internet/presentation/screens/self_assessment_screen.dart';
+import '../../../internet/providers/internet_provider.dart';
 import '../../../konsultasi/presentation/screens/konsultasi_detail_screen.dart';
 import '../../../konsultasi/presentation/screens/konsultasi_list_screen.dart';
 import '../../../konsultasi/models/konsultasi_model.dart';
@@ -37,7 +41,9 @@ import '../../providers/home_provider.dart';
 import '../../repositories/announcement_repository.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+  final bool embedded;
+
+  const HomeScreen({super.key, this.embedded = false});
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
@@ -47,7 +53,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(homeProvider.notifier).load());
+    Future.microtask(() async {
+      await Future.wait([
+        ref.read(homeProvider.notifier).load(),
+        ref.read(internetProvider.notifier).loadRouters(),
+      ]);
+    });
   }
 
   void _open(Widget screen) {
@@ -66,6 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeProvider);
+    final internetState = ref.watch(internetProvider);
     final data = state.data;
     // `/pengumuman` is the authoritative, independent source for the banner.
     // The dashboard response is cached for fast navigation, so use its value
@@ -80,89 +92,80 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final horizontalPadding = screenWidth >= 960
         ? (screenWidth - 920) / 2
         : 20.0;
-    return Scaffold(
-      appBar: GelatikPageHeader(
-        title: 'Beranda',
-        actions: [
-          IconButton(
-            tooltip: 'Cari layanan',
-            onPressed: () => _open(const ServicesScreen(autofocusSearch: true)),
-            icon: const Icon(Icons.search_rounded),
-          ),
-          NotificationBadgeButton(
-            initialUnread: data.unreadNotificationCount ?? 0,
-          ),
-          const SizedBox(width: 8),
+    final content = <Widget>[
+      if (state.status == HomeLoadStatus.error) ...[
+        // There is no bandwidth block in the full-error layout, so keep an
+        // independently loaded announcement visible above the error card.
+        if (announcements.isNotEmpty) ...[
+          _AnnouncementCarousel(announcements: announcements),
+          const SizedBox(height: 20),
         ],
-      ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            // Pull-to-refresh must re-query both the dashboard and the
-            // announcement feed instead of reusing a previous provider value.
-            ref.invalidate(activeAnnouncementsProvider);
-            await ref.read(homeProvider.notifier).refresh();
-          },
-          child: ListView(
-            key: const Key('home-scroll'),
-            physics: const AlwaysScrollableScrollPhysics(),
-            // Keep only a small area ahead of the viewport. The sections below
-            // are built lazily instead of constructing most of Home at once.
-            // ignore: deprecated_member_use
-            cacheExtent: 480,
-            padding: EdgeInsets.fromLTRB(
-              horizontalPadding,
-              20,
-              horizontalPadding,
-              112,
+        _FullErrorCard(
+          message: state.errorMessage ?? 'Data Home gagal dimuat.',
+          unauthorized: state.errorType == HomeErrorType.unauthorized,
+          onRetry: () => ref.read(homeProvider.notifier).retry(),
+          onLogin: _loginAgain,
+        ),
+      ] else ...[
+        _BentoOverview(
+          state: state,
+          announcements: announcements,
+          bandwidth: internetState.bandwidthInfo,
+          bandwidthLoading: internetState.isLoading,
+          bandwidthError: internetState.errorMessage,
+          onBorrowings: () => _open(const PeminjamanListScreen()),
+          onConsultations: () => _open(const KonsultasiListScreen()),
+          onEmails: () => _open(const UsulanEmailListScreen()),
+          onNotifications: () => _open(const NotificationsScreen()),
+          onInternet: () => _open(const LayananInternetScreen()),
+          onCriticism: () => _open(const KritikSaranScreen()),
+        ),
+        const SizedBox(height: 28),
+        _QuickMenu(onOpen: _open),
+        const SizedBox(height: 28),
+        _RecentSection(
+          state: state,
+          onBorrowing: (item) => _open(PeminjamanDetailScreen(pinjam: item)),
+          onConsultation: (item) =>
+              _open(KonsultasiDetailScreen(konsultasi: item)),
+          onEmail: (item) => _open(UsulanEmailDetailScreen(usulan: item)),
+          onAllBorrowings: () => _open(const PeminjamanListScreen()),
+          onAllConsultations: () => _open(const KonsultasiListScreen()),
+          onAllEmails: () => _open(const UsulanEmailListScreen()),
+        ),
+        const SizedBox(height: 28),
+        _ServiceInsightsSection(data: data),
+      ],
+    ];
+
+    return Scaffold(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(activeAnnouncementsProvider);
+          await ref.read(homeProvider.notifier).refresh();
+        },
+        child: CustomScrollView(
+          key: const Key('home-scroll'),
+          physics: const AlwaysScrollableScrollPhysics(),
+          scrollCacheExtent: const ScrollCacheExtent.pixels(480),
+          slivers: [
+            _DashboardSliverHeader(
+              data: data,
+              onSearch: () =>
+                  _open(const ServicesScreen(autofocusSearch: true)),
             ),
-            children: [
-              // The Gelatik service banner remains the page's primary entry.
-              // Announcements follow it so they do not push the brand message
-              // above the main service context.
-              _ServiceBanner(data: data),
-              const SizedBox(height: 24),
-              if (state.status != HomeLoadStatus.error) ...[
-                _ServiceInsightsSection(data: data),
-                const SizedBox(height: 24),
-              ],
-              if (announcements.isNotEmpty) ...[
-                _AnnouncementCarousel(announcements: announcements),
-                const SizedBox(height: 24),
-              ],
-              if (announcements.isEmpty) const SizedBox(height: 10),
-              if (state.status == HomeLoadStatus.error)
-                _FullErrorCard(
-                  message: state.errorMessage ?? 'Data Home gagal dimuat.',
-                  unauthorized: state.errorType == HomeErrorType.unauthorized,
-                  onRetry: () => ref.read(homeProvider.notifier).retry(),
-                  onLogin: _loginAgain,
-                )
-              else ...[
-                _SummarySection(
-                  state: state,
-                  onBorrowings: () => _open(const PeminjamanListScreen()),
-                  onConsultations: () => _open(const KonsultasiListScreen()),
-                  onEmails: () => _open(const UsulanEmailListScreen()),
-                ),
-                const SizedBox(height: 28),
-                _QuickMenu(onOpen: _open),
-                const SizedBox(height: 28),
-                _RecentSection(
-                  state: state,
-                  onBorrowing: (item) =>
-                      _open(PeminjamanDetailScreen(pinjam: item)),
-                  onConsultation: (item) =>
-                      _open(KonsultasiDetailScreen(konsultasi: item)),
-                  onEmail: (item) =>
-                      _open(UsulanEmailDetailScreen(usulan: item)),
-                  onAllBorrowings: () => _open(const PeminjamanListScreen()),
-                  onAllConsultations: () => _open(const KonsultasiListScreen()),
-                  onAllEmails: () => _open(const UsulanEmailListScreen()),
-                ),
-              ],
-            ],
-          ),
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                24,
+                horizontalPadding,
+                widget.embedded ? 118 : 112,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate.fixed(content),
+              ),
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -176,23 +179,420 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: const Icon(Icons.chat_bubble_outline_rounded, size: 26),
         ),
       ),
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: 0,
-        isAdmin: data.canAccessAdminPanel,
-        onTap: (index) {
-          if (index == 1) {
-            _open(const ServicesScreen());
-          } else if (index == 2) {
-            _open(const NotificationsScreen());
-          } else if (index == 3) {
-            _open(const ProfilScreen());
-          } else if (index == 4 && data.canAccessAdminPanel) {
-            _open(const AdminDashboardScreen());
-          }
-        },
+      bottomNavigationBar: widget.embedded
+          ? null
+          : AppBottomNav(
+              currentIndex: 0,
+              isAdmin: data.canAccessAdminPanel,
+              onTap: (index) {
+                if (index == 1) {
+                  _open(const ServicesScreen());
+                } else if (index == 2) {
+                  _open(const NotificationsScreen());
+                } else if (index == 3) {
+                  _open(const ProfilScreen());
+                } else if (index == 4 && data.canAccessAdminPanel) {
+                  _open(const AdminDashboardScreen());
+                }
+              },
+            ),
+    );
+  }
+}
+
+class _DashboardSliverHeader extends StatelessWidget {
+  final HomeDashboardModel data;
+  final VoidCallback onSearch;
+
+  const _DashboardSliverHeader({required this.data, required this.onSearch});
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverAppBar(
+      pinned: true,
+      toolbarHeight: 76,
+      backgroundColor: AppColors.colorPrimary,
+      foregroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      titleSpacing: 20,
+      title: const AppLogo(iconSize: 34),
+      actions: [
+        IconButton(
+          tooltip: 'Cari layanan',
+          onPressed: onSearch,
+          icon: const Icon(Icons.search_rounded),
+        ),
+        NotificationBadgeButton(
+          initialUnread: data.unreadNotificationCount ?? 0,
+        ),
+        const SizedBox(width: 8),
+      ],
+      bottom: const PreferredSize(
+        preferredSize: Size.fromHeight(4),
+        child: ColoredBox(
+          color: AppColors.colorAccent,
+          child: SizedBox(height: 4, width: double.infinity),
+        ),
       ),
     );
   }
+}
+
+class _BentoOverview extends StatelessWidget {
+  final HomeState state;
+  final List<Announcement> announcements;
+  final Map<String, dynamic> bandwidth;
+  final bool bandwidthLoading;
+  final String? bandwidthError;
+  final VoidCallback onBorrowings;
+  final VoidCallback onConsultations;
+  final VoidCallback onEmails;
+  final VoidCallback onNotifications;
+  final VoidCallback onInternet;
+  final VoidCallback onCriticism;
+
+  const _BentoOverview({
+    required this.state,
+    required this.announcements,
+    required this.bandwidth,
+    required this.bandwidthLoading,
+    required this.bandwidthError,
+    required this.onBorrowings,
+    required this.onConsultations,
+    required this.onEmails,
+    required this.onNotifications,
+    required this.onInternet,
+    required this.onCriticism,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final data = state.data;
+    final organization = data.namaOpd?.trim().isNotEmpty == true
+        ? data.namaOpd!
+        : 'Pemerintah Provinsi Lampung';
+    final loading = state.isLoading && !data.hasAnySectionData;
+    final bandwidthAvailable = bandwidth['available'] == true;
+    final download = bandwidth['download_mbps']?.toString() ?? '-';
+    final upload = bandwidth['upload_mbps']?.toString() ?? '-';
+    final recent = data.recentBorrowings.isNotEmpty
+        ? ('Peminjaman', data.recentBorrowings.first.status)
+        : data.recentConsultations.isNotEmpty
+        ? ('Konsultasi', data.recentConsultations.first.status)
+        : data.recentEmailRequests.isNotEmpty
+        ? ('Usulan email', data.recentEmailRequests.first.status)
+        : null;
+
+    return BentoDashboardGrid(
+      items: [
+        BentoDashboardItem(
+          span: 2,
+          child: BentoBlock(
+            tone: BentoBlockTone.navy,
+            minHeight: 148,
+            child: PersonalGreeting(
+              name: data.userName,
+              organization: organization,
+            ),
+          ),
+        ),
+        if (announcements.isNotEmpty)
+          BentoDashboardItem(
+            span: 2,
+            child: _AnnouncementCarousel(announcements: announcements),
+          ),
+        BentoDashboardItem(
+          span: 2,
+          child: BentoBlock(
+            key: const Key('bandwidth-traffic-block'),
+            tone: BentoBlockTone.teal,
+            onTap: onInternet,
+            semanticLabel: 'Informasi bandwidth OPD',
+            child: Row(
+              children: [
+                const Icon(Icons.monitor_heart_outlined, size: 30),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'TRAFIK OPD',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Colors.white70,
+                          letterSpacing: 1.2,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        bandwidthLoading
+                            ? 'Memuat bandwidth OPD...'
+                            : bandwidthAvailable
+                            ? 'Download $download Mbps • Upload $upload Mbps'
+                            : 'Data bandwidth belum tersedia',
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        bandwidthError != null
+                            ? 'Gagal memperbarui data. Ketuk untuk mencoba dari halaman internet.'
+                            : bandwidthAvailable
+                            ? '${bandwidth['opd'] ?? organization} • ${bandwidth['connection_name'] ?? 'Router OPD'}'
+                            : 'Buka layanan internet untuk pemeriksaan jaringan.',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_rounded, size: 20),
+              ],
+            ),
+          ),
+        ),
+        BentoDashboardItem(
+          child: BentoBlock(
+            tone: BentoBlockTone.gold,
+            minHeight: 142,
+            child: _OpdBandwidthBlock(
+              available: bandwidthAvailable,
+              loading: bandwidthLoading,
+              download: download,
+              upload: upload,
+            ),
+          ),
+        ),
+        BentoDashboardItem(
+          child: BentoBlock(
+            minHeight: 142,
+            child: _LatestStatusBlock(recent: recent),
+          ),
+        ),
+        BentoDashboardItem(
+          child: _BentoMetricBlock(
+            key: const Key('summary-borrowings'),
+            label: 'Peminjaman aktif',
+            value: data.activeBorrowingCount ?? data.totalBorrowingCount,
+            loading: loading,
+            icon: Icons.inventory_2_outlined,
+            tone: BentoBlockTone.white,
+            onTap: onBorrowings,
+          ),
+        ),
+        BentoDashboardItem(
+          child: _BentoMetricBlock(
+            key: const Key('summary-consultations'),
+            label: 'Konsultasi aktif',
+            value: data.activeConsultationCount ?? data.totalConsultationCount,
+            loading: loading,
+            icon: Icons.forum_outlined,
+            tone: BentoBlockTone.navy,
+            onTap: onConsultations,
+          ),
+        ),
+        BentoDashboardItem(
+          child: _BentoMetricBlock(
+            key: const Key('summary-email'),
+            label: 'Usulan email',
+            value: data.emailRequestCount,
+            loading: loading,
+            icon: Icons.alternate_email_rounded,
+            tone: BentoBlockTone.teal,
+            onTap: onEmails,
+          ),
+        ),
+        BentoDashboardItem(
+          child: _BentoMetricBlock(
+            key: const Key('summary-notifications'),
+            label: 'Notifikasi baru',
+            value: data.unreadNotificationCount,
+            loading: loading,
+            icon: Icons.notifications_none_rounded,
+            tone: BentoBlockTone.gold,
+            onTap: onNotifications,
+          ),
+        ),
+        BentoDashboardItem(
+          span: 2,
+          child: BentoBlock(
+            onTap: onCriticism,
+            semanticLabel: 'Kualitas layanan dan kritik saran',
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3C7),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.star_rounded,
+                    color: AppColors.colorAccent,
+                    size: 30,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Kualitas layanan',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        data.serviceRatingCount == 0
+                            ? 'Belum ada penilaian pengguna'
+                            : '${data.serviceRatingAverage.toStringAsFixed(1)}/5 dari ${data.serviceRatingCount} penilaian',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.mutedText(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_rounded),
+              ],
+            ),
+          ),
+        ),
+        if (state.hasPartialFailure)
+          const BentoDashboardItem(
+            span: 2,
+            child: Text(
+              'Sebagian ringkasan belum dapat diperbarui. Tarik ke bawah untuk mencoba lagi.',
+              key: Key('home-partial-error'),
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _OpdBandwidthBlock extends StatelessWidget {
+  final bool available;
+  final bool loading;
+  final String download;
+  final String upload;
+
+  const _OpdBandwidthBlock({
+    required this.available,
+    required this.loading,
+    required this.download,
+    required this.upload,
+  });
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Icon(Icons.speed_rounded, size: 28),
+      const SizedBox(height: 24),
+      const Text(
+        'Bandwidth OPD Anda',
+        style: TextStyle(fontWeight: FontWeight.w800),
+      ),
+      const SizedBox(height: 5),
+      if (loading)
+        const Text(
+          'Memuat data...',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        )
+      else if (available)
+        Text(
+          '↓ $download Mbps\n↑ $upload Mbps',
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        )
+      else
+        const Text('Belum tersedia', style: TextStyle(fontSize: 12)),
+    ],
+  );
+}
+
+class _LatestStatusBlock extends StatelessWidget {
+  final (String, String)? recent;
+
+  const _LatestStatusBlock({required this.recent});
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Icon(Icons.track_changes_rounded, color: AppColors.colorPrimary),
+      const SizedBox(height: 24),
+      const Text(
+        'Status terbaru',
+        style: TextStyle(fontWeight: FontWeight.w800),
+      ),
+      const SizedBox(height: 5),
+      if (recent == null)
+        Text(
+          'Belum ada aktivitas',
+          style: TextStyle(fontSize: 12, color: AppColors.mutedText(context)),
+        )
+      else ...[
+        Text(recent!.$1, style: const TextStyle(fontSize: 11)),
+        const SizedBox(height: 3),
+        StatusBadge(status: recent!.$2),
+      ],
+    ],
+  );
+}
+
+class _BentoMetricBlock extends StatelessWidget {
+  final String label;
+  final int? value;
+  final bool loading;
+  final IconData icon;
+  final BentoBlockTone tone;
+  final VoidCallback onTap;
+
+  const _BentoMetricBlock({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.loading,
+    required this.icon,
+    required this.tone,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) => BentoBlock(
+    tone: tone,
+    minHeight: 136,
+    onTap: onTap,
+    semanticLabel: label,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 26),
+        const SizedBox(height: 24),
+        if (loading)
+          const SizedBox.square(
+            dimension: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        else
+          Text(
+            '${value ?? 0}',
+            style: const TextStyle(fontSize: 27, fontWeight: FontWeight.w800),
+          ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        ),
+      ],
+    ),
+  );
 }
 
 class _AnnouncementCarousel extends StatefulWidget {
@@ -215,7 +615,7 @@ class _AnnouncementCarouselState extends State<_AnnouncementCarousel> {
   @override
   void initState() {
     super.initState();
-    _scheduleNextSlide();
+    _startAutoplay();
   }
 
   @override
@@ -227,13 +627,13 @@ class _AnnouncementCarouselState extends State<_AnnouncementCarousel> {
         if (mounted && _controller.hasClients) _controller.jumpToPage(0);
       });
     }
-    _scheduleNextSlide();
+    _startAutoplay();
   }
 
-  void _scheduleNextSlide() {
+  void _startAutoplay() {
     _timer?.cancel();
     if (widget.announcements.length < 2) return;
-    _timer = Timer(_slideInterval, () {
+    _timer = Timer.periodic(_slideInterval, (_) {
       if (!mounted || !_controller.hasClients) return;
       final nextPage = (_currentPage + 1) % widget.announcements.length;
       _controller.animateToPage(
@@ -246,9 +646,9 @@ class _AnnouncementCarouselState extends State<_AnnouncementCarousel> {
 
   void _pageChanged(int page) {
     setState(() => _currentPage = page);
-    // A manual swipe gets a full reading interval before autoplay resumes.
-    _scheduleNextSlide();
   }
+
+  void _restartAutoplayAfterInteraction() => _startAutoplay();
 
   @override
   void dispose() {
@@ -262,15 +662,23 @@ class _AnnouncementCarouselState extends State<_AnnouncementCarousel> {
     children: [
       SizedBox(
         height: 132,
-        child: PageView.builder(
-          key: const Key('announcement-carousel'),
-          controller: _controller,
-          itemCount: widget.announcements.length,
-          onPageChanged: _pageChanged,
-          itemBuilder: (context, index) => _AnnouncementBanner(
-            announcement: widget.announcements[index],
-            position: index + 1,
-            total: widget.announcements.length,
+        child: NotificationListener<ScrollEndNotification>(
+          onNotification: (notification) {
+            if (notification.dragDetails != null) {
+              _restartAutoplayAfterInteraction();
+            }
+            return false;
+          },
+          child: PageView.builder(
+            key: const Key('announcement-carousel'),
+            controller: _controller,
+            itemCount: widget.announcements.length,
+            onPageChanged: _pageChanged,
+            itemBuilder: (context, index) => _AnnouncementBanner(
+              announcement: widget.announcements[index],
+              position: index + 1,
+              total: widget.announcements.length,
+            ),
           ),
         ),
       ),
@@ -381,108 +789,8 @@ class _AnnouncementBanner extends StatelessWidget {
   );
 }
 
-class _ServiceBanner extends StatelessWidget {
-  final HomeDashboardModel data;
-
-  const _ServiceBanner({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 164),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.colorPrimary,
-        border: Border.all(color: AppColors.colorPrimaryDark),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -22,
-            bottom: -34,
-            child: const LampungIconBadge(size: 150, opacity: .12),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.colorAccent,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      data.userName.trim().isEmpty
-                          ? 'G'
-                          : data.userName.trim()[0].toUpperCase(),
-                      style: const TextStyle(
-                        color: AppColors.colorTextPrimary,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Selamat datang,',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                        Text(
-                          data.userName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 17,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Text(
-                data.namaOpd?.trim().isNotEmpty == true
-                    ? data.namaOpd!
-                    : 'Layanan TIK Pemerintah Provinsi Lampung',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.colorAccent,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Kelola kebutuhan layanan, pantau status, dan dapatkan bantuan dari satu aplikasi.',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: .82),
-                  fontSize: 13,
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
+// Kept as a compatibility layout for focused widget consumers outside Home.
+// ignore: unused_element
 class _SummarySection extends StatelessWidget {
   final HomeState state;
   final VoidCallback onBorrowings;
@@ -984,33 +1292,33 @@ class _RatingInsightCard extends StatelessWidget {
                   SizedBox(
                     width: scoreWidth,
                     child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          average.toStringAsFixed(1),
-                          style: TextStyle(
-                            fontSize: 52,
-                            height: .9,
-                            color: AppColors.accentNavy(context),
-                            fontWeight: FontWeight.w800,
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              average.toStringAsFixed(1),
+                              style: TextStyle(
+                                fontSize: 52,
+                                height: .9,
+                                color: AppColors.accentNavy(context),
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.only(left: 3, bottom: 4),
+                              child: Text(
+                                '/5',
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ],
                         ),
-                        const Padding(
-                          padding: EdgeInsets.only(left: 3, bottom: 4),
-                          child: Text(
-                            '/5',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
+                        const SizedBox(height: 12),
+                        _RatingStars(value: average),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    _RatingStars(value: average),
-                  ],
-                ),
                   ),
                   Container(
                     width: compact ? constraints.maxWidth : 128,
@@ -1299,37 +1607,163 @@ class _QuickMenu extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Layanan Utama',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryTeal(context),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mulai layanan',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Aksi yang paling sering digunakan',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.mutedText(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.bolt_rounded, color: AppColors.colorAccent),
+          ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         LayoutBuilder(
           builder: (context, constraints) {
-            final crossAxisCount = constraints.maxWidth >= 760 ? 4 : 2;
-            return GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: crossAxisCount == 4 ? 1.08 : .84,
-              children: items
-                  .map(
-                    (item) =>
-                        _MenuCard(item: item, onTap: () => onOpen(item.screen)),
-                  )
-                  .toList(),
+            final wide = constraints.maxWidth >= 700;
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _PrimaryActionCard(
+                        item: items[0],
+                        onTap: () => onOpen(items[0].screen),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _PrimaryActionCard(
+                        item: items[1],
+                        onTap: () => onOpen(items[1].screen),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: items.length - 2,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: wide ? 4 : 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: wide ? 2.0 : 2.15,
+                  ),
+                  itemBuilder: (context, index) {
+                    final item = items[index + 2];
+                    return _CompactActionCard(
+                      item: item,
+                      onTap: () => onOpen(item.screen),
+                    );
+                  },
+                ),
+              ],
             );
           },
         ),
       ],
     );
   }
+}
+
+class _PrimaryActionCard extends StatelessWidget {
+  final _MenuData item;
+  final VoidCallback onTap;
+
+  const _PrimaryActionCard({required this.item, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    onTap: onTap,
+    padding: const EdgeInsets.all(16),
+    backgroundColor: AppColors.colorPrimary,
+    child: SizedBox(
+      height: 118,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.colorAccent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(item.icon, color: AppColors.colorTextPrimary),
+              ),
+              const Icon(Icons.north_east_rounded, color: Colors.white70),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            item.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _CompactActionCard extends StatelessWidget {
+  final _MenuData item;
+  final VoidCallback onTap;
+
+  const _CompactActionCard({required this.item, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    onTap: onTap,
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    elevation: 0,
+    child: Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: item.color.withValues(alpha: .11),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Icon(item.icon, color: item.color, size: 19),
+        ),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Text(
+            item.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _MenuData {
@@ -1348,83 +1782,4 @@ class _MenuData {
     this.screen, [
     this.badge,
   ]);
-}
-
-class _MenuCard extends StatelessWidget {
-  final _MenuData item;
-  final VoidCallback onTap;
-  const _MenuCard({required this.item, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => AppCard(
-    onTap: onTap,
-    child: Container(
-      decoration: BoxDecoration(
-        color: item.color.withValues(alpha: .055),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: item.color.withValues(alpha: .14),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(item.icon, color: item.color, size: 27),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  item.title,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primaryTeal(context),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  item.subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: AppColors.mutedText(context),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (item.badge != null)
-            Positioned(
-              top: -4,
-              right: -4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.accentGold(context),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  item.badge!,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    ),
-  );
 }

@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
-import '../../../home/presentation/screens/home_screen.dart';
+import '../../../shell/presentation/screens/main_shell.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_searchable_select.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/bento_block.dart';
+import '../../../../core/widgets/illustration_asset.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../theme/auth_typography.dart';
 
@@ -187,7 +189,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (result == AuthResultStatus.authenticated) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: widget.homeBuilder ?? (_) => const HomeScreen(),
+          builder: widget.homeBuilder ?? (_) => const MainShell(),
         ),
         (route) => false,
       );
@@ -234,10 +236,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   0.0,
                   constraints.maxHeight - keyboardInset - 32,
                 );
-                final logoWidth = math.max(
-                  150.0,
-                  math.min(constraints.maxWidth * 0.44, 180.0),
-                );
                 final sigerWidth = math.max(
                   65.0,
                   math.min(constraints.maxWidth * 0.19, 82.0),
@@ -250,24 +248,56 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Header Logo & Subtitle
-                        Image.asset(
-                          'assets/images/logo-tanpabackground.png',
-                          key: const Key('register_gelatik_logo'),
-                          width: logoWidth,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'GERBANG LAYANAN TIK',
-                          textAlign: TextAlign.center,
-                          style: AuthTypography.brandTitle(
-                            context,
-                            fontSize: 13,
-                          ).copyWith(color: mutedText, letterSpacing: 1.4),
+                        BentoBlock(
+                          tone: BentoBlockTone.teal,
+                          padding: const EdgeInsets.fromLTRB(20, 18, 10, 0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 18),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Image.asset(
+                                        'assets/images/logo-tanpabackground.png',
+                                        key: const Key('register_gelatik_logo'),
+                                        width: 126,
+                                        fit: BoxFit.contain,
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        'AKUN PEGAWAI',
+                                        style:
+                                            AuthTypography.brandTitle(
+                                              context,
+                                              fontSize: 12,
+                                            ).copyWith(
+                                              color: AppColors.colorAccent,
+                                              letterSpacing: 1.2,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 7),
+                                      const Text(
+                                        'Satu akun untuk seluruh kebutuhan layanan TIK.',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const IllustrationAsset(width: 100, height: 148),
+                            ],
+                          ),
                         ),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 14),
 
                         // Form Card Utama
                         AppCard(
@@ -609,7 +639,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         Opacity(
                           opacity: 0.5,
                           child: Image.asset(
-                            'assets/images/SIGER.png',
+                            'assets/images/icon lampung.png',
                             key: const Key('register_siger_logo'),
                             width: sigerWidth,
                             fit: BoxFit.contain,

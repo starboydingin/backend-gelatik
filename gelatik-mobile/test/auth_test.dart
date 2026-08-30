@@ -751,7 +751,7 @@ void main() {
       );
       expect(
         (loginSiger.image as AssetImage).assetName,
-        'assets/images/SIGER.png',
+        'assets/images/icon lampung.png',
       );
       final brandText = tester.widget<Text>(find.text('GERBANG LAYANAN TIK'));
       expect(brandText.style?.fontFamily, contains('Montserrat'));

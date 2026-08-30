@@ -46,11 +46,7 @@ class _UsulanEmailListScreenState extends ConsumerState<UsulanEmailListScreen> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
-            );
-          },
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
         actions: const [ThemeToggleButton(), SizedBox(width: 8)],
       ),

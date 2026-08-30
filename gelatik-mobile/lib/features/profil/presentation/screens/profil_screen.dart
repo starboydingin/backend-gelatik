@@ -21,7 +21,9 @@ import '../../../kritik_saran/presentation/screens/kritik_saran_history_screen.d
 
 /// ProfilScreen — Modul M-J Profil Pengguna Gelatik Mobile
 class ProfilScreen extends ConsumerWidget {
-  const ProfilScreen({super.key});
+  final bool embedded;
+
+  const ProfilScreen({super.key, this.embedded = false});
 
   String _display(String? value) {
     final text = value?.trim() ?? '';
@@ -483,41 +485,47 @@ class ProfilScreen extends ConsumerWidget {
           ),
         ),
       ),
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: 3,
-        isAdmin:
-            user != null &&
-            const {
-              'admin',
-              'superadmin',
-              'bkd',
-            }.contains(user.role.toLowerCase()),
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          } else if (index == 1) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const ServicesScreen()),
-            );
-          } else if (index == 2) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-            );
-          } else if (index == 3) {
-            // Already in ProfilScreen.
-          } else if (index == 4 &&
-              user != null &&
-              const {
-                'admin',
-                'superadmin',
-                'bkd',
-              }.contains(user.role.toLowerCase())) {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-            );
-          }
-        },
-      ),
+      bottomNavigationBar: embedded
+          ? null
+          : AppBottomNav(
+              currentIndex: 3,
+              isAdmin:
+                  user != null &&
+                  const {
+                    'admin',
+                    'superadmin',
+                    'bkd',
+                  }.contains(user.role.toLowerCase()),
+              onTap: (index) {
+                if (index == 0) {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                } else if (index == 1) {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const ServicesScreen()),
+                  );
+                } else if (index == 2) {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen(),
+                    ),
+                  );
+                } else if (index == 3) {
+                  // Already in ProfilScreen.
+                } else if (index == 4 &&
+                    user != null &&
+                    const {
+                      'admin',
+                      'superadmin',
+                      'bkd',
+                    }.contains(user.role.toLowerCase())) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AdminDashboardScreen(),
+                    ),
+                  );
+                }
+              },
+            ),
     );
   }
 

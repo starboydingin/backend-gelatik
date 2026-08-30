@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-
 /// Centralized official Gelatik identity used by app chrome and auth screens.
 class AppLogo extends StatelessWidget {
   final Color textColor;
@@ -44,7 +42,7 @@ class AppLogo extends StatelessWidget {
   );
 }
 
-/// Lampung identity accent. SIGER is the equivalent asset available in-app.
+/// Formal Lampung identity supplied by the provincial visual system.
 class LampungIconBadge extends StatelessWidget {
   final double size;
   final double opacity;
@@ -56,11 +54,9 @@ class LampungIconBadge extends StatelessWidget {
     child: Opacity(
       opacity: opacity,
       child: Image.asset(
-        'assets/images/SIGER.png',
+        'assets/images/icon lampung.png',
         width: size,
         fit: BoxFit.contain,
-        color: AppColors.colorAccent,
-        colorBlendMode: BlendMode.srcIn,
       ),
     ),
   );

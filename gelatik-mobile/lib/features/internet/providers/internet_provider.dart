@@ -17,6 +17,7 @@ class InternetState {
       'opd': 'Informasi bandwidth belum tersedia',
       'provider': 'Tidak tersedia dari API',
       'status': 'Belum tersedia',
+      'available': false,
       'download_mbps': '-',
       'upload_mbps': '-',
     },
