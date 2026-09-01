@@ -70,14 +70,14 @@ async function submit() {
             >← Kembali ke kritik & saran</RouterLink
         >
         <section
-            class="mx-auto max-w-4xl overflow-hidden rounded-[28px] border border-stroke bg-white shadow-soft"
+            class="mx-auto max-w-4xl overflow-hidden rounded-xl border border-stroke bg-white shadow-soft"
         >
             <ServiceHero
                 eyebrow="Penilaian layanan"
                 title="Seberapa puas Anda dengan layanan kami?"
                 description="Rating tersimpan sebagai penilaian umum layanan dan dapat diperbarui kapan saja."
             />
-            <div class="p-6 text-center md:p-10">
+            <div class="p-5 text-center md:p-6">
                 <div class="flex justify-center gap-1 sm:gap-3" @mouseleave="hover = 0">
                     <button
                         v-for="star in 5"
@@ -94,11 +94,11 @@ async function submit() {
                         />
                     </button>
                 </div>
-                <div class="mx-auto mt-6 max-w-lg rounded-2xl border border-stroke bg-slate-50 p-5">
+                <div class="mx-auto mt-5 max-w-lg rounded-xl border border-stroke bg-slate-50 p-4">
                     <h2 class="text-xl font-bold text-navy">{{ labels[value] }}</h2>
                     <p class="mt-2 text-sm text-slate-500">{{ selected || 0 }} dari 5 bintang</p>
                 </div>
-                <div class="mt-7 flex justify-center gap-3">
+                <div class="mt-5 flex justify-center gap-2">
                     <RouterLink to="/app/umpan-balik" class="btn-secondary">Batal</RouterLink
                     ><button class="btn-primary" :disabled="!selected || saving" @click="submit">
                         {{ saving ? 'Menyimpan…' : hasExistingRating ? 'Perbarui rating' : 'Beri rating' }}

@@ -461,7 +461,10 @@ void main() {
           ),
         );
 
-        await tester.pumpAndSettle();
+        // The dashboard starts an independent router refresh. The banner
+        // layout itself is available immediately and must not wait for that
+        // network request to time out in a widget test.
+        await tester.pump(const Duration(milliseconds: 300));
 
         await _scrollHomeTo(tester, find.text('Pengumuman terbaru'));
 
@@ -470,7 +473,7 @@ void main() {
         expect(find.text('Layanan akan dipelihara malam ini.'), findsOneWidget);
         expect(
           tester.getTopLeft(find.byKey(const Key('announcement-carousel'))).dy,
-          lessThan(
+          greaterThan(
             tester
                 .getTopLeft(find.byKey(const Key('bandwidth-traffic-block')))
                 .dy,

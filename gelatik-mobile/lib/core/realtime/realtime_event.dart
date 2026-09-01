@@ -7,6 +7,8 @@ class RealtimeEvent {
     'konsultasi.created',
     'konsultasi.responded',
     'konsultasi.status_changed',
+    'usulan_email.created',
+    'usulan_email.verified',
     'usulan_email.status_changed',
     'kritik_saran.created',
     'data.sync',
@@ -72,7 +74,8 @@ class RealtimeEvent {
     final requiresStatus =
         !isChatbotEvent &&
         eventName != 'kritik_saran.created' &&
-        eventName != 'pengumuman.created';
+        eventName != 'pengumuman.created' &&
+        eventName != 'usulan_email.verified';
     final status = _optionalText(json['status']);
     if (requiresStatus && status == null) return null;
 

@@ -300,7 +300,7 @@ onMounted(load)
                 </h2>
                 <button type="button" class="text-slate-400" @click="showForm = false">✕</button>
             </div>
-            <div class="mt-5 grid gap-4 md:grid-cols-2">
+            <div class="mt-4 grid gap-3 md:grid-cols-2">
                 <label
                     ><span class="label">Nama PIC</span
                     ><input
@@ -402,7 +402,7 @@ onMounted(load)
                     Dokumen pendukung tidak dapat diubah setelah pengajuan dikirim.
                 </p>
             </div>
-            <section class="mt-6 border-t border-[var(--color-border)] pt-5">
+            <section class="mt-5 border-t border-[var(--color-border)] pt-4">
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <div>
                         <p class="eyebrow">Daftar aset</p>
@@ -494,7 +494,7 @@ onMounted(load)
                 <article
                     v-for="item in displayedItems"
                     :key="item.id"
-                    class="card flex min-h-64 flex-col"
+                    class="card flex flex-col"
                 >
                     <div class="flex items-start justify-between gap-3">
                         <p class="eyebrow">Peminjaman #{{ item.id }}</p>
@@ -517,7 +517,7 @@ onMounted(load)
                             <dd>{{ item.pinjam_items?.length || 0 }} jenis aset</dd>
                         </div>
                     </dl>
-                    <div class="mt-auto flex flex-wrap gap-2 pt-5">
+                    <div class="mt-auto flex flex-wrap gap-2 pt-4">
                         <button class="btn-secondary min-h-9 px-3" @click="showSummary(item)">
                             Ringkasan
                         </button>

@@ -16,6 +16,8 @@ class AppColors {
   static const Color colorSecondary = Color(0xFF0F766E);
   static const Color colorSecondaryBright = Color(0xFF2DD4BF);
   static const Color colorBackground = Color(0xFFF8FAFC);
+  static const Color colorAuthHero = Color(0xFFEAF2F6);
+  static const Color colorAuthHeroAccent = Color(0xFFD5E8E8);
   static const Color colorSurface = Color(0xFFFFFFFF);
   static const Color colorBorder = Color(0xFFE2E8F0);
   static const Color colorTextPrimary = Color(0xFF111827);

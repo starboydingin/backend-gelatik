@@ -16,6 +16,7 @@ const ALLOWED_EVENTS = new Set([
     ...Object.keys(EVENT_CONTRACTS),
     'pengumuman.created',
     'usulan_email.created',
+    'usulan_email.verified',
     'usulan_email.status_changed',
     'chatbot.conversation.created',
     'chatbot.conversation.updated',

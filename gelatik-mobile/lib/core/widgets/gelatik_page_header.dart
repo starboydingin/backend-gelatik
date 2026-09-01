@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
-import 'app_logo.dart';
 
-/// Header ringkas dengan identitas Gelatik untuk layar utama aplikasi.
+/// Header focused on the current page name; product branding stays in the
+/// authentication experience and no longer competes with navigation context.
 class GelatikPageHeader extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool showBack;
@@ -29,38 +29,28 @@ class GelatikPageHeader extends StatelessWidget implements PreferredSizeWidget {
 
     return AppBar(
       automaticallyImplyLeading: false,
+      leading: showBack
+          ? IconButton(
+              tooltip: 'Kembali',
+              onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+              icon: const Icon(Icons.arrow_back_rounded),
+            )
+          : null,
       toolbarHeight: preferredSize.height,
       backgroundColor: primary,
       foregroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
-      titleSpacing: 20,
-      title: Row(
-        children: [
-          if (showBack) ...[
-            IconButton(
-              tooltip: 'Kembali',
-              onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-              icon: const Icon(Icons.arrow_back_rounded),
-            ),
-            const SizedBox(width: 4),
-          ] else ...[
-            AppLogo(iconSize: isNarrow ? 30 : 34),
-            SizedBox(width: isNarrow ? 8 : 12),
-          ],
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: titleSize,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-              ),
-            ),
-          ),
-        ],
+      titleSpacing: showBack ? 4 : 20,
+      title: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: titleSize,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
+        ),
       ),
       actions: actions,
       bottom: PreferredSize(

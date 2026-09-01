@@ -32,25 +32,29 @@ const titles = {
     pengaturan: ['Akun administrator', 'Profil & Pengaturan'],
     'referensi-layanan': ['Master layanan', 'Referensi Layanan'],
 }
-const current = computed(
-    () =>
-        titles[route.path.split('/').filter(Boolean).at(-1)] || [
-            'Portal layanan terpadu',
-            'Gelatik',
-        ]
-)
+const current = computed(() => {
+    const path = route.path
+    const routeKey = path.includes('/peminjaman/')
+        ? 'peminjaman'
+        : path.includes('/konsultasi/')
+          ? 'konsultasi'
+          : path.includes('/email-resmi/')
+            ? 'email-resmi'
+            : path.split('/').filter(Boolean).at(-1)
+
+    return titles[routeKey] || ['Portal layanan terpadu', 'Gelatik']
+})
 const initials = computed(() => (String(route.meta?.initials || '') || '').trim())
 </script>
 
 <template>
     <header
-        class="app-top-header sticky top-0 z-20 flex min-h-[76px] items-center gap-3 border-b px-4 md:gap-4 md:px-7"
+        class="app-top-header sticky top-0 z-20 flex min-h-[68px] items-center gap-3 border-b px-4 md:gap-4 md:px-6"
     >
-        <!-- Desktop branding lives only in the persistent left navigation. -->
-        <GelatikLogo compact class="shrink-0 md:hidden" />
+        <GelatikLogo compact class="hidden shrink-0 sm:block lg:hidden" />
         <div class="min-w-0 flex-1">
             <p class="eyebrow truncate">{{ current[0] }}</p>
-            <h1 class="truncate font-brand text-xl font-bold tracking-tight">{{ current[1] }}</h1>
+            <h1 class="truncate font-brand text-lg font-bold tracking-tight sm:text-xl">{{ current[1] }}</h1>
         </div>
         <NotificationDropdown :admin-area="adminArea" :portal-prefix="notificationPrefix" />
         <div class="hidden min-w-0 items-center gap-3 sm:flex">

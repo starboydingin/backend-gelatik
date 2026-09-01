@@ -39,6 +39,16 @@ class _BandwidthAdapter implements HttpClientAdapter {
               'upload_mbps': 100,
             },
           ],
+          'user': {
+            'available': true,
+            'detected': true,
+            'name': 'Pengguna Bandwidth',
+            'download_mbps': 50,
+            'upload_mbps': 20,
+            'source': 'user_allocation',
+            'source_label': 'Alokasi khusus akun',
+            'inherited_from_opd': false,
+          },
         },
       },
     }),
@@ -72,6 +82,16 @@ void main() {
       expect(bandwidth['upload_mbps'], 100);
       expect(bandwidth['connection_name'], 'Router Utama');
       expect(bandwidth['connection_count'], 2);
+      expect(bandwidth['user'], {
+        'available': true,
+        'detected': true,
+        'name': 'Pengguna Bandwidth',
+        'download_mbps': 50,
+        'upload_mbps': 20,
+        'source': 'user_allocation',
+        'source_label': 'Alokasi khusus akun',
+        'inherited_from_opd': false,
+      });
     },
   );
 }

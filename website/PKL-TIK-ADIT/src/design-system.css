@@ -56,6 +56,19 @@ body {
     background: var(--color-bg-primary) !important;
     color: var(--color-text-primary) !important;
     font-family: Urbanist, ui-sans-serif, system-ui, sans-serif !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+* {
+    scrollbar-width: none;
 }
 
 h1,
@@ -194,7 +207,7 @@ textarea:focus-visible,
 }
 
 .data-table th {
-    padding: 0.8rem 1rem;
+    padding: 0.65rem 0.8rem;
     border: 0 !important;
     border-bottom: 1px solid var(--color-border) !important;
     background: var(--color-brand-primary-strong) !important;
@@ -205,7 +218,7 @@ textarea:focus-visible,
 }
 
 .data-table td {
-    padding: 0.9rem 1rem;
+    padding: 0.72rem 0.8rem;
     border: 0 !important;
     border-bottom: 1px solid var(--color-border) !important;
     background: transparent !important;
@@ -235,9 +248,26 @@ textarea:focus-visible,
 }
 
 .section-panel-header {
+    padding: 0.85rem 1rem !important;
     border-color: var(--color-border) !important;
     background: var(--color-surface-muted) !important;
     color: var(--color-text-primary) !important;
+}
+
+.page-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.page-stack > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0 !important;
+}
+
+@media (min-width: 768px) {
+    .page-stack {
+        gap: 1.25rem;
+    }
 }
 
 .section-panel > .table-wrap {

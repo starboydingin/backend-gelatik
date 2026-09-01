@@ -35,6 +35,15 @@ void main() {
 
       expect(find.byType(HomeScreen, skipOffstage: false), findsOneWidget);
       expect(find.byType(ServicesScreen), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(SliverAppBar),
+          matching: find.text('Beranda'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Gelatik'), findsNothing);
+      expect(find.byKey(const Key('home-chatbot-button')), findsOneWidget);
 
       await tester.tap(
         find.descendant(
@@ -46,7 +55,15 @@ void main() {
 
       expect(find.byType(HomeScreen, skipOffstage: false), findsOneWidget);
       expect(find.byType(ServicesScreen), findsOneWidget);
+      expect(find.byKey(const Key('home-chatbot-button')), findsNothing);
       expect(find.text('Apa yang Anda butuhkan?'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Layanan'),
+        ),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Peminjaman Aset'));
       await tester.pump();

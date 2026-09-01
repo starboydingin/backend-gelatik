@@ -389,14 +389,14 @@ class AuthorizationTest extends TestCase
 
         $service = app(ChatbotService::class);
         $first = $service->sendMessage($this->userA, 'Internet kantor tidak bisa digunakan', null);
-        $service->sendMessage($this->userA, 'Masih tidak bisa', $first['session_id']);
+        $second = $service->sendMessage($this->userA, 'Masih tidak bisa', $first['session_id']);
         $result = $service->sendMessage($this->userA, 'Tetap tidak bisa', $first['session_id']);
 
+        $this->assertStringNotContainsString('(iya/tidak)', $second['reply']);
         $this->assertTrue($result['success']);
-        $this->assertStringContainsString('konsultasi', strtolower($result['reply']));
-        $this->assertStringContainsString("Nama:\nOPD:\nDetail Permasalahan:", $result['reply']);
-        $this->assertStringNotContainsString('Lokasi/OPD:', $result['reply']);
-        $this->assertStringNotContainsString('Detail tambahan:', $result['reply']);
+        $this->assertStringContainsString('maukah saya membuatkan konsultasi kepada admin secara langsung? (iya/tidak)', $result['reply']);
+        $this->assertStringContainsString('Anda hanya perlu menjawab "iya" atau "tidak".', $result['reply']);
+        $this->assertStringNotContainsString("Nama:\nOPD:\nDetail Permasalahan:", $result['reply']);
         $this->assertDatabaseHas('chatbot_conversations', [
             'user_id' => $this->userA->id,
             'session_id' => $first['session_id'],
@@ -404,18 +404,19 @@ class AuthorizationTest extends TestCase
         ]);
 
         $consultationCountBefore = \DB::table('tr_konsultasi')->count();
-        $partial = $service->sendMessage(
+        $invalidConfirmation = $service->sendMessage(
             $this->userA,
-            'Nama: Adwika',
+            'Tolong jelaskan maksudnya',
             $first['session_id'],
         );
-        $this->assertSame('consultation_offer', $partial['provider']);
-        $this->assertStringContainsString("Nama:\nOPD:\nDetail Permasalahan:", $partial['reply']);
+        $this->assertSame('consultation_confirmation', $invalidConfirmation['provider']);
+        $this->assertStringContainsString('Jawaban Anda belum dikenali.', $invalidConfirmation['reply']);
+        $this->assertStringContainsString('Anda hanya perlu menjawab "iya" atau "tidak".', $invalidConfirmation['reply']);
         $this->assertDatabaseCount('tr_konsultasi', $consultationCountBefore);
 
         $created = $service->sendMessage(
             $this->userA,
-            'Nama: Adwika, OPD: Dinas Kesehatan, Detail Permasalahan: setelah mencoba beberapa cara, internet wifi masih tidak bisa',
+            'iya',
             $first['session_id'],
         );
 
@@ -435,9 +436,17 @@ class AuthorizationTest extends TestCase
         $consultationMessage = (string) \DB::table('tr_konsultasi')
             ->where('id', $created['konsultasi_id'])
             ->value('pesan');
-        $this->assertStringContainsString('Nama: Adwika', $consultationMessage);
-        $this->assertStringContainsString('OPD: Dinas Kesehatan', $consultationMessage);
-        $this->assertStringContainsString('Detail Permasalahan: setelah mencoba beberapa cara, internet wifi masih tidak bisa', $consultationMessage);
+        $this->assertStringContainsString('Nama: USER 1', $consultationMessage);
+        $this->assertStringContainsString('OPD: OPD Test', $consultationMessage);
+        $this->assertStringContainsString(
+            'Detail Permasalahan: Internet kantor tidak bisa digunakan. Langkah penanganan yang disarankan telah dicoba, namun kendala masih terjadi.',
+            $consultationMessage,
+        );
+        $this->assertStringNotContainsString(
+            'Detail Permasalahan: Tetap tidak bisa',
+            $consultationMessage,
+        );
+        $this->assertStringNotContainsString('Ringkasan percakapan:', $consultationMessage);
         $this->assertDatabaseHas('notification', [
             'user_id' => 0,
             'type' => 'konsultasi',
@@ -445,13 +454,6 @@ class AuthorizationTest extends TestCase
             'read' => false,
         ]);
         Event::assertDispatched(KonsultasiCreated::class);
-        $this->assertDatabaseCount('tr_konsultasi', $consultationCountBefore + 1);
-
-        $service->sendMessage(
-            $this->userA,
-            "Nama: Adwika\nOPD: Dinas Kesehatan\nDetail Permasalahan: WiFi kantor tetap tidak terhubung.",
-            $first['session_id'],
-        );
         $this->assertDatabaseCount('tr_konsultasi', $consultationCountBefore + 1);
 
         $service->sendMessage(
@@ -464,17 +466,24 @@ class AuthorizationTest extends TestCase
             'Saya memerlukan bantuan untuk konsultasi ke petugas.',
             $first['session_id'],
         );
-        $this->assertSame('consultation_offer', $secondOffer['provider']);
-        $this->assertStringContainsString("Nama:\nOPD:\nDetail Permasalahan:", $secondOffer['reply']);
+        $this->assertSame('consultation_confirmation', $secondOffer['provider']);
+        $this->assertStringContainsString('(iya/tidak)', $secondOffer['reply']);
 
         $secondCreated = $service->sendMessage(
             $this->userA,
-            'Nama: Adwika, OPD: Dinas Kesehatan, Detail Permasalahan: email dinas tidak dapat menerima pesan baru',
+            'ya',
             $first['session_id'],
         );
         $this->assertSame('consultation_created', $secondCreated['provider']);
         $this->assertNotSame($created['konsultasi_id'], $secondCreated['konsultasi_id']);
         $this->assertDatabaseCount('tr_konsultasi', $consultationCountBefore + 2);
+        $secondConsultationMessage = (string) \DB::table('tr_konsultasi')
+            ->where('id', $secondCreated['konsultasi_id'])
+            ->value('pesan');
+        $this->assertStringContainsString(
+            'Detail Permasalahan: Email dinas saya sekarang tidak dapat menerima pesan baru.',
+            $secondConsultationMessage,
+        );
 
         $service->sendMessage(
             $this->userA,
@@ -483,16 +492,22 @@ class AuthorizationTest extends TestCase
         );
         $service->sendMessage($this->userA, 'tidak bisa', $first['session_id']);
         $tteOffer = $service->sendMessage($this->userA, 'tidak bisa', $first['session_id']);
-        $this->assertStringContainsString("Nama:\nOPD:\nDetail Permasalahan:", $tteOffer['reply']);
+        $this->assertStringContainsString('(iya/tidak)', $tteOffer['reply']);
 
-        $tteCreated = $service->sendMessage(
+        $declined = $service->sendMessage(
             $this->userA,
-            'Nama: Adwika, OPD: Dinas Kesehatan, Detail Permasalahan: proses TTE selalu gagal setelah dokumen dipilih',
+            'tidak',
             $first['session_id'],
         );
-        $this->assertSame('consultation_created', $tteCreated['provider']);
-        $this->assertNotSame($secondCreated['konsultasi_id'], $tteCreated['konsultasi_id']);
-        $this->assertDatabaseCount('tr_konsultasi', $consultationCountBefore + 3);
+        $this->assertSame('consultation_declined', $declined['provider']);
+        $this->assertStringContainsString('konsultasi tidak saya buatkan', $declined['reply']);
+        $this->assertStringContainsString('Jika ada pertanyaan lain', $declined['reply']);
+        $this->assertDatabaseCount('tr_konsultasi', $consultationCountBefore + 2);
+        $this->assertDatabaseHas('chatbot_conversations', [
+            'user_id' => $this->userA->id,
+            'consultation_offer_pending' => false,
+            'unresolved_count' => 0,
+        ]);
     }
 
     public function test_user_can_view_own_pinjam_but_not_another_users_pinjam(): void

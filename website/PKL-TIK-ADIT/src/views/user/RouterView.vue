@@ -69,8 +69,8 @@ onMounted(load)
             :description="`Lihat identitas router, interface, lokasi pemasangan, dan status perangkat yang tercatat untuk ${auth.user?.nama_opd || 'unit kerja Anda'}.`"
             :stats="stats"
         />
-        <section class="section-panel p-5 md:p-6">
-            <div class="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+        <section class="section-panel p-4 sm:p-5">
+            <div class="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                 <div>
                     <p class="eyebrow">Informasi bandwidth</p>
                     <h2 class="mt-1 text-xl font-bold">{{ bandwidth.opd || auth.user?.nama_opd || 'OPD Anda' }}</h2>
@@ -79,8 +79,8 @@ onMounted(load)
                     </p>
                 </div>
                 <div v-if="bandwidth.available" class="grid grid-cols-2 gap-3">
-                    <div class="rounded-xl bg-blue-50 px-5 py-3 text-blue-900"><span class="block text-xs font-semibold">Download</span><strong class="text-xl">{{ bandwidth.connections?.[0]?.download_mbps ?? '—' }} Mbps</strong></div>
-                    <div class="rounded-xl bg-amber-50 px-5 py-3 text-amber-900"><span class="block text-xs font-semibold">Upload</span><strong class="text-xl">{{ bandwidth.connections?.[0]?.upload_mbps ?? '—' }} Mbps</strong></div>
+                    <div class="rounded-lg bg-blue-50 px-4 py-2.5 text-blue-900"><span class="block text-xs font-semibold">Download</span><strong class="text-lg">{{ bandwidth.connections?.[0]?.download_mbps ?? '—' }} Mbps</strong></div>
+                    <div class="rounded-lg bg-amber-50 px-4 py-2.5 text-amber-900"><span class="block text-xs font-semibold">Upload</span><strong class="text-lg">{{ bandwidth.connections?.[0]?.upload_mbps ?? '—' }} Mbps</strong></div>
                 </div>
                 <div v-else class="flex flex-wrap gap-2">
                     <RouterLink to="/app/chatbot" class="btn-secondary">Cari solusi dengan AI</RouterLink>
@@ -89,7 +89,7 @@ onMounted(load)
             </div>
         </section>
         <section class="section-panel">
-            <div class="grid gap-4 border-b border-stroke p-5 md:grid-cols-[1fr_220px]">
+            <div class="grid gap-3 border-b border-stroke p-4 md:grid-cols-[1fr_220px]">
                 <label class="relative"
                     ><MagnifyingGlassIcon
                         class="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" /><input

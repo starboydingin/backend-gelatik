@@ -173,7 +173,7 @@ onMounted(load)
                 </h2>
                 <button type="button" @click="showForm = false">✕</button>
             </div>
-            <div class="mt-5 grid gap-4 md:grid-cols-2">
+            <div class="mt-4 grid gap-3 md:grid-cols-2">
                 <label
                     ><span class="label">Judul</span
                     ><input v-model="form.judul" class="input" required /></label
@@ -244,7 +244,7 @@ onMounted(load)
                 <article
                     v-for="item in displayedList"
                     :key="item.id"
-                    class="card flex min-h-64 flex-col"
+                    class="card flex flex-col"
                 >
                     <div class="flex items-start justify-between gap-3">
                         <p class="eyebrow">Konsultasi #{{ item.id }}</p>
@@ -266,7 +266,7 @@ onMounted(load)
                             <dd>{{ formatDateTime(item.created_at) }}</dd>
                         </div>
                     </dl>
-                    <div class="mt-auto flex flex-wrap gap-2 pt-5">
+                    <div class="mt-auto flex flex-wrap gap-2 pt-4">
                         <button class="btn-secondary min-h-9 px-3" @click="showSummary(item)">
                             Ringkasan</button
                         ><RouterLink

@@ -36,8 +36,8 @@ onMounted(load)
     <PageHeader
         title="Notifikasi"
         description="Kirim pengumuman massal atau pesan kepada pengguna tertentu."
-        ><button class="btn-primary" @click="show = !show">Buat notifikasi</button></PageHeader
-    ><AlertMessage :message="error" />
+    />
+    <AlertMessage :message="error" />
     <form v-if="show" class="card mb-5" @submit.prevent="create">
         <div class="grid gap-3 md:grid-cols-2">
             <label

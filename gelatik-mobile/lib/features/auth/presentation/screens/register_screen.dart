@@ -9,10 +9,9 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_searchable_select.dart';
 import '../../../../core/widgets/app_text_field.dart';
-import '../../../../core/widgets/bento_block.dart';
-import '../../../../core/widgets/illustration_asset.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../theme/auth_typography.dart';
+import '../widgets/auth_hero_card.dart';
 
 /// RegisterScreen — Layar Registrasi Akun Baru GELATIK (BAGIAN 3 & FR-36 Compliance)
 /// Menggunakan Design Tokens resmi (primaryTeal, actionEmerald, accentNavy, accentGold).
@@ -248,53 +247,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        BentoBlock(
-                          tone: BentoBlockTone.teal,
-                          padding: const EdgeInsets.fromLTRB(20, 18, 10, 0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 18),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Image.asset(
-                                        'assets/images/logo-tanpabackground.png',
-                                        key: const Key('register_gelatik_logo'),
-                                        width: 126,
-                                        fit: BoxFit.contain,
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        'AKUN PEGAWAI',
-                                        style:
-                                            AuthTypography.brandTitle(
-                                              context,
-                                              fontSize: 12,
-                                            ).copyWith(
-                                              color: AppColors.colorAccent,
-                                              letterSpacing: 1.2,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 7),
-                                      const Text(
-                                        'Satu akun untuk seluruh kebutuhan layanan TIK.',
-                                        style: TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 12,
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const IllustrationAsset(width: 100, height: 148),
-                            ],
-                          ),
+                        const AuthHeroCard(
+                          logoKey: Key('register_gelatik_logo'),
+                          title: 'AKUN PEGAWAI',
+                          subtitle:
+                              'Satu akun untuk seluruh kebutuhan layanan TIK.',
                         ),
 
                         const SizedBox(height: 14),

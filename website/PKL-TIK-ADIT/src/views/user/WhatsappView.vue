@@ -48,7 +48,7 @@ onMounted(load)
     />
     <div class="card max-w-2xl">
         <AlertMessage :message="error" /><AlertMessage :message="message" type="success" />
-        <div class="mb-6 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">
+        <div class="mb-4 rounded-lg bg-emerald-50 p-3.5 text-sm text-emerald-800">
             <strong>{{ status.is_subscribed ? 'Aktif' : 'Belum aktif' }}</strong>
             <p class="mt-1">
                 {{
@@ -65,7 +65,7 @@ onMounted(load)
             inputmode="tel"
             placeholder="0812xxxx atau 62812xxxx"
         />
-        <div class="mt-5 flex flex-wrap gap-3">
+        <div class="mt-4 flex flex-wrap gap-2">
             <button class="btn-primary" :disabled="saving" @click="save">
                 {{ saving ? 'Menyimpan…' : 'Simpan langganan' }}</button
             ><button v-if="status.is_subscribed" class="btn-danger" @click="remove">

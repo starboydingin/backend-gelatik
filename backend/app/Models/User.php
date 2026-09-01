@@ -10,7 +10,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     protected $fillable = [
         'id',
@@ -19,6 +19,8 @@ class User extends Authenticatable
         'email',
         'password',
         'nama_opd',
+        'bandwidth_download_mbps',
+        'bandwidth_upload_mbps',
         'nip',
         'jabatan',
         'unit_kerja',
@@ -38,7 +40,9 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
+            'password' => 'hashed',
+            'bandwidth_download_mbps' => 'integer',
+            'bandwidth_upload_mbps' => 'integer',
         ];
     }
 

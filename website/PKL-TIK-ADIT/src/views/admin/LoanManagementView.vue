@@ -82,7 +82,7 @@ onMounted(load)
         <AlertMessage :message="success" type="success" />
         <LoadingState v-if="loading" />
 
-        <div v-else-if="loan" class="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(20rem,.7fr)]">
+        <div v-else-if="loan" class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(20rem,.7fr)]">
             <section class="section-panel">
                 <header class="section-panel-header flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -91,8 +91,8 @@ onMounted(load)
                     </div>
                     <StatusBadge :status="loan.status" />
                 </header>
-                <div class="space-y-6 p-5 md:p-6">
-                    <dl class="grid gap-5 sm:grid-cols-2">
+                <div class="space-y-4 p-4 sm:p-5">
+                    <dl class="grid gap-3 sm:grid-cols-2">
                         <div><dt class="label">Pemohon / PIC</dt><dd>{{ loan.user?.name || loan.nama_pic || '-' }}</dd></div>
                         <div><dt class="label">Instansi / OPD</dt><dd>{{ loan.instansi_pic || '-' }}</dd></div>
                         <div><dt class="label">Kontak</dt><dd>{{ loan.kontak_pic || '-' }}</dd></div>
@@ -124,7 +124,7 @@ onMounted(load)
                     <p class="eyebrow">Tindakan petugas</p>
                     <h2 class="mt-1 text-xl font-bold text-[var(--color-text-primary)]">Konfirmasi peminjaman</h2>
                 </header>
-                <form class="space-y-6 p-5 md:p-6" @submit.prevent="saveConfirmation">
+                <form class="space-y-4 p-4 sm:p-5" @submit.prevent="saveConfirmation">
                     <p class="pb-1 text-sm leading-6 text-slate-600">Admin tidak dapat mengubah formulir atau aset yang diajukan pengguna.</p>
                     <label class="block">
                         <span class="label !mb-2">Status berikutnya</span>

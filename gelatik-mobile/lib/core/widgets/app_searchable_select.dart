@@ -75,55 +75,72 @@ class AppSearchableSelect<T> extends StatelessWidget {
       borderSide: BorderSide(color: border, width: 1.5),
     );
 
-    return Semantics(
-      button: true,
-      label: labelText,
-      value: selected?.label ?? hintText,
-      child: InkWell(
-        onTap: enabled ? () => _openPicker(context) : null,
-        borderRadius: BorderRadius.circular(14),
-        child: InputDecorator(
-          isEmpty: selected == null,
-          decoration: InputDecoration(
-            labelText: labelText,
-            errorText: errorText,
-            prefixIcon: prefixIcon,
-            suffixIcon: const Icon(Icons.search_rounded),
-            filled: true,
-            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.5,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            border: fieldBorder,
-            enabledBorder: fieldBorder,
-            focusedBorder: fieldBorder.copyWith(
-              borderSide: BorderSide(
-                color: theme.colorScheme.primary,
-                width: 2,
-              ),
-            ),
-            errorBorder: fieldBorder.copyWith(
-              borderSide: BorderSide(
-                color: theme.colorScheme.error,
-                width: 1.5,
-              ),
-            ),
-          ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 7),
           child: Text(
-            selected?.label ?? hintText,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            labelText,
             style: TextStyle(
-              color: selected == null
-                  ? theme.hintColor
-                  : theme.colorScheme.onSurface,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: errorText == null
+                  ? theme.colorScheme.onSurface
+                  : theme.colorScheme.error,
             ),
           ),
         ),
-      ),
+        Semantics(
+          button: true,
+          label: labelText,
+          value: selected?.label ?? hintText,
+          child: InkWell(
+            onTap: enabled ? () => _openPicker(context) : null,
+            borderRadius: BorderRadius.circular(14),
+            child: InputDecorator(
+              isEmpty: false,
+              decoration: InputDecoration(
+                errorText: errorText,
+                prefixIcon: prefixIcon,
+                suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                border: fieldBorder,
+                enabledBorder: fieldBorder,
+                focusedBorder: fieldBorder.copyWith(
+                  borderSide: BorderSide(
+                    color: theme.colorScheme.primary,
+                    width: 2,
+                  ),
+                ),
+                errorBorder: fieldBorder.copyWith(
+                  borderSide: BorderSide(
+                    color: theme.colorScheme.error,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+              child: Text(
+                selected?.label ?? hintText,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: selected == null
+                      ? theme.hintColor
+                      : theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -170,6 +187,7 @@ class _SearchableSelectSheetState<T> extends State<_SearchableSelectSheet<T>> {
             Text(widget.title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
             TextField(
+              key: const Key('searchable-select-search-field'),
               autofocus: true,
               onChanged: (value) => setState(() => _query = value),
               decoration: InputDecoration(

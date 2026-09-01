@@ -8,7 +8,10 @@ import { useAuthStore } from '../../stores/auth'
 const auth = useAuthStore()
 const list = ref([]),
     search = ref(''),
-    error = ref('')
+    error = ref(''),
+    editingBandwidth = ref(null),
+    bandwidthForm = ref({ download: '', upload: '' }),
+    savingBandwidth = ref(false)
 function hasRole(item, name) {
     return (item.roles || []).some((role) => (role.name || role) === name)
 }
@@ -36,6 +39,32 @@ async function remove(id) {
 function isPrivileged(item) {
     return (item.roles || []).some((role) => ['admin', 'superadmin'].includes(role.name || role))
 }
+function openBandwidth(item) {
+    editingBandwidth.value = item
+    bandwidthForm.value = {
+        download: item.bandwidth_download_mbps ?? '',
+        upload: item.bandwidth_upload_mbps ?? '',
+    }
+}
+async function saveBandwidth() {
+    if (!editingBandwidth.value || savingBandwidth.value) return
+    savingBandwidth.value = true
+    error.value = ''
+    try {
+        await api.put(`/admin/users/${editingBandwidth.value.id}`, {
+            bandwidth_download_mbps:
+                bandwidthForm.value.download === '' ? null : Number(bandwidthForm.value.download),
+            bandwidth_upload_mbps:
+                bandwidthForm.value.upload === '' ? null : Number(bandwidthForm.value.upload),
+        })
+        editingBandwidth.value = null
+        await load()
+    } catch (e) {
+        error.value = errorMessage(e)
+    } finally {
+        savingBandwidth.value = false
+    }
+}
 onMounted(load)
 </script>
 <template>
@@ -58,6 +87,7 @@ onMounted(load)
                     <th>Pengguna</th>
                     <th>Username</th>
                     <th>OPD</th>
+                    <th>Bandwidth user</th>
                     <th>Status</th>
                     <th>Aksi</th>
                 </tr>
@@ -71,6 +101,12 @@ onMounted(load)
                     <td>{{ item.username }}</td>
                     <td>{{ item.nama_opd || '-' }}</td>
                     <td>
+                        <span v-if="item.bandwidth_download_mbps != null || item.bandwidth_upload_mbps != null">
+                            ↓ {{ item.bandwidth_download_mbps ?? '—' }} / ↑ {{ item.bandwidth_upload_mbps ?? '—' }} Mbps
+                        </span>
+                        <span v-else class="text-slate-400">Belum diatur</span>
+                    </td>
+                    <td>
                         <span
                             class="badge"
                             :class="
@@ -83,6 +119,9 @@ onMounted(load)
                     </td>
                     <td>
                         <div v-if="auth.isSuperAdmin || !isPrivileged(item)" class="flex gap-2">
+                            <button class="btn-secondary min-h-9 px-3" @click="openBandwidth(item)">
+                                Bandwidth
+                            </button>
                             <button class="btn-secondary min-h-9 px-3" @click="active(item)">
                                 {{
                                     String(item.status) === '1' ? 'Nonaktifkan' : 'Aktifkan'
@@ -96,5 +135,35 @@ onMounted(load)
                 </tr>
             </tbody>
         </table>
+    </div>
+
+    <div
+        v-if="editingBandwidth"
+        class="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4"
+        @click.self="editingBandwidth = null"
+    >
+        <form class="card w-full max-w-md space-y-4 p-6" @submit.prevent="saveBandwidth">
+            <div>
+                <p class="eyebrow">Bandwidth per user</p>
+                <h2 class="mt-1 text-xl font-bold">{{ editingBandwidth.name }}</h2>
+                <p class="mt-1 text-sm text-slate-500">
+                    Kosongkan nilai jika akun belum memiliki alokasi khusus.
+                </p>
+            </div>
+            <label class="block">
+                <span class="label">Download (Mbps)</span>
+                <input v-model.number="bandwidthForm.download" class="input" type="number" min="0" max="1000000" />
+            </label>
+            <label class="block">
+                <span class="label">Upload (Mbps)</span>
+                <input v-model.number="bandwidthForm.upload" class="input" type="number" min="0" max="1000000" />
+            </label>
+            <div class="flex justify-end gap-2">
+                <button type="button" class="btn-secondary" @click="editingBandwidth = null">Batal</button>
+                <button class="btn-primary" :disabled="savingBandwidth">
+                    {{ savingBandwidth ? 'Menyimpan…' : 'Simpan bandwidth' }}
+                </button>
+            </div>
+        </form>
     </div>
 </template>

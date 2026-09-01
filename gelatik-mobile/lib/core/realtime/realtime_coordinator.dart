@@ -133,8 +133,10 @@ class RealtimeCoordinator {
         onAnnouncementsChanged?.call();
         return;
       case 'session':
-        // Re-fetch the independent announcement feed as well. This closes the
-        // gap when an announcement event arrived while the app was suspended.
+        // A suspended mobile process may miss multiple events. Remove every
+        // account-scoped cache and reconcile all providers from authoritative
+        // REST endpoints, including reference data and aggregate insights.
+        apiClient.clearCache();
         onAnnouncementsChanged?.call();
         _schedule('session', () async {
           await auth.refreshFromRealtime();
@@ -143,6 +145,9 @@ class RealtimeCoordinator {
             konsultasi.refreshFromRealtime(event.entityId),
             email.refreshFromRealtime(),
             home.refreshFromRealtime(),
+            internet.refreshAllFromRealtime(),
+            infoAlat.loadItems(force: true),
+            waNotification.refreshFromRealtime(),
           ]);
         });
         return;

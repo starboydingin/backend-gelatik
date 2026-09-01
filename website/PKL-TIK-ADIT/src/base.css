@@ -44,7 +44,7 @@
     }
 
     .card {
-        @apply rounded-xl border border-stroke bg-white p-5;
+        @apply rounded-xl border border-stroke bg-white p-4;
     }
 
     .input {
@@ -84,7 +84,7 @@
     }
 
     .service-hero {
-        @apply relative flex flex-col justify-between gap-7 overflow-hidden rounded-xl border border-stroke border-t-[3px] border-t-brand-700 bg-white p-6 md:flex-row md:items-center md:p-7;
+        @apply relative flex flex-col justify-between gap-5 overflow-hidden rounded-xl border border-stroke border-t-[3px] border-t-brand-700 bg-white p-4 sm:p-5 md:flex-row md:items-center md:p-5;
     }
 
     .section-panel {
@@ -96,7 +96,7 @@
     }
 
     .page-stack {
-        @apply space-y-5 md:space-y-6;
+        @apply space-y-4 md:space-y-5;
     }
 
     .no-scrollbar {

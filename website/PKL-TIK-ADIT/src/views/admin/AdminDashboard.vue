@@ -123,7 +123,7 @@ onMounted(async () => {
                 :title="`Selamat datang, ${auth.user?.name || 'Administrator'}`"
                 description="Pantau ringkasan operasional dan buka modul kerja dari satu dashboard yang terintegrasi."
             ></ServiceHero>
-            <section class="section-panel p-5">
+            <section class="section-panel p-4">
                 <div class="mb-4 flex items-center justify-between">
                     <div>
                         <p class="eyebrow">Ringkasan operasional</p>
@@ -131,20 +131,20 @@ onMounted(async () => {
                     </div>
                     <span class="badge bg-emerald-50 text-emerald-700">Data terkini</span>
                 </div>
-                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     <RouterLink
                         v-for="card in cards"
                         :key="card.key"
                         :to="card.to"
-                        class="rounded-2xl border border-stroke p-4 transition hover:-translate-y-0.5 hover:border-brand-300"
+                        class="rounded-xl border border-stroke p-3.5 transition hover:border-brand-300"
                         ><div class="flex items-center justify-between">
                             <span
-                                class="grid size-11 place-items-center rounded-xl"
+                                class="grid size-9 place-items-center rounded-lg"
                                 :class="card.tone"
                                 ><component :is="card.icon" class="size-5" /></span
                             ><span class="text-brand-600">↗</span>
                         </div>
-                        <strong class="mt-4 block text-3xl text-navy">{{
+                        <strong class="mt-3 block text-2xl text-navy">{{
                             data.summary?.[card.key] ?? 0
                         }}</strong
                         ><span class="mt-1 block text-sm font-semibold text-slate-600">{{
@@ -153,7 +153,7 @@ onMounted(async () => {
                     >
                 </div>
             </section>
-            <div class="grid gap-5 xl:grid-cols-[1.3fr_.7fr]">
+            <div class="grid gap-4 xl:grid-cols-[1.3fr_.7fr]">
                 <section class="section-panel">
                     <div class="section-panel-header">
                         <p class="eyebrow">30 hari terakhir</p>
@@ -171,7 +171,7 @@ onMounted(async () => {
                     <DashboardRatingCard :statistics="data.dashboard?.rating_statistik || {}" />
                 </section>
             </div>
-            <div class="grid gap-5 xl:grid-cols-[.7fr_1.3fr]">
+            <div class="grid gap-4 xl:grid-cols-[.7fr_1.3fr]">
                 <section class="section-panel">
                     <div class="section-panel-header">
                         <p class="eyebrow">Permintaan terbanyak</p>
@@ -190,7 +190,7 @@ onMounted(async () => {
                     @range-change="loadCalendar"
                 />
             </div>
-            <div class="grid gap-5 md:grid-cols-2 2xl:grid-cols-4">
+            <div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
                 <section v-for="group in groups" :key="group.key" class="section-panel">
                     <div class="section-panel-header flex items-center justify-between">
                         <h2 class="font-bold text-navy">{{ group.label }}</h2>
@@ -233,7 +233,7 @@ onMounted(async () => {
                         </article>
                         <p
                             v-if="!data.recent?.[group.key]?.length"
-                            class="py-10 text-center text-sm text-slate-400"
+                            class="py-7 text-center text-sm text-slate-400"
                         >
                             Belum ada data.
                         </p>

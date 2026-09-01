@@ -43,6 +43,9 @@ class InternetRepository {
           ? bandwidth['connections'] as List
           : const [];
       final typedConnections = connections.whereType<Map>();
+      final userBandwidth = bandwidth['user'] is Map
+          ? Map<String, dynamic>.from(bandwidth['user'] as Map)
+          : const <String, dynamic>{};
       final primary =
           typedConnections
               .where(
@@ -71,6 +74,17 @@ class InternetRepository {
               'Router OPD',
           'location': primary?['lokasi'] ?? '-',
           'connection_count': connections.length,
+          'user': {
+            'available': userBandwidth['available'] == true,
+            'detected': userBandwidth['detected'] == true,
+            'name': userBandwidth['name'],
+            'download_mbps': userBandwidth['download_mbps'] ?? '-',
+            'upload_mbps': userBandwidth['upload_mbps'] ?? '-',
+            'source': userBandwidth['source'] ?? 'unavailable',
+            'source_label':
+                userBandwidth['source_label'] ?? 'Belum ada sumber bandwidth',
+            'inherited_from_opd': userBandwidth['inherited_from_opd'] == true,
+          },
         },
       };
     } on DioException catch (error) {

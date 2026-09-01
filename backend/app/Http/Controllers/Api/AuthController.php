@@ -83,7 +83,7 @@ class AuthController extends Controller
             'nip' => 'required|digits:18|unique:users,nip',
             'no_hp' => 'required|string',
             'nama_opd' => 'required|string',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         $this->officialEmailValidator->validateForRegistration((string) $request->email);

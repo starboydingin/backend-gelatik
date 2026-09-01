@@ -723,6 +723,42 @@ void main() {
       },
     );
 
+    testWidgets('OPD search only appears after the picker is opened', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+            secureStorageServiceProvider.overrideWithValue(fakeStorage),
+          ],
+          child: const MaterialApp(home: RegisterScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('searchable-select-search-field')),
+        findsNothing,
+      );
+      expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
+
+      final opdPicker = find.byKey(const Key('opd_dropdown'));
+      await tester.ensureVisible(opdPicker);
+      await tester.tap(opdPicker);
+      await tester.pumpAndSettle();
+
+      final searchField = find.byKey(
+        const Key('searchable-select-search-field'),
+      );
+      expect(searchField, findsOneWidget);
+      expect(find.text(fakeAuthRepo.opds.first), findsOneWidget);
+
+      await tester.enterText(searchField, 'tidak ada opd ini');
+      await tester.pump();
+      expect(find.text('Tidak ada pilihan yang cocok.'), findsOneWidget);
+    });
+
     testWidgets('Auth screens use the expected branding assets', (
       tester,
     ) async {

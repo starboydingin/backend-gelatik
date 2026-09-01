@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_card.dart';
-import '../../../../core/widgets/app_logo.dart';
 import '../../../../core/widgets/bento_block.dart';
 import '../../../../core/widgets/bento_dashboard_grid.dart';
 import '../../../../core/widgets/notification_badge_button.dart';
@@ -30,7 +29,6 @@ import '../../../konsultasi/presentation/screens/konsultasi_list_screen.dart';
 import '../../../konsultasi/models/konsultasi_model.dart';
 import '../../../kritik_saran/presentation/screens/kritik_saran_screen.dart';
 import '../../../notifications/presentation/screens/notifications_screen.dart';
-import '../../../peminjaman/presentation/screens/ajukan_peminjaman_screen.dart';
 import '../../../peminjaman/presentation/screens/peminjaman_detail_screen.dart';
 import '../../../peminjaman/presentation/screens/peminjaman_list_screen.dart';
 import '../../../peminjaman/models/pinjam_model.dart';
@@ -122,7 +120,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         const SizedBox(height: 28),
         _QuickMenu(onOpen: _open),
-        const SizedBox(height: 28),
+        const SizedBox(height: 16),
         _RecentSection(
           state: state,
           onBorrowing: (item) => _open(PeminjamanDetailScreen(pinjam: item)),
@@ -159,7 +157,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 horizontalPadding,
                 24,
                 horizontalPadding,
-                widget.embedded ? 118 : 112,
+                widget.embedded ? 88 : 20,
               ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate.fixed(content),
@@ -168,17 +166,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _open(const ChatbotNativeScreen()),
-        backgroundColor: AppColors.accentNavy(context),
-        foregroundColor: Colors.white,
-        shape: const CircleBorder(),
-        child: Badge(
-          smallSize: 10,
-          backgroundColor: AppColors.accentGold(context),
-          child: const Icon(Icons.chat_bubble_outline_rounded, size: 26),
-        ),
-      ),
+      floatingActionButton: widget.embedded
+          ? null
+          : FloatingActionButton(
+              onPressed: () => _open(const ChatbotNativeScreen()),
+              backgroundColor: AppColors.accentNavy(context),
+              foregroundColor: Colors.white,
+              shape: const CircleBorder(),
+              child: Badge(
+                smallSize: 10,
+                backgroundColor: AppColors.accentGold(context),
+                child: const Icon(Icons.chat_bubble_outline_rounded, size: 26),
+              ),
+            ),
       bottomNavigationBar: widget.embedded
           ? null
           : AppBottomNav(
@@ -215,7 +215,15 @@ class _DashboardSliverHeader extends StatelessWidget {
       foregroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       titleSpacing: 20,
-      title: const AppLogo(iconSize: 34),
+      title: const Text(
+        'Beranda',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 19,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
+        ),
+      ),
       actions: [
         IconButton(
           tooltip: 'Cari layanan',
@@ -275,6 +283,16 @@ class _BentoOverview extends StatelessWidget {
     final bandwidthAvailable = bandwidth['available'] == true;
     final download = bandwidth['download_mbps']?.toString() ?? '-';
     final upload = bandwidth['upload_mbps']?.toString() ?? '-';
+    final userBandwidth = bandwidth['user'] is Map
+        ? Map<String, dynamic>.from(bandwidth['user'] as Map)
+        : const <String, dynamic>{};
+    final userBandwidthAvailable = userBandwidth['available'] == true;
+    final userBandwidthDetected = userBandwidth['detected'] == true;
+    final userDownload = userBandwidth['download_mbps']?.toString() ?? '-';
+    final userUpload = userBandwidth['upload_mbps']?.toString() ?? '-';
+    final userBandwidthSource =
+        userBandwidth['source_label']?.toString() ??
+        'Belum ada sumber bandwidth';
     final recent = data.recentBorrowings.isNotEmpty
         ? ('Peminjaman', data.recentBorrowings.first.status)
         : data.recentConsultations.isNotEmpty
@@ -308,66 +326,34 @@ class _BentoOverview extends StatelessWidget {
             tone: BentoBlockTone.teal,
             onTap: onInternet,
             semanticLabel: 'Informasi bandwidth OPD',
-            child: Row(
-              children: [
-                const Icon(Icons.monitor_heart_outlined, size: 30),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'TRAFIK OPD',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Colors.white70,
-                          letterSpacing: 1.2,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        bandwidthLoading
-                            ? 'Memuat bandwidth OPD...'
-                            : bandwidthAvailable
-                            ? 'Download $download Mbps • Upload $upload Mbps'
-                            : 'Data bandwidth belum tersedia',
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        bandwidthError != null
-                            ? 'Gagal memperbarui data. Ketuk untuk mencoba dari halaman internet.'
-                            : bandwidthAvailable
-                            ? '${bandwidth['opd'] ?? organization} • ${bandwidth['connection_name'] ?? 'Router OPD'}'
-                            : 'Buka layanan internet untuk pemeriksaan jaringan.',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.arrow_forward_rounded, size: 20),
-              ],
+            child: _OpdTrafficBlock(
+              available: bandwidthAvailable,
+              loading: bandwidthLoading,
+              download: download,
+              upload: upload,
+              source:
+                  '${bandwidth['opd'] ?? organization} • ${bandwidth['connection_name'] ?? 'Router OPD'}',
+              hasError: bandwidthError != null,
             ),
           ),
         ),
         BentoDashboardItem(
           child: BentoBlock(
             tone: BentoBlockTone.gold,
-            minHeight: 142,
-            child: _OpdBandwidthBlock(
-              available: bandwidthAvailable,
+            minHeight: 154,
+            child: _UserBandwidthBlock(
+              available: userBandwidthAvailable,
+              detected: userBandwidthDetected,
               loading: bandwidthLoading,
-              download: download,
-              upload: upload,
+              download: userDownload,
+              upload: userUpload,
+              source: userBandwidthSource,
             ),
           ),
         ),
         BentoDashboardItem(
           child: BentoBlock(
-            minHeight: 142,
+            minHeight: 154,
             child: _LatestStatusBlock(recent: recent),
           ),
         ),
@@ -378,7 +364,7 @@ class _BentoOverview extends StatelessWidget {
             value: data.activeBorrowingCount ?? data.totalBorrowingCount,
             loading: loading,
             icon: Icons.inventory_2_outlined,
-            tone: BentoBlockTone.white,
+            tone: BentoBlockTone.gold,
             onTap: onBorrowings,
           ),
         ),
@@ -389,7 +375,7 @@ class _BentoOverview extends StatelessWidget {
             value: data.activeConsultationCount ?? data.totalConsultationCount,
             loading: loading,
             icon: Icons.forum_outlined,
-            tone: BentoBlockTone.navy,
+            tone: BentoBlockTone.teal,
             onTap: onConsultations,
           ),
         ),
@@ -400,7 +386,7 @@ class _BentoOverview extends StatelessWidget {
             value: data.emailRequestCount,
             loading: loading,
             icon: Icons.alternate_email_rounded,
-            tone: BentoBlockTone.teal,
+            tone: BentoBlockTone.navy,
             onTap: onEmails,
           ),
         ),
@@ -411,7 +397,7 @@ class _BentoOverview extends StatelessWidget {
             value: data.unreadNotificationCount,
             loading: loading,
             icon: Icons.notifications_none_rounded,
-            tone: BentoBlockTone.gold,
+            tone: BentoBlockTone.white,
             onTap: onNotifications,
           ),
         ),
@@ -476,33 +462,162 @@ class _BentoOverview extends StatelessWidget {
   }
 }
 
-class _OpdBandwidthBlock extends StatelessWidget {
+class _OpdTrafficBlock extends StatelessWidget {
   final bool available;
   final bool loading;
   final String download;
   final String upload;
+  final String source;
+  final bool hasError;
 
-  const _OpdBandwidthBlock({
+  const _OpdTrafficBlock({
     required this.available,
     required this.loading,
     required this.download,
     required this.upload,
+    required this.source,
+    required this.hasError,
   });
 
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Icon(Icons.speed_rounded, size: 28),
-      const SizedBox(height: 24),
+      const Row(
+        children: [
+          Icon(Icons.monitor_heart_outlined, size: 27),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Trafik bandwidth OPD',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            ),
+          ),
+          Icon(Icons.arrow_forward_rounded, size: 20),
+        ],
+      ),
+      const SizedBox(height: 18),
+      if (loading)
+        const LinearProgressIndicator(
+          minHeight: 5,
+          color: Colors.white,
+          backgroundColor: Colors.white24,
+        )
+      else
+        Row(
+          children: [
+            Expanded(
+              child: _BandwidthValue(
+                label: 'DOWNLOAD',
+                value: available ? download : '-',
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _BandwidthValue(
+                label: 'UPLOAD',
+                value: available ? upload : '-',
+              ),
+            ),
+          ],
+        ),
+      const SizedBox(height: 12),
+      Text(
+        hasError
+            ? 'Data belum dapat diperbarui. Ketuk untuk mencoba kembali.'
+            : available
+            ? source
+            : 'Data kapasitas router OPD belum tersedia.',
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 11, color: Colors.white70),
+      ),
+    ],
+  );
+}
+
+class _BandwidthValue extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _BandwidthValue({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: .12),
+      borderRadius: BorderRadius.circular(13),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 9,
+            letterSpacing: .8,
+            color: Colors.white70,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          '$value Mbps',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+        ),
+      ],
+    ),
+  );
+}
+
+class _UserBandwidthBlock extends StatelessWidget {
+  final bool available;
+  final bool detected;
+  final bool loading;
+  final String download;
+  final String upload;
+  final String source;
+
+  const _UserBandwidthBlock({
+    required this.available,
+    required this.detected,
+    required this.loading,
+    required this.download,
+    required this.upload,
+    required this.source,
+  });
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          const Icon(Icons.speed_rounded, size: 25),
+          const Spacer(),
+          if (detected && !loading)
+            Container(
+              width: 9,
+              height: 9,
+              decoration: const BoxDecoration(
+                color: Color(0xFF16A34A),
+                shape: BoxShape.circle,
+              ),
+            ),
+        ],
+      ),
+      const SizedBox(height: 18),
       const Text(
-        'Bandwidth OPD Anda',
+        'Bandwidth saya',
         style: TextStyle(fontWeight: FontWeight.w800),
       ),
-      const SizedBox(height: 5),
+      const SizedBox(height: 6),
       if (loading)
         const Text(
-          'Memuat data...',
+          'Mendeteksi koneksi...',
           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         )
       else if (available)
@@ -511,7 +626,14 @@ class _OpdBandwidthBlock extends StatelessWidget {
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         )
       else
-        const Text('Belum tersedia', style: TextStyle(fontSize: 12)),
+        const Text('Belum terdeteksi', style: TextStyle(fontSize: 12)),
+      const SizedBox(height: 8),
+      Text(
+        source,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 9.5, color: Color(0xB3111827)),
+      ),
     ],
   );
 }
@@ -1533,75 +1655,40 @@ class _QuickMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = <_MenuData>[
       _MenuData(
-        'Pinjam Aset TIK',
-        'Laptop, Proyektor, & Aksesoris',
-        Icons.devices_rounded,
-        AppColors.accentNavy(context),
-        const AjukanPeminjamanScreen(),
-      ),
-      _MenuData(
-        'Konsultasi TIK',
-        'Tanya layanan TIK',
-        Icons.support_agent_rounded,
-        const Color(0xFF0284C7),
-        const KonsultasiListScreen(),
-      ),
-      _MenuData(
         'Laporan Internet',
-        'Internet & Router OPD',
         Icons.wifi_rounded,
         const Color(0xFFDC2626),
         const LayananInternetScreen(),
       ),
       _MenuData(
-        'Email Dinas',
-        'Usulan email resmi',
-        Icons.mark_email_read_rounded,
-        const Color(0xFF7E22CE),
-        const UsulanEmailListScreen(),
-      ),
-      _MenuData(
-        'Layanan Lain',
-        'Katalog alat & layanan lain',
+        'Info Aset',
         Icons.apps_rounded,
         AppColors.primaryTeal(context),
         const InfoAlatScreen(),
       ),
       _MenuData(
-        'Riwayat Pinjam',
-        'Daftar & status',
-        Icons.assignment_rounded,
-        AppColors.actionEmerald(context),
-        const PeminjamanListScreen(),
-      ),
-      _MenuData(
         'Agenda',
-        'Jadwal layanan Anda',
         Icons.calendar_month_outlined,
         AppColors.primaryTeal(context),
         const CalendarScreen(),
       ),
       _MenuData(
-        'Kritik & Saran',
-        'Evaluasi Layanan',
-        Icons.rate_review_rounded,
-        AppColors.accentNavy(context),
-        const KritikSaranScreen(),
-      ),
-      _MenuData(
         'Asisten Gelatik',
-        'Tanya AI layanan TIK',
         Icons.auto_awesome_rounded,
         AppColors.accentGold(context),
         const ChatbotNativeScreen(),
-        'AI',
       ),
       _MenuData(
         'Bantuan & FAQ',
-        'Panduan layanan TIK',
         Icons.help_outline_rounded,
         const Color(0xFF16A34A),
         const SelfAssessmentScreen(),
+      ),
+      _MenuData(
+        'Semua Layanan',
+        Icons.grid_view_rounded,
+        AppColors.accentNavy(context),
+        const ServicesScreen(),
       ),
     ];
     return Column(
@@ -1614,12 +1701,12 @@ class _QuickMenu extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Mulai layanan',
+                    'Akses cepat lainnya',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'Aksi yang paling sering digunakan',
+                    'Fitur pendukung tanpa mengulang ringkasan di atas',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.mutedText(context),
                     ),
@@ -1634,98 +1721,31 @@ class _QuickMenu extends StatelessWidget {
         LayoutBuilder(
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 700;
-            return Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _PrimaryActionCard(
-                        item: items[0],
-                        onTap: () => onOpen(items[0].screen),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _PrimaryActionCard(
-                        item: items[1],
-                        onTap: () => onOpen(items[1].screen),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: items.length - 2,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: wide ? 4 : 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: wide ? 2.0 : 2.15,
+            final columnCount = wide ? 3 : 2;
+            const spacing = 10.0;
+            final cardWidth =
+                (constraints.maxWidth - (spacing * (columnCount - 1))) /
+                columnCount;
+
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: items.map((item) {
+                return SizedBox(
+                  width: cardWidth,
+                  height: wide ? 72 : 94,
+                  child: _CompactActionCard(
+                    item: item,
+                    onTap: () => onOpen(item.screen),
                   ),
-                  itemBuilder: (context, index) {
-                    final item = items[index + 2];
-                    return _CompactActionCard(
-                      item: item,
-                      onTap: () => onOpen(item.screen),
-                    );
-                  },
-                ),
-              ],
+                );
+              }).toList(growable: false),
             );
           },
         ),
       ],
     );
   }
-}
-
-class _PrimaryActionCard extends StatelessWidget {
-  final _MenuData item;
-  final VoidCallback onTap;
-
-  const _PrimaryActionCard({required this.item, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => AppCard(
-    onTap: onTap,
-    padding: const EdgeInsets.all(16),
-    backgroundColor: AppColors.colorPrimary,
-    child: SizedBox(
-      height: 118,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.colorAccent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(item.icon, color: AppColors.colorTextPrimary),
-              ),
-              const Icon(Icons.north_east_rounded, color: Colors.white70),
-            ],
-          ),
-          const Spacer(),
-          Text(
-            item.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Colors.white,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
 }
 
 class _CompactActionCard extends StatelessWidget {
@@ -1768,18 +1788,9 @@ class _CompactActionCard extends StatelessWidget {
 
 class _MenuData {
   final String title;
-  final String subtitle;
   final IconData icon;
   final Color color;
   final Widget screen;
-  final String? badge;
 
-  const _MenuData(
-    this.title,
-    this.subtitle,
-    this.icon,
-    this.color,
-    this.screen, [
-    this.badge,
-  ]);
+  const _MenuData(this.title, this.icon, this.color, this.screen);
 }

@@ -12,12 +12,11 @@ import '../../../internet/presentation/screens/self_assessment_screen.dart';
 import '../../../notifications/presentation/screens/notifications_screen.dart';
 import '../../../services/presentation/screens/services_screen.dart';
 import '../../../../core/widgets/notification_badge_button.dart';
-import '../../providers/wa_notification_provider.dart';
 import 'edit_profil_screen.dart';
 import 'change_password_screen.dart';
-import 'notifikasi_whatsapp_screen.dart';
 import 'activity_log_screen.dart';
 import '../../../kritik_saran/presentation/screens/kritik_saran_history_screen.dart';
+import '../widgets/whatsapp_settings_card.dart';
 
 /// ProfilScreen — Modul M-J Profil Pengguna Gelatik Mobile
 class ProfilScreen extends ConsumerWidget {
@@ -198,8 +197,9 @@ class ProfilScreen extends ConsumerWidget {
     final profileName = _display(user?.name);
     final profileOpd = _display(user?.namaOpd);
     final profileEmail = _display(user?.email);
-    final waState = ref.watch(waNotificationProvider);
-    final waSub = waState.subscription;
+    final profileNip = _display(
+      user?.nip.trim().isNotEmpty == true ? user?.nip : user?.username,
+    );
     final screenWidth = MediaQuery.sizeOf(context).width;
     final horizontalPadding = screenWidth >= 760
         ? (screenWidth - 680) / 2
@@ -217,7 +217,7 @@ class ProfilScreen extends ConsumerWidget {
             horizontalPadding,
             20,
             horizontalPadding,
-            112,
+            embedded ? 88 : 20,
           ),
           child: Center(
             child: ConstrainedBox(
@@ -225,66 +225,103 @@ class ProfilScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header Bento Card Profile Avatar
+                  // Identity card follows the compact civic profile hierarchy:
+                  // avatar, name, NIP, then supporting organization details.
                   AppCard(
-                    child: Row(
+                    padding: EdgeInsets.zero,
+                    child: Stack(
+                      clipBehavior: Clip.antiAlias,
                       children: [
-                        // A solid primary avatar keeps the profile identifiable
-                        // without introducing a decorative gradient.
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: accentNavy,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: strokeColor, width: 2),
-                          ),
-                          child: Center(
-                            child: Text(
-                              _getInitials(
-                                profileName == '-' ? 'User' : profileName,
-                              ),
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                        Positioned(
+                          right: -22,
+                          top: -28,
+                          child: Container(
+                            width: 92,
+                            height: 92,
+                            decoration: const BoxDecoration(
+                              color: AppColors.colorAuthHeroAccent,
+                              shape: BoxShape.circle,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Text(
-                                profileName,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onSurface,
+                              Container(
+                                width: 72,
+                                height: 72,
+                                decoration: BoxDecoration(
+                                  color: AppColors.colorAuthHero,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: strokeColor,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    _getInitials(
+                                      profileName == '-' ? 'User' : profileName,
+                                    ),
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: accentNavy,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                profileOpd,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: mutedText,
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      profileName,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        height: 1.2,
+                                        fontWeight: FontWeight.w800,
+                                        color: primaryTeal,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      'NIP. $profileNip',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: theme.colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      profileOpd,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: mutedText,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      profileEmail,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: accentNavy,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                profileEmail,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: primaryTeal,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
@@ -292,6 +329,10 @@ class ProfilScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 16),
+
+                  const WhatsAppSettingsCard(),
 
                   const SizedBox(height: 24),
 
@@ -369,26 +410,6 @@ class ProfilScreen extends ConsumerWidget {
                         builder: (_) => const ActivityLogScreen(),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Modul F-WA: Notifikasi WhatsApp
-                  _buildMenuItem(
-                    context: context,
-                    icon: Icons.chat_rounded,
-                    iconColor: AppColors.actionEmerald(context),
-                    title: 'Notifikasi WhatsApp',
-                    subtitle: waSub.isSubscribed
-                        ? 'Terhubung (${waSub.waNumber})'
-                        : 'Non-aktif / Belum terhubung',
-                    trailingIcon: Icons.arrow_forward_ios_rounded,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const NotifikasiWhatsAppScreen(),
-                        ),
-                      );
-                    },
                   ),
                   const SizedBox(height: 10),
 
@@ -477,8 +498,6 @@ class ProfilScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 24),
                 ],
               ),
             ),

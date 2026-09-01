@@ -15,9 +15,7 @@ import 'package:gelatik/core/storage/secure_storage_service.dart';
 
 class _FakeWaNotificationRepository extends WaNotificationRepository {
   _FakeWaNotificationRepository({required this.subscription})
-      : super(
-          apiClient: ApiClient(secureStorageService: SecureStorageService()),
-        );
+    : super(apiClient: ApiClient(secureStorageService: SecureStorageService()));
 
   WaSubscriptionModel subscription;
 
@@ -77,12 +75,14 @@ void main() {
                 AuthState(isLoggedIn: true, currentUser: DummyData.activeUser);
             return notifier;
           }),
-          waNotificationProvider.overrideWith((ref) => WaNotificationNotifier(
-                repository: _FakeWaNotificationRepository(
-                  subscription: subscription,
-                ),
-                initialSubscription: subscription,
-              )),
+          waNotificationProvider.overrideWith(
+            (ref) => WaNotificationNotifier(
+              repository: _FakeWaNotificationRepository(
+                subscription: subscription,
+              ),
+              initialSubscription: subscription,
+            ),
+          ),
         ],
         child: const MaterialApp(home: ProfilScreen()),
       );
@@ -103,7 +103,11 @@ void main() {
         expect(find.text('Informasi Akun'), findsOneWidget);
         expect(find.text('Ganti Password'), findsOneWidget);
         expect(find.text('Notifikasi WhatsApp'), findsOneWidget);
-        expect(find.textContaining('Terhubung'), findsOneWidget);
+        expect(
+          find.byKey(const Key('inline-whatsapp-settings')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('inline-whatsapp-number')), findsOneWidget);
         expect(find.text('Bantuan & FAQ'), findsOneWidget);
         expect(find.text('Tentang Aplikasi'), findsOneWidget);
         expect(find.text('Keluar (Logout)'), findsOneWidget);
@@ -111,19 +115,31 @@ void main() {
     );
 
     testWidgets(
-      '2. Tapping Notifikasi WhatsApp navigates to NotifikasiWhatsAppScreen',
+      '2. WhatsApp settings can be saved directly from ProfilScreen',
       (tester) async {
         await tester.pumpWidget(buildProfilWidget());
         await tester.pumpAndSettle();
 
-        // Tap Notifikasi WhatsApp
-        final waCard = find.widgetWithText(InkWell, 'Notifikasi WhatsApp');
-        await Scrollable.ensureVisible(tester.element(waCard), alignment: 0.5);
-        await tester.tap(waCard);
+        final numberField = find.descendant(
+          of: find.byKey(const Key('inline-whatsapp-number')),
+          matching: find.byType(TextField),
+        );
+        await tester.enterText(numberField, '089999999999');
+        await tester.tap(find.text('Simpan Pengaturan'));
         await tester.pumpAndSettle();
 
-        expect(find.byType(NotifikasiWhatsAppScreen), findsOneWidget);
-        expect(find.text('Layanan Notifikasi WA'), findsOneWidget);
+        expect(find.byType(ProfilScreen), findsOneWidget);
+        expect(
+          find.text('Pengaturan Notifikasi WhatsApp berhasil disimpan.'),
+          findsOneWidget,
+        );
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(ProfilScreen)),
+        );
+        expect(
+          container.read(waNotificationProvider).subscription.waNumber,
+          '089999999999',
+        );
       },
     );
 
@@ -189,12 +205,14 @@ void main() {
         );
         final container = ProviderContainer(
           overrides: [
-            waNotificationProvider.overrideWith((ref) => WaNotificationNotifier(
-                  repository: _FakeWaNotificationRepository(
-                    subscription: subscription,
-                  ),
-                  initialSubscription: subscription,
-                )),
+            waNotificationProvider.overrideWith(
+              (ref) => WaNotificationNotifier(
+                repository: _FakeWaNotificationRepository(
+                  subscription: subscription,
+                ),
+                initialSubscription: subscription,
+              ),
+            ),
           ],
         );
         addTearDown(container.dispose);
@@ -250,20 +268,22 @@ void main() {
               );
               return notifier;
             }),
-            waNotificationProvider.overrideWith((ref) => WaNotificationNotifier(
-                  repository: _FakeWaNotificationRepository(
-                    subscription: const WaSubscriptionModel(
-                      userId: 99,
-                      waNumber: '081234567890',
-                      isSubscribed: true,
-                    ),
-                  ),
-                  initialSubscription: const WaSubscriptionModel(
+            waNotificationProvider.overrideWith(
+              (ref) => WaNotificationNotifier(
+                repository: _FakeWaNotificationRepository(
+                  subscription: const WaSubscriptionModel(
                     userId: 99,
                     waNumber: '081234567890',
                     isSubscribed: true,
                   ),
-                )),
+                ),
+                initialSubscription: const WaSubscriptionModel(
+                  userId: 99,
+                  waNumber: '081234567890',
+                  isSubscribed: true,
+                ),
+              ),
+            ),
           ],
           child: const MaterialApp(home: NotifikasiWhatsAppScreen()),
         ),

@@ -22,7 +22,7 @@ const percentageFor = (score) => (total.value ? (countFor(score) / total.value) 
 </script>
 
 <template>
-    <div class="grid gap-6 p-5 sm:p-6">
+    <div class="grid gap-4 p-4 sm:p-5">
         <div class="flex min-w-0 flex-wrap items-end justify-between gap-4">
             <div>
                 <div class="flex items-end gap-1.5">

@@ -332,7 +332,7 @@ onBeforeUnmount(() => {
                     <p class="text-xs font-bold text-white">Siap membantu informasi layanan TIK</p>
                 </div>
             </header>
-            <div class="min-h-[420px] space-y-4 p-4 sm:p-6">
+            <div class="min-h-[340px] space-y-3 p-4 sm:min-h-[380px] sm:p-5">
                 <div
                     v-for="(item, index) in messages"
                     :key="item.id || `${item.role || item.sender}-${index}-${chatText(item)}`"
@@ -358,7 +358,7 @@ onBeforeUnmount(() => {
                     Gelatik sedang menyiapkan jawaban...
                 </p>
             </div>
-            <div class="border-t border-[var(--color-border)] p-4 sm:p-5">
+            <div class="border-t border-[var(--color-border)] p-3.5 sm:p-4">
                 <div
                     ref="quickQuestionStrip"
                     class="quick-question-strip"

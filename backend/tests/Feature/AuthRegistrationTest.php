@@ -250,6 +250,14 @@ class AuthRegistrationTest extends TestCase
             ->assertJsonValidationErrors(['nama_opd']);
     }
 
+    public function test_registration_requires_password_with_at_least_eight_characters(): void
+    {
+        $this->postJson('/api/register', $this->validPayload([
+            'password' => '1234567',
+            'password_confirmation' => '1234567',
+        ]))->assertUnprocessable()->assertJsonValidationErrors(['password']);
+    }
+
     public function test_duplicate_email_and_nip_are_rejected(): void
     {
         $this->postJson('/api/register', $this->validPayload())->assertCreated();

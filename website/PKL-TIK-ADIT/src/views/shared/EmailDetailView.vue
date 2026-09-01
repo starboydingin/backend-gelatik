@@ -72,7 +72,7 @@ onMounted(load)
                         />
                     </div>
                 </div>
-                <dl class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <dl class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
                         <dt class="label">NIP</dt>
                         <dd>{{ record.nip || '-' }}</dd>
@@ -117,7 +117,7 @@ onMounted(load)
             >
                 <p class="eyebrow">Keputusan petugas</p>
                 <h2 class="mt-1 text-xl font-bold">Proses usulan</h2>
-                <div class="mt-5 grid gap-4 md:grid-cols-2">
+                <div class="mt-4 grid gap-3 md:grid-cols-2">
                     <label v-if="isAdmin"
                         ><span class="label">Email resmi</span
                         ><input

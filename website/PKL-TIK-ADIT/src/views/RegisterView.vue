@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { api, errorMessage, payload, rows } from '../lib/api'
 import { useAuthStore } from '../stores/auth'
 import AlertMessage from '../components/AlertMessage.vue'
-import AuthLayout from '../components/AuthLayout.vue'
+import AuthLayout from '../components/GovernmentAuthLayout.vue'
 import AppInput from '../components/AppInput.vue'
 import AppButton from '../components/AppButton.vue'
 import SearchableSelect from '../components/SearchableSelect.vue'
@@ -46,9 +46,19 @@ async function submit() {
         wide
         title="Buat akun layanan"
         subtitle="Lengkapi data kedinasan Anda untuk mulai menggunakan Gelatik."
-        ><form @submit.prevent="submit">
+    >
+        <template #guide>
+            <ol class="list-decimal space-y-1.5 pl-4">
+                <li>Isi nama lengkap dan NIP 18 digit sesuai data kedinasan.</li>
+                <li>Gunakan email resmi yang aktif serta nomor HP yang dapat dihubungi.</li>
+                <li>Pilih perangkat daerah atau OPD tempat Anda bertugas.</li>
+                <li>Buat kata sandi minimal 8 karakter dan ulangi dengan tepat.</li>
+                <li>Periksa kembali data; setelah berhasil, sistem akan masuk ke akun secara otomatis.</li>
+            </ol>
+        </template>
+        <form @submit.prevent="submit">
             <AlertMessage :message="error" />
-            <div class="grid gap-4 md:grid-cols-2">
+            <div class="grid gap-3.5 md:grid-cols-2">
                 <AppInput id="name" v-model="form.name" label="Nama lengkap" required /><AppInput
                     id="nip"
                     v-model="form.nip"
@@ -86,7 +96,8 @@ async function submit() {
                     v-model="form.password"
                     label="Kata sandi"
                     type="password"
-                    minlength="6"
+                    minlength="8"
+                    hint="Gunakan minimal 8 karakter."
                     required
                 /><AppInput
                     id="confirmation"
@@ -96,13 +107,17 @@ async function submit() {
                     required
                 />
             </div>
-            <AppButton type="submit" class="mt-6 w-full" :loading="loading">{{
+            <AppButton type="submit" class="mt-5 w-full" :loading="loading">{{
                 loading ? 'Mendaftarkan…' : 'Daftar dan masuk'
             }}</AppButton>
-            <p class="mt-5 text-center text-sm text-slate-500">
+            <div class="my-4 flex items-center gap-3 text-xs text-slate-400">
+                <span class="h-px flex-1 bg-slate-200" /><span>atau</span
+                ><span class="h-px flex-1 bg-slate-200" />
+            </div>
+            <p class="text-center text-sm text-slate-500">
                 Sudah memiliki akun?
                 <RouterLink to="/login" class="font-semibold text-brand-600">Masuk</RouterLink>
             </p>
-        </form></AuthLayout
-    >
+        </form>
+    </AuthLayout>
 </template>

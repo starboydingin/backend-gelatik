@@ -19,10 +19,9 @@ use Illuminate\Support\Str;
 
 class ChatbotService
 {
-    // Offer help on the second unresolved statement, but create a
-    // consultation only after the user explicitly confirms and completes the
-    // minimal incident details.
-    private const CONSULTATION_OFFER_AFTER = 2;
+    // Offer escalation after three unsuccessful chatbot suggestions. The
+    // consultation is created only after an explicit yes/no confirmation.
+    private const CONSULTATION_OFFER_AFTER = 3;
 
     public function __construct(
         private KonsultasiService $konsultasiService,
@@ -166,19 +165,13 @@ class ChatbotService
         if ($conversation->consultation_offer_pending
             && $activeContext !== null
             && ! $this->isPromptInjection($normalized)) {
-            $consultationData = $this->extractConsultationData($message);
-            if ($consultationData['confirmed']) {
-                if ($consultationData['name'] === null
-                    || $consultationData['opd'] === null
-                    || $consultationData['detail'] === null) {
-                    return $this->storeLocalReply(
-                        $conversation,
-                        $sessionId,
-                        $this->consultationDataPrompt($activeContext),
-                        'consultation_offer'
-                    );
-                }
-
+            if ($this->isAffirmativeConsultationResponse($normalized)) {
+                $consultationData = $this->consultationDataFromProfile(
+                    $conversation,
+                    $user,
+                    $activeContext,
+                    $userMessage->id,
+                );
                 $konsultasi = $this->createConsultationFromChat(
                     $conversation,
                     $user,
@@ -194,6 +187,27 @@ class ChatbotService
                     ['escalated' => true, 'konsultasi_id' => $konsultasi->id]
                 );
             }
+
+            if ($this->isNegativeConsultationResponse($normalized)) {
+                $conversation->update([
+                    'consultation_offer_pending' => false,
+                    'unresolved_count' => 0,
+                ]);
+
+                return $this->storeLocalReply(
+                    $conversation,
+                    $sessionId,
+                    'Baik, konsultasi tidak saya buatkan. Terima kasih sudah mencoba saran yang diberikan. Jika ada pertanyaan lain seputar layanan TIK, silakan diajukan kapan saja yaa. 😊',
+                    'consultation_declined',
+                );
+            }
+
+            return $this->storeLocalReply(
+                $conversation,
+                $sessionId,
+                $this->consultationConfirmationPrompt($activeContext, true),
+                'consultation_confirmation',
+            );
         }
 
         if ($scope !== 'allowed') {
@@ -480,7 +494,9 @@ class ChatbotService
             $this->realtime->eventToUser(
                 $user->id,
                 'chatbot.conversation.deleted',
-                RealtimeEventPayload::make('chatbot.conversation.deleted', 0, [
+                // A positive sentinel keeps the event valid for strict mobile
+                // clients even when the deletion was intentionally idempotent.
+                RealtimeEventPayload::make('chatbot.conversation.deleted', 1, [
                     'session_id' => $sessionId,
                 ]),
             );
@@ -684,51 +700,35 @@ class ChatbotService
                 $conversation->update(['consultation_offer_pending' => true]);
             }
 
-            return rtrim($reply)."\n\n".$this->consultationDataPrompt($context);
+            return rtrim($reply)."\n\n".$this->consultationConfirmationPrompt($context);
         }
 
         return $reply;
     }
 
-    private function consultationDataPrompt(string $context): string
+    private function consultationConfirmationPrompt(string $context, bool $repeat = false): string
     {
-        return 'Jika kendala '.($this->contextLabel($context)).' ini masih belum selesai, saya dapat langsung membuatkan konsultasi TIK untuk Anda. Isi dan kirim data berikut:'
-            ."\nNama:"
-            ."\nOPD:"
-            ."\nDetail Permasalahan:"
-            ."\n\nSetelah ketiga data tersebut lengkap, konsultasi akan langsung dibuat dan diteruskan kepada petugas."
-            ."\n\nJika ingin mencoba saran lain terlebih dahulu, tulis pertanyaan Anda—saya akan bantu lanjutkan tanpa membuat konsultasi.";
+        $prefix = $repeat ? 'Jawaban Anda belum dikenali. ' : '';
+
+        return $prefix.'Jika semua cara dari saran saya untuk kendala '
+            .$this->contextLabel($context)
+            .' masih tidak bisa, maukah saya membuatkan konsultasi kepada admin secara langsung? (iya/tidak)'
+            ."\n\nAnda hanya perlu menjawab \"iya\" atau \"tidak\".";
     }
 
-    private function extractConsultationData(string $message): array
+    private function isAffirmativeConsultationResponse(string $normalized): bool
     {
-        $normalized = $this->normalizeSentence($message);
-        $name = $this->extractLabeledValue($message, ['nama']);
-        $opd = $this->extractLabeledValue($message, ['opd', 'lokasi opd', 'lokasi']);
-        $detail = $this->extractLabeledValue($message, [
-            'detail permasalahan',
-            'detail tambahan',
-            'detail',
-            'keterangan',
-        ]);
-        $containsTemplateField = preg_match(
-            '/(?:^|[\r\n,;])\s*(nama|opd|detail\s+permasalahan)\s*:/imu',
-            $message
-        ) === 1;
-        $confirmed = $containsTemplateField
-            || Str::contains($normalized, [
-                'konfirmasi konsultasi',
-                'buatkan konsultasi',
-                'buat konsultasi',
-                'iya buatkan',
-                'ya buatkan',
-                'konsultasi ke petugas',
-                'konsultasi dengan petugas',
-                'bantuan untuk konsultasi',
-                'hubungkan ke petugas',
-            ]);
+        return in_array($normalized, [
+            'iya', 'ya', 'yes', 'iya boleh', 'ya boleh', 'boleh',
+            'iya buatkan', 'ya buatkan',
+        ], true);
+    }
 
-        return compact('confirmed', 'name', 'opd', 'detail');
+    private function isNegativeConsultationResponse(string $normalized): bool
+    {
+        return in_array($normalized, [
+            'tidak', 'tidak jadi', 'nggak', 'enggak', 'gak', 'ga', 'no',
+        ], true);
     }
 
     private function isConsultationRequest(string $normalized): bool
@@ -743,36 +743,176 @@ class ChatbotService
         ]);
     }
 
-    private function extractLabeledValue(string $message, array $labels): ?string
-    {
-        $allLabels = [
-            'detail permasalahan',
-            'detail tambahan',
-            'lokasi opd',
-            'keterangan',
-            'detail',
-            'lokasi',
-            'nama',
-            'opd',
-        ];
-        $labelPattern = implode('|', array_map(
-            static fn (string $label): string => preg_quote($label, '/'),
-            $labels
-        ));
-        $allLabelPattern = implode('|', array_map(
-            static fn (string $label): string => preg_quote($label, '/'),
-            $allLabels
-        ));
-        $pattern = '/(?:^|[\r\n,;])\s*(?:'.$labelPattern.')\s*:\s*(.*?)'
-            .'(?=\s*(?:[\r\n,;]\s*(?:'.$allLabelPattern.')\s*:|$))/isu';
+    private function consultationDataFromProfile(
+        ChatbotConversation $conversation,
+        User $user,
+        string $context,
+        int $confirmationMessageId,
+    ): array {
+        $previousUserMessages = ChatbotMessage::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('role', 'user')
+            ->where('id', '<', $confirmationMessageId)
+            ->latest('id')
+            ->take(12)
+            ->pluck('content');
+        $lastComplaint = $this->latestComplaintFromMessages($previousUserMessages->all(), $context);
 
-        if (preg_match($pattern, $message, $matches)) {
-            $value = trim($matches[1]);
-
-            return $value === '' ? null : Str::limit($value, 500, '');
+        $detail = trim($this->plainChatText((string) $lastComplaint));
+        if ($detail === '') {
+            $detail = 'Kendala '.$this->contextLabel($context).' masih belum berhasil diselesaikan.';
         }
 
-        return null;
+        return [
+            'name' => filled($user->name) ? $user->name : 'Pengguna Gelatik',
+            'opd' => filled($user->nama_opd) ? $user->nama_opd : 'OPD belum tercantum pada profil',
+            'detail' => Str::limit($detail, 1000, ''),
+        ];
+    }
+
+    private function latestComplaintFromMessages(array $messages, string $context): ?string
+    {
+        $topicComplaint = null;
+        $latestFollowUp = null;
+
+        foreach ($messages as $content) {
+            $plain = trim($this->plainChatText((string) $content));
+            $normalized = $this->normalizeSentence($plain);
+            if ($normalized === ''
+                || $this->isAffirmativeConsultationResponse($normalized)
+                || $this->isNegativeConsultationResponse($normalized)
+                || $this->isConsultationRequest($normalized)) {
+                continue;
+            }
+
+            $messageContext = $this->detectServiceContext($normalized);
+
+            // Messages are newest first. Once the current topic has been
+            // found, an older explicit topic marks the boundary of this
+            // problem and must never leak into the consultation detail.
+            if ($messageContext !== null && $messageContext !== $context) {
+                if ($topicComplaint !== null || $latestFollowUp !== null) {
+                    break;
+                }
+
+                continue;
+            }
+
+            if ($latestFollowUp === null
+                && $messageContext === null
+                && $this->isIssueSignal($normalized)) {
+                $latestFollowUp = $plain;
+                continue;
+            }
+
+            if ($messageContext === $context) {
+                $topicComplaint = $plain;
+                break;
+            }
+        }
+
+        if ($topicComplaint === null && $latestFollowUp === null) {
+            return null;
+        }
+
+        return $this->naturalConsultationDetail(
+            $context,
+            $topicComplaint,
+            $latestFollowUp !== null,
+        );
+    }
+
+    /**
+     * Turn the latest complaint into a short incident statement. Consultation
+     * details must be useful to an officer, not a verbatim copy of a user's
+     * question or a context-free reply such as "masih tidak bisa".
+     */
+    private function naturalConsultationDetail(
+        string $context,
+        ?string $complaint,
+        bool $hasUnresolvedFollowUp,
+    ): string {
+        $plain = trim($this->plainChatText($complaint));
+        $normalized = $this->normalizeSentence($plain);
+
+        $detail = match (true) {
+            $context === 'internet'
+                && Str::contains($normalized, ['wifi', 'wi fi'])
+                && Str::contains($normalized, [
+                    'tidak ada internet', 'tanpa internet',
+                    'tidak dapat mengakses internet', 'tidak bisa akses internet',
+                ])
+                => 'WiFi terhubung, tetapi perangkat tidak dapat mengakses internet.',
+            $context === 'internet'
+                && Str::contains($normalized, 'router')
+                && Str::contains($normalized, [
+                    'tidak menyala', 'tidak hidup', 'mati', 'no power',
+                ])
+                => 'Router tidak menyala sehingga koneksi internet tidak tersedia.',
+            $context === 'internet'
+                && Str::contains($normalized, ['restart router', 'router sudah direstart', 'mulai ulang router'])
+                => 'Koneksi internet tetap tidak dapat digunakan setelah router dimulai ulang.',
+            $context === 'internet'
+                && Str::contains($normalized, ['putus', 'terputus', 'disconnect'])
+                => 'Koneksi internet sering terputus saat digunakan.',
+            $context === 'internet'
+                && Str::contains($normalized, ['lambat', 'lemot', 'lag'])
+                => 'Koneksi internet berjalan lambat dan mengganggu penggunaan layanan.',
+            $context === 'internet'
+                && Str::contains($normalized, ['tidak terhubung', 'gagal terhubung', 'tidak bisa konek'])
+                => 'Perangkat tidak dapat terhubung ke jaringan WiFi.',
+            $context === 'email'
+                && Str::contains($normalized, ['tidak menerima', 'tidak masuk', 'belum menerima'])
+                => 'Email dinas tidak dapat menerima pesan baru.',
+            $context === 'email'
+                && Str::contains($normalized, ['tidak mengirim', 'gagal mengirim', 'tidak terkirim'])
+                => 'Email dinas gagal mengirim pesan.',
+            $context === 'email'
+                && Str::contains($normalized, ['password', 'kata sandi', 'login', 'masuk akun'])
+                => 'Pengguna tidak dapat masuk ke akun email dinas meskipun kredensial telah diperiksa.',
+            $context === 'peminjaman_aset'
+                && Str::contains($normalized, ['form', 'pengajuan', 'ajukan', 'submit', 'kirim'])
+                => 'Pengajuan peminjaman aset TIK tidak dapat diselesaikan melalui formulir layanan.',
+            $context === 'peminjaman_aset'
+                && Str::contains($normalized, ['stok', 'tersedia', 'ketersediaan'])
+                => 'Aset TIK yang dibutuhkan tidak tersedia pada proses peminjaman.',
+            $context === 'hosting'
+                && Str::contains($normalized, ['tidak dapat diakses', 'tidak bisa diakses', 'down'])
+                => 'Layanan website atau hosting tidak dapat diakses.',
+            $context === 'tte'
+                && Str::contains($normalized, ['gagal', 'tidak bisa', 'tidak dapat', 'error'])
+                => 'Proses tanda tangan elektronik gagal diselesaikan.',
+            $context === 'aplikasi'
+                && Str::contains($normalized, ['gagal', 'tidak bisa', 'tidak dapat', 'error'])
+                => 'Aplikasi layanan tidak dapat digunakan sesuai kebutuhan pengguna.',
+            default => $this->declarativeComplaintFallback($plain, $context),
+        };
+
+        if ($hasUnresolvedFollowUp) {
+            $detail .= ' Langkah penanganan yang disarankan telah dicoba, namun kendala masih terjadi.';
+        }
+
+        return Str::limit($detail, 1000, '');
+    }
+
+    private function declarativeComplaintFallback(string $complaint, string $context): string
+    {
+        $statement = preg_replace(
+            '/[.!?]+\s*(?:apa|bagaimana|kenapa|mengapa)\b.*$/iu',
+            '',
+            $complaint,
+        ) ?? $complaint;
+        $statement = trim($statement, " \t\n\r\0\x0B.?!");
+        $normalized = $this->normalizeSentence($statement);
+
+        if ($statement === ''
+            || preg_match('/^(apa|bagaimana|kenapa|mengapa)\b/iu', $normalized) === 1
+            || $this->isConsultationRequest($normalized)) {
+            return 'Kendala '.$this->contextLabel($context)
+                .' belum dapat diselesaikan melalui langkah penanganan awal.';
+        }
+
+        return ucfirst($statement).'.';
     }
 
     private function createConsultationFromChat(
@@ -787,7 +927,7 @@ class ChatbotService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            // A concurrent retry of the same submitted template must remain
+            // A concurrent retry of the same confirmation must remain
             // idempotent. Once a new offer is pending, however, the previous
             // ticket ID must not block creation for the new issue.
             if (! $lockedConversation->consultation_offer_pending
@@ -795,7 +935,6 @@ class ChatbotService
                 return Konsultasi::query()->findOrFail($lockedConversation->escalated_konsultasi_id);
             }
 
-            $history = $this->buildFollowUpContext($lockedConversation, 0);
             $topik = $this->resolveEscalationTopic($context) ?? MasterTopik::aktif()->first();
             if (! $topik) {
                 throw new \RuntimeException('Topik konsultasi aktif belum tersedia.');
@@ -804,7 +943,7 @@ class ChatbotService
             $konsultasi = $this->konsultasiService->buatKonsultasi($user, [
                 'topik_id' => $topik->id,
                 'judul' => 'Kendala '.ucfirst($this->contextLabel($context)).' dari Asisten Gelatik',
-                'deskripsi' => "Konsultasi dibuat melalui Asisten Gelatik.\n\nNama: {$data['name']}\nOPD: {$data['opd']}\nDetail Permasalahan: {$data['detail']}\n\nRingkasan percakapan:\n{$history}",
+                'deskripsi' => "Konsultasi dibuat melalui Asisten Gelatik.\n\nNama: {$data['name']}\nOPD: {$data['opd']}\nDetail Permasalahan: {$data['detail']}",
             ]);
 
             $lockedConversation->update([
@@ -918,40 +1057,6 @@ class ChatbotService
             ->values();
 
         return $messages->isEmpty() ? '' : $messages->implode("\n");
-    }
-
-    private function escalateConversation(ChatbotConversation $conversation, User $user): ?Konsultasi
-    {
-        $messages = ChatbotMessage::query()
-            ->where('conversation_id', $conversation->id)
-            ->latest()
-            ->take(8)
-            ->get()
-            ->reverse();
-
-        $userMessages = $messages
-            ->where('role', 'user')
-            ->pluck('content')
-            ->map(fn (string $content): string => Str::limit($this->plainChatText($content), 350))
-            ->values();
-
-        $context = $userMessages->implode("\n- ");
-        $topik = $this->resolveEscalationTopic($context);
-        if (! $topik) {
-            Log::warning('Chatbot escalation skipped because no active consultation topic exists.');
-
-            return null;
-        }
-
-        $konsultasi = $this->konsultasiService->buatKonsultasi($user, [
-            'topik_id' => $topik->id,
-            'judul' => 'Eskalasi chatbot: '.Str::limit($userMessages->first() ?: 'Kendala layanan TIK', 120, ''),
-            'deskripsi' => "Dibuat otomatis setelah pengguna dua kali menyatakan kendala belum selesai.\n\nRingkasan pesan pengguna:\n- ".Str::limit($context, 1400),
-        ]);
-
-        $conversation->update(['escalated_konsultasi_id' => $konsultasi->id]);
-
-        return $konsultasi;
     }
 
     private function resolveEscalationTopic(string $context): ?MasterTopik

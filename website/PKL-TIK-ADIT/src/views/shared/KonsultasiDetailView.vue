@@ -98,7 +98,7 @@ onMounted(load)
                     </div>
                     <StatusBadge :status="record.status" />
                 </div>
-                <dl class="mt-6 grid gap-5 sm:grid-cols-2">
+                <dl class="mt-4 grid gap-3 sm:grid-cols-2">
                     <div><dt class="label">Pemohon</dt><dd>{{ record.user?.name || '-' }}</dd></div>
                     <div><dt class="label">Topik</dt><dd>{{ record.topik?.topik || record.topik?.judul || '-' }}</dd></div>
                     <div class="sm:col-span-2"><dt class="label">Keterangan</dt><dd class="whitespace-pre-wrap leading-7">{{ record.pesan || record.deskripsi || '-' }}</dd></div>
@@ -119,7 +119,7 @@ onMounted(load)
                 </div>
             </section>
 
-            <section v-if="admin && !archived" class="card grid gap-6 lg:grid-cols-2">
+            <section v-if="admin && !archived" class="card grid gap-4 lg:grid-cols-2">
                 <form @submit.prevent="sendReply">
                     <p class="eyebrow">Balasan petugas</p>
                     <label class="mt-4 block"><span class="label">Tanggapan</span><textarea v-model="reply" class="input min-h-32" required /></label>

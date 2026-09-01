@@ -87,7 +87,7 @@ watch(
             "
         />
         <AlertMessage :message="error" /><AlertMessage :message="message" type="success" />
-        <section v-if="historyOnly && selectedDetail" class="card mx-auto max-w-5xl p-6 md:p-8">
+        <section v-if="historyOnly && selectedDetail" class="card mx-auto max-w-5xl p-4 sm:p-5">
             <p class="eyebrow">Detail masukan</p>
             <h2 class="mt-2 text-xl font-bold text-navy">Kritik & saran Anda</h2>
             <p class="mt-5 text-sm"><strong>Kritik:</strong> {{ selectedDetail.kritik }}</p>
@@ -102,9 +102,9 @@ watch(
                 <p class="mt-2 whitespace-pre-line">{{ selectedDetail.balasan }}</p>
             </div>
         </section>
-        <div v-if="!historyOnly" class="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[.75fr_1.25fr]">
+        <div v-if="!historyOnly" class="mx-auto grid max-w-5xl gap-4 lg:grid-cols-[.75fr_1.25fr]">
             <aside
-                class="flex flex-col items-start rounded-xl bg-[var(--color-brand-primary-strong)] p-6 text-white shadow-[var(--shadow-surface)] md:p-7"
+                class="flex flex-col items-start rounded-xl bg-[var(--color-brand-primary-strong)] p-5 text-white shadow-[var(--shadow-surface)]"
             >
                 <ChatBubbleBottomCenterTextIcon
                     class="size-10 text-[var(--color-brand-secondary)]"
@@ -118,7 +118,7 @@ watch(
                         Pisahkan kendala yang dirasakan dan usulan penyelesaiannya agar masukan
                         lebih mudah dipahami petugas.
                     </p>
-                    <div class="mt-7 space-y-3">
+                    <div class="mt-5 space-y-2.5">
                         <div
                             v-for="tip in [
                                 'Sampaikan kritik dengan jelas',
@@ -134,13 +134,13 @@ watch(
                     </div>
                 </div>
             </aside>
-            <form class="card p-6 md:p-8" @submit.prevent="submit">
+            <form class="card p-4 sm:p-5" @submit.prevent="submit">
                 <p class="eyebrow">Form masukan</p>
                 <h2 class="mt-2 text-2xl font-bold text-navy">Kritik dan saran layanan</h2>
                 <p class="mt-2 text-sm text-slate-500">
                     Kedua bagian wajib diisi sesuai pengalaman Anda.
                 </p>
-                <label class="mt-7 block"
+                <label class="mt-5 block"
                     ><span class="label flex justify-between"
                         >Kritik
                         <span class="normal-case tracking-normal text-slate-400"
@@ -165,7 +165,7 @@ watch(
                         required
                     />
                 </label>
-                <div class="mt-6 flex flex-wrap justify-end gap-3">
+                <div class="mt-5 flex flex-wrap justify-end gap-2">
                     <RouterLink to="/app/dashboard" class="btn-secondary">Batal</RouterLink
                     ><button class="btn-primary" :disabled="saving">
                         {{ saving ? 'Mengirim…' : 'Kirim kritik & saran' }}
@@ -178,20 +178,20 @@ watch(
                 <p class="eyebrow">Riwayat masukan</p>
                 <h2 class="mt-2 text-xl font-bold text-navy">Daftar kritik & saran Anda</h2>
             </div>
-            <div v-if="historyLoading" class="card mt-6 flex items-center justify-center py-12">
+            <div v-if="historyLoading" class="card mt-4 flex items-center justify-center py-8">
                 <span
                     class="size-8 animate-spin rounded-full border-4 border-blue-100 border-t-blue-700"
                 />
                 <span class="ml-3 text-sm font-semibold text-slate-500">Memuat riwayat…</span>
             </div>
-            <div v-else-if="historyError" class="card mt-6 p-6">
+            <div v-else-if="historyError" class="card mt-4 p-4">
                 <AlertMessage :message="historyError" />
                 <button type="button" class="btn-secondary mt-4" @click="loadHistory">
                     Coba lagi
                 </button>
             </div>
             <div v-else-if="history.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <article v-for="item in history" :key="item.id" class="card flex min-h-80 flex-col">
+                <article v-for="item in history" :key="item.id" class="card flex flex-col">
                     <div>
                         <p class="eyebrow">Masukan #{{ item.id }}</p>
                         <p class="mt-1 text-xs text-slate-500">
@@ -230,7 +230,7 @@ watch(
             </div>
             <div
                 v-else-if="historyLoaded"
-                class="card mt-6 rounded-xl border border-dashed border-stroke p-8 text-center"
+                class="card mt-4 rounded-xl border border-dashed border-stroke p-6 text-center"
             >
                 <p class="font-semibold text-navy">Belum ada riwayat kritik & saran</p>
                 <p class="mt-2 text-sm text-slate-500">

@@ -35,9 +35,9 @@ onMounted(load)
 
 <template>
     <div class="page-stack">
-        <section class="section-panel p-6 md:p-8">
+        <section class="section-panel p-4 sm:p-5">
             <p class="eyebrow">Portal verifikator BKD</p>
-            <h1 class="mt-2 text-2xl font-bold text-slate-950 md:text-3xl">
+            <h1 class="mt-1.5 text-xl font-bold text-slate-950 sm:text-2xl">
                 Verifikasi pengajuan email ASN
             </h1>
             <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
@@ -51,15 +51,15 @@ onMounted(load)
             <section class="grid gap-4 sm:grid-cols-3">
                 <article class="card">
                     <p class="label">Menunggu verifikasi</p>
-                    <p class="mt-2 text-3xl font-bold text-blue-900">{{ waiting.length }}</p>
+                    <p class="mt-1.5 text-2xl font-bold text-blue-900">{{ waiting.length }}</p>
                 </article>
                 <article class="card">
                     <p class="label">Diteruskan ke admin</p>
-                    <p class="mt-2 text-3xl font-bold text-teal-700">{{ verified.length }}</p>
+                    <p class="mt-1.5 text-2xl font-bold text-teal-700">{{ verified.length }}</p>
                 </article>
                 <article class="card">
                     <p class="label">Ditolak</p>
-                    <p class="mt-2 text-3xl font-bold text-red-700">{{ rejected.length }}</p>
+                    <p class="mt-1.5 text-2xl font-bold text-red-700">{{ rejected.length }}</p>
                 </article>
             </section>
             <section class="section-panel overflow-hidden">
@@ -70,7 +70,7 @@ onMounted(load)
                     </div>
                     <RouterLink class="btn-secondary" to="/bkd/email-resmi">Lihat semua</RouterLink>
                 </div>
-                <div v-if="!waiting.length" class="p-6 text-sm text-slate-600">
+                <div v-if="!waiting.length" class="p-4 text-sm text-slate-600">
                     Tidak ada pengajuan yang menunggu verifikasi.
                 </div>
                 <div v-else class="divide-y divide-slate-200">
@@ -78,7 +78,7 @@ onMounted(load)
                         v-for="item in waiting.slice(0, 5)"
                         :key="item.id"
                         :to="`/bkd/email-resmi/${item.id}`"
-                        class="grid gap-2 p-5 hover:bg-slate-50 sm:grid-cols-[1fr_auto] sm:items-center"
+                        class="grid gap-2 p-4 hover:bg-slate-50 sm:grid-cols-[1fr_auto] sm:items-center"
                     >
                         <div>
                             <p class="font-bold text-slate-950">

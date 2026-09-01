@@ -45,11 +45,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', keydown))
                 :aria-label="title || 'Ringkasan'"
                 tabindex="-1"
             >
-                <header class="flex items-start justify-between gap-4 border-b border-[var(--color-border)] p-5">
+                <header class="flex items-start justify-between gap-4 border-b border-[var(--color-border)] p-4">
                     <div><p class="eyebrow">Ringkasan</p><h2 class="mt-1 text-xl font-bold">{{ title }}</h2></div>
                     <button class="btn-secondary min-h-9 px-3" type="button" @click="close">Tutup</button>
                 </header>
-                <div class="p-5"><slot /></div>
+                <div class="p-4"><slot /></div>
             </section>
         </div>
     </Teleport>

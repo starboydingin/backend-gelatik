@@ -16,14 +16,14 @@ defineEmits(['confirm', 'cancel'])
             @click.self="$emit('cancel')"
         >
             <section
-                class="card w-full max-w-md p-6"
+                class="card w-full max-w-md p-5"
                 role="dialog"
                 aria-modal="true"
                 :aria-label="title"
             >
                 <h2 class="text-xl font-bold text-navy">{{ title }}</h2>
                 <p class="mt-2 text-sm leading-6 text-slate-600">{{ message }}</p>
-                <div class="mt-6 flex justify-end gap-3">
+                <div class="mt-5 flex justify-end gap-2">
                     <button class="btn-secondary" @click="$emit('cancel')">Batal</button
                     ><button
                         :class="danger ? 'btn-danger' : 'btn-primary'"

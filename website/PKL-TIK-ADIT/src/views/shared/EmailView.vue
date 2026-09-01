@@ -140,7 +140,7 @@ onBeforeUnmount(() => window.clearTimeout(filterTimer))
                     Ajukan email ASN
                 </h2>
             </div>
-            <div class="space-y-5 p-5 md:p-7">
+            <div class="space-y-4 p-4 sm:p-5">
                 <p class="text-sm leading-6 text-slate-600">
                     Ajukan email untuk pegawai yang datanya sudah disampaikan kepada BKD. Anda
                     bertindak sebagai pengaju, bukan pemilik email pribadi tersebut.
@@ -173,7 +173,7 @@ onBeforeUnmount(() => window.clearTimeout(filterTimer))
                     <input v-model="form.email_pribadi" type="email" class="input" required />
                 </label>
             </div>
-            <div class="flex flex-wrap gap-3 px-5 pb-5 md:px-7 md:pb-7">
+            <div class="flex flex-wrap gap-2 px-4 pb-4 sm:px-5 sm:pb-5">
                 <button class="btn-primary" :disabled="submitting">
                     {{ submitting ? 'Mengajukan...' : 'Ajukan email ASN' }}
                 </button>
@@ -188,7 +188,7 @@ onBeforeUnmount(() => window.clearTimeout(filterTimer))
                 </h2>
             </div>
             <div
-                class="grid gap-3 border-b border-[var(--color-border)] p-5 md:grid-cols-[220px_1fr] md:items-end"
+                class="grid gap-3 border-b border-[var(--color-border)] p-4 md:grid-cols-[220px_1fr] md:items-end"
             >
                 <input
                     v-model="search"
@@ -204,13 +204,13 @@ onBeforeUnmount(() => window.clearTimeout(filterTimer))
                 </select>
             </div>
             <LoadingState v-if="loading" />
-            <div v-else class="p-5">
+            <div v-else class="p-4">
                 <EmptyState v-if="!list.length" />
                 <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <article
                         v-for="item in displayedList"
                         :key="item.id"
-                        class="card flex min-h-64 flex-col"
+                        class="card flex flex-col"
                     >
                         <div class="flex items-start justify-between gap-3">
                             <p class="eyebrow">Usulan #{{ item.id }}</p>
@@ -239,7 +239,7 @@ onBeforeUnmount(() => window.clearTimeout(filterTimer))
                                 <dd>{{ formatDateTime(item.created_at) }}</dd>
                             </div>
                         </dl>
-                        <div class="mt-auto flex flex-wrap gap-2 pt-5">
+                        <div class="mt-auto flex flex-wrap gap-2 pt-4">
                             <button class="btn-secondary min-h-9 px-3" @click="showSummary(item)">
                                 Ringkasan</button
                             ><RouterLink

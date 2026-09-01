@@ -17,6 +17,7 @@ const notificationEvents = [
     'pinjam.created',
     'pinjam.status_changed',
     'usulan_email.created',
+    'usulan_email.verified',
     'usulan_email.status_changed',
     'kritik_saran.created',
     'data.sync',

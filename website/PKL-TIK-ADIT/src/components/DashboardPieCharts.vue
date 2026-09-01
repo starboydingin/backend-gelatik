@@ -46,10 +46,10 @@ const charts = computed(() => [
 </script>
 
 <template>
-    <div class="grid gap-6 sm:grid-cols-2">
+    <div class="grid gap-4 sm:grid-cols-2">
         <section v-for="chart in charts" :key="chart.title" class="min-w-0">
             <h3 class="text-sm font-bold text-navy">{{ chart.title }}</h3>
-            <div class="mt-4 flex flex-col items-center gap-5">
+            <div class="mt-3 flex flex-col items-center gap-3">
                 <div
                     class="aspect-square w-full max-w-[180px] shrink-0 rounded-full border-4 border-white shadow-sm"
                     :style="{ background: chart.background }"

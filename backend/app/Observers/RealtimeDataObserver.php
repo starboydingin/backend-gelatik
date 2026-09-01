@@ -109,10 +109,20 @@ class RealtimeDataObserver implements ShouldHandleEventsAfterCommit
             return;
         }
 
-        if ($model instanceof Faq || $model instanceof MasterTopik || $model instanceof MasterItem ||
-            $model instanceof Router || $model instanceof RouterList || $model instanceof Slider ||
-            $model instanceof Pengumuman || $model instanceof PegawaiBelumPunyaEmail) {
-            $this->sync->everyone(class_basename($model), $entityId);
+        $publicResource = match (true) {
+            $model instanceof Faq => 'faq',
+            $model instanceof MasterTopik => 'mastertopik',
+            $model instanceof MasterItem => 'masteritem',
+            $model instanceof Router => 'router',
+            $model instanceof RouterList => 'routerlist',
+            $model instanceof Slider => 'slider',
+            $model instanceof Pengumuman => 'pengumuman',
+            // This reference table is consumed by the email proposal flow.
+            $model instanceof PegawaiBelumPunyaEmail => 'usulan_email',
+            default => null,
+        };
+        if ($publicResource !== null) {
+            $this->sync->everyone($publicResource, $entityId);
         }
     }
 

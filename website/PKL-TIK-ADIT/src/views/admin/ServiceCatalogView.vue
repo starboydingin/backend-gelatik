@@ -152,7 +152,7 @@ onMounted(async () => {
                 {{ catalog.label }}
             </button>
         </div>
-        <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
             <section class="section-panel overflow-hidden">
                 <div class="border-b border-stroke px-5 py-4">
                     <h2 class="font-bold text-navy">{{ currentLabel }}</h2>
@@ -163,7 +163,7 @@ onMounted(async () => {
                 <div class="divide-y divide-stroke">
                     <p
                         v-if="!currentRows.length"
-                        class="px-5 py-10 text-center text-sm text-slate-500"
+                        class="px-4 py-7 text-center text-sm text-slate-500"
                     >
                         Belum ada data.
                     </p>

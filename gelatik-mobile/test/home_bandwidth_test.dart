@@ -24,6 +24,15 @@ class _AvailableBandwidthRepository extends InternetRepository {
       'upload_mbps': 100,
       'connection_name': 'Router Utama',
       'connection_count': 1,
+      'user': {
+        'available': true,
+        'detected': true,
+        'name': 'Pengguna Bandwidth',
+        'download_mbps': 50,
+        'upload_mbps': 20,
+        'source': 'user_allocation',
+        'source_label': 'Alokasi khusus akun',
+      },
     },
     'routers': const <Map<String, dynamic>>[],
   };
@@ -56,8 +65,11 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Download 250 Mbps • Upload 100 Mbps'), findsOneWidget);
-    expect(find.text('↓ 250 Mbps\n↑ 100 Mbps'), findsOneWidget);
+    expect(find.text('250 Mbps'), findsOneWidget);
+    expect(find.text('100 Mbps'), findsOneWidget);
+    expect(find.text('↓ 50 Mbps\n↑ 20 Mbps'), findsOneWidget);
+    expect(find.text('Bandwidth saya'), findsOneWidget);
+    expect(find.text('Alokasi khusus akun'), findsOneWidget);
     expect(find.textContaining('Router Utama'), findsOneWidget);
   });
 }

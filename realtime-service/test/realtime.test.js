@@ -138,6 +138,19 @@ test('metadata-only data sync payload is accepted without application data', () 
     });
 });
 
+test('email verification event is accepted for cross-client refresh', () => {
+    const payload = normalizePayload('usulan_email.verified', {
+        event_id: 'evt-email-verified-1',
+        type: 'usulan_email.verified',
+        entity_id: 19,
+        created_at: '2026-08-25T00:00:00.000Z',
+        verification_state: 'verified',
+    });
+    assert.equal(payload.type, 'usulan_email.verified');
+    assert.equal(payload.entity_id, 19);
+    assert.equal(payload.verification_state, 'verified');
+});
+
 test('malformed or sensitive payload is rejected safely', () => {
     assert.throws(() => normalizePayload('pinjam.status_changed', { entity_id: 1 }), /status/);
     assert.throws(() => normalizePayload('pinjam.status_changed', {

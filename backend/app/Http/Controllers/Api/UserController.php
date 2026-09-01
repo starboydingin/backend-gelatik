@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
@@ -20,8 +19,8 @@ class UserController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('username', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%");
             });
         }
 
@@ -34,23 +33,27 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
             'username' => 'required|string|unique:users,username',
             'password' => 'required|string|min:6',
             'nama_opd' => 'nullable|string',
+            'bandwidth_download_mbps' => 'nullable|integer|min:0|max:1000000',
+            'bandwidth_upload_mbps' => 'nullable|integer|min:0|max:1000000',
         ]);
 
         $attributes = [
-            'name'     => $request->name,
-            'email'    => $request->email,
+            'name' => $request->name,
+            'email' => $request->email,
             'username' => $request->username,
             'password' => Hash::make($request->password),
-            'status'   => '1',
+            'status' => '1',
         ];
         if ($request->filled('nama_opd')) {
             $attributes['nama_opd'] = $request->nama_opd;
         }
+        $attributes['bandwidth_download_mbps'] = $request->input('bandwidth_download_mbps');
+        $attributes['bandwidth_upload_mbps'] = $request->input('bandwidth_upload_mbps');
 
         $user = User::create($attributes);
 
@@ -67,6 +70,7 @@ class UserController extends Controller
     public function show($id)
     {
         $user = User::with('roles')->findOrFail($id);
+
         return response()->json(['success' => true, 'data' => $user]);
     }
 
@@ -81,16 +85,26 @@ class UserController extends Controller
         }
 
         $request->validate([
-            'name'     => 'sometimes|string|max:255',
-            'email'    => 'sometimes|email|unique:users,email,' . $id,
-            'username' => 'sometimes|string|unique:users,username,' . $id,
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,'.$id,
+            'username' => 'sometimes|string|unique:users,username,'.$id,
             'password' => 'nullable|string|min:6',
-            'role'     => 'nullable|string|exists:roles,name|not_in:superadmin',
+            'role' => 'nullable|string|exists:roles,name|not_in:superadmin',
             'nama_opd' => 'nullable|string',
-            'status'   => 'nullable|in:0,1',
+            'bandwidth_download_mbps' => 'nullable|integer|min:0|max:1000000',
+            'bandwidth_upload_mbps' => 'nullable|integer|min:0|max:1000000',
+            'status' => 'nullable|in:0,1',
         ]);
 
-        $updateData = $request->only(['name', 'email', 'username', 'nama_opd', 'status']);
+        $updateData = $request->only([
+            'name',
+            'email',
+            'username',
+            'nama_opd',
+            'bandwidth_download_mbps',
+            'bandwidth_upload_mbps',
+            'status',
+        ]);
         if ($request->filled('password')) {
             $updateData['password'] = Hash::make($request->password);
         }
@@ -124,7 +138,7 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'User berhasil diaktivasi.',
-            'data'    => $user,
+            'data' => $user,
         ]);
     }
 
@@ -138,7 +152,7 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'User berhasil dinonaktifkan.',
-            'data'    => $user,
+            'data' => $user,
         ]);
     }
 

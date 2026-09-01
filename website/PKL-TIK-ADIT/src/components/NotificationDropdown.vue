@@ -51,6 +51,20 @@ async function openItem(item) {
         error.value = errorMessage(requestError)
     }
 }
+async function openAll() {
+    try {
+        await api.post('/notifications/read-all')
+        items.value = items.value.map((item) => ({ ...item, read: true }))
+        unreadTotal.value = 0
+        invalidateApiCache('/notifications')
+        open.value = false
+        await router.push(
+            `${props.portalPrefix || (props.adminArea ? '/admin' : '/app')}/notifikasi`
+        )
+    } catch (requestError) {
+        error.value = errorMessage(requestError)
+    }
+}
 function realtimeRefresh(event) {
     if (event.detail?.type !== 'notification') return
     load({ fresh: true })
@@ -83,15 +97,15 @@ onUnmounted(() => window.removeEventListener('gelatik:notification', realtimeRef
         >
             <div class="flex items-center justify-between border-b border-stroke px-4 py-3">
                 <strong class="text-sm text-navy">Notifikasi terbaru</strong
-                ><RouterLink
-                    :to="`${portalPrefix || (adminArea ? '/admin' : '/app')}/notifikasi`"
+                ><button
+                    type="button"
                     class="text-xs font-semibold text-brand-700"
-                    @click="open = false"
-                    >Lihat semua</RouterLink
+                    @click="openAll"
+                    >Lihat semua</button
                 >
             </div>
             <p v-if="error" class="p-4 text-sm text-danger">{{ error }}</p>
-            <p v-else-if="!items.length" class="p-6 text-center text-sm text-slate-500">
+            <p v-else-if="!items.length" class="p-4 text-center text-sm text-slate-500">
                 Belum ada notifikasi.
             </p>
             <button

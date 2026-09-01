@@ -80,39 +80,49 @@ class _TrackingKonsultasi extends KonsultasiNotifier {
 }
 
 class _TrackingEmail extends EmailNotifier {
+  int refreshCalls = 0;
+
   _TrackingEmail() : super(repository: EmailRepository(apiClient: _client()));
 
   @override
-  Future<void> refreshFromRealtime() async {}
+  Future<void> refreshFromRealtime() async => refreshCalls++;
 }
 
 class _TrackingAuth extends AuthNotifier {
+  int refreshCalls = 0;
+
   @override
-  Future<void> refreshFromRealtime() async {}
+  Future<void> refreshFromRealtime() async => refreshCalls++;
 }
 
 class _TrackingInternet extends InternetNotifier {
+  int refreshCalls = 0;
+
   _TrackingInternet()
     : super(repository: InternetRepository(apiClient: _client()));
 
   @override
-  Future<void> refreshAllFromRealtime() async {}
+  Future<void> refreshAllFromRealtime() async => refreshCalls++;
 }
 
 class _TrackingInfoAlat extends InfoAlatNotifier {
+  int refreshCalls = 0;
+
   _TrackingInfoAlat()
     : super(repository: MasterItemRepository(apiClient: _client()));
 
   @override
-  Future<void> loadItems({bool force = false}) async {}
+  Future<void> loadItems({bool force = false}) async => refreshCalls++;
 }
 
 class _TrackingWaNotification extends WaNotificationNotifier {
+  int refreshCalls = 0;
+
   _TrackingWaNotification()
     : super(repository: WaNotificationRepository(apiClient: _client()));
 
   @override
-  Future<void> refreshFromRealtime() async {}
+  Future<void> refreshFromRealtime() async => refreshCalls++;
 }
 
 class _TrackingHome extends HomeNotifier {
@@ -254,6 +264,12 @@ void main() {
       );
       await Future<void>.delayed(const Duration(milliseconds: 350));
       expect(announcementRefreshes, 2);
+      expect(email.refreshCalls, 1);
+      expect(auth.refreshCalls, 1);
+      expect(internet.refreshCalls, 1);
+      expect(infoAlat.refreshCalls, 1);
+      expect(waNotification.refreshCalls, 1);
+      expect(home.refreshCalls, 2);
 
       coordinator.dispose();
       await service.dispose();

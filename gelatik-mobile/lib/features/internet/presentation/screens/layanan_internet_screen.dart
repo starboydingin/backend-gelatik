@@ -53,6 +53,9 @@ class _LayananInternetScreenState extends ConsumerState<LayananInternetScreen> {
 
     final state = ref.watch(internetProvider);
     final info = state.bandwidthInfo;
+    final userBandwidth = info['user'] is Map
+        ? Map<String, dynamic>.from(info['user'] as Map)
+        : const <String, dynamic>{};
     final routers = state.listRouter;
 
     return Scaffold(
@@ -130,6 +133,63 @@ class _LayananInternetScreenState extends ConsumerState<LayananInternetScreen> {
                             ? 'Download ${info['download_mbps']} Mbps • Upload ${info['upload_mbps']} Mbps'
                             : 'Informasi bandwidth untuk OPD Anda belum tersedia.',
                         style: TextStyle(fontSize: 12, color: mutedText),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              AppCard(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: actionEmerald.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.person_outline_rounded,
+                        color: actionEmerald,
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Bandwidth akun Anda',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            userBandwidth['available'] == true
+                                ? 'Download ${userBandwidth['download_mbps']} Mbps • Upload ${userBandwidth['upload_mbps']} Mbps'
+                                : 'Bandwidth user belum dapat dideteksi.',
+                            style: TextStyle(fontSize: 12, color: mutedText),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            userBandwidth['source_label']?.toString() ??
+                                'Belum ada sumber bandwidth',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: userBandwidth['detected'] == true
+                                  ? actionEmerald
+                                  : mutedText,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

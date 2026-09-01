@@ -51,7 +51,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', closeOutside))
         <span class="label">{{ label }}</span>
         <button
             type="button"
-            class="input mt-1 flex min-h-12 w-full items-center justify-between gap-3 text-left"
+            class="input flex w-full items-center justify-between gap-3 text-left"
             :disabled="disabled"
             :aria-expanded="open"
             @click="open = !open"
@@ -59,7 +59,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', closeOutside))
             <span class="min-w-0 truncate" :class="selected ? '' : 'text-slate-400'">{{ selected?.label || placeholder }}</span>
             <ChevronDownIcon class="size-5 shrink-0" />
         </button>
-        <div v-if="open" class="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-[var(--color-border-strong)] bg-white shadow-lg">
+        <div v-if="open" class="absolute z-30 mt-1.5 w-full overflow-hidden rounded-lg border border-[var(--color-border-strong)] bg-white shadow-lg">
             <div class="border-b border-[var(--color-border)] p-2">
                 <label class="sr-only" :for="`${label}-search`">{{ searchPlaceholder }}</label>
                 <div class="relative">
@@ -74,7 +74,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', closeOutside))
                     />
                 </div>
             </div>
-            <ul class="max-h-64 overflow-y-auto py-1" role="listbox">
+            <ul class="max-h-56 overflow-y-auto py-1" role="listbox">
                 <li v-if="!filtered.length" class="px-3 py-4 text-sm text-slate-500">Tidak ada pilihan yang cocok.</li>
                 <li v-for="option in filtered" :key="String(option.value)">
                     <button

@@ -87,7 +87,7 @@ async function loadActivity() {
             title="Profil & Akun"
             description="Kelola informasi kontak dan unit kerja pada akun yang sedang digunakan."
         /><AlertMessage :message="error" /><AlertMessage :message="message" type="success" />
-        <div class="grid gap-5 xl:grid-cols-[320px_1fr]">
+        <div class="grid gap-4 xl:grid-cols-[300px_1fr]">
             <aside class="space-y-5">
                 <section class="service-hero flex-col items-center text-center md:flex-col">
                     <span
@@ -136,7 +136,7 @@ async function loadActivity() {
                             <h2 class="font-bold text-navy">Data akun utama</h2>
                         </div>
                     </div>
-                    <div class="grid gap-5 p-5 md:grid-cols-2 md:p-7">
+                    <div class="grid gap-4 p-4 md:grid-cols-2 md:p-5">
                     <label
                         ><span class="label">Nama lengkap</span
                         ><input v-model="form.name" class="input" required /></label
@@ -157,13 +157,13 @@ async function loadActivity() {
                     </div>
                     </div>
                 </form>
-                <form v-else-if="activeTab === 'password'" class="grid gap-5 p-5 md:grid-cols-[200px_1fr] md:p-7" @submit.prevent="submitPassword">
+                <form v-else-if="activeTab === 'password'" class="grid gap-4 p-4 md:grid-cols-[180px_1fr] md:p-5" @submit.prevent="submitPassword">
                     <label class="label md:pt-3">Password lama</label><input v-model="passwordForm.current_password" class="input" type="password" autocomplete="current-password" required />
                     <label class="label md:pt-3">Password baru</label><div><input v-model="passwordForm.password" class="input" type="password" autocomplete="new-password" minlength="8" required /><p class="mt-2 text-xs text-slate-500">Gunakan minimal 8 karakter dan jangan membagikannya kepada siapa pun.</p></div>
                     <label class="label md:pt-3">Konfirmasi password baru</label><input v-model="passwordForm.password_confirmation" class="input" type="password" autocomplete="new-password" minlength="8" required />
                     <div class="md:col-start-2"><button class="btn-primary" :disabled="saving">{{ saving ? 'Menyimpan…' : 'Simpan password' }}</button></div>
                 </form>
-                <div v-else class="p-5 md:p-7">
+                <div v-else class="p-4 md:p-5">
                     <p v-if="loadingActivity" class="text-sm text-slate-500">Memuat log aktivitas…</p>
                     <p v-else-if="!activity.length" class="rounded-lg bg-slate-50 p-5 text-sm text-slate-500">Belum ada aktivitas yang tercatat pada akun ini.</p>
                     <ol v-else class="space-y-4 border-l-2 border-brand-100 pl-5"><li v-for="entry in activity" :key="entry.id" class="relative"><span class="absolute -left-[1.86rem] top-1.5 size-3 rounded-full bg-brand-600 ring-4 ring-white" /><p class="font-semibold text-navy">{{ entry.description }}</p><p class="mt-1 text-xs text-slate-500">{{ formatDateTime(entry.created_at) }}</p></li></ol>

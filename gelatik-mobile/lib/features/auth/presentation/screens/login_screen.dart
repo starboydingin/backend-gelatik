@@ -9,11 +9,10 @@ import '../../../shell/presentation/screens/main_shell.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
-import '../../../../core/widgets/bento_block.dart';
-import '../../../../core/widgets/illustration_asset.dart';
 import '../../../../core/widgets/pending_activation_banner.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../theme/auth_typography.dart';
+import '../widgets/auth_hero_card.dart';
 
 /// LoginScreen — Layar Utama Autentikasi (BAGIAN 2 & FR-35 Compliance)
 /// Menggunakan Design Tokens resmi (primaryTeal, actionEmerald, accentNavy, accentGold).
@@ -161,53 +160,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        BentoBlock(
-                          tone: BentoBlockTone.navy,
-                          padding: const EdgeInsets.fromLTRB(20, 18, 10, 0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 18),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Image.asset(
-                                        'assets/images/logo-tanpabackground.png',
-                                        key: const Key('login_gelatik_logo'),
-                                        width: 126,
-                                        fit: BoxFit.contain,
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        'GERBANG LAYANAN TIK',
-                                        style:
-                                            AuthTypography.brandTitle(
-                                              context,
-                                              fontSize: 12,
-                                            ).copyWith(
-                                              color: AppColors.colorAccent,
-                                              letterSpacing: 1.2,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 7),
-                                      const Text(
-                                        'Mulai layanan Anda dengan cepat dan aman.',
-                                        style: TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 12,
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const IllustrationAsset(width: 105, height: 154),
-                            ],
-                          ),
+                        const AuthHeroCard(
+                          logoKey: Key('login_gelatik_logo'),
+                          title: 'GERBANG LAYANAN TIK',
+                          subtitle: 'Mulai layanan Anda dengan cepat dan aman.',
                         ),
 
                         const SizedBox(height: 14),

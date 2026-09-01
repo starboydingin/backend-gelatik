@@ -6,14 +6,14 @@ defineProps({
 })
 </script>
 <template>
-    <div class="px-5 py-14 text-center">
+    <div class="px-4 py-8 text-center sm:py-10">
         <div
-            class="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-brand-50 text-brand-600"
+            class="mx-auto mb-3 grid size-10 place-items-center rounded-lg bg-brand-50 text-brand-600"
         >
-            <InboxIcon class="size-6" />
+            <InboxIcon class="size-5" />
         </div>
         <h3 class="font-semibold text-navy">{{ title }}</h3>
         <p class="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">{{ text }}</p>
-        <div v-if="$slots.default" class="mt-5"><slot /></div>
+        <div v-if="$slots.default" class="mt-4"><slot /></div>
     </div>
 </template>

@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { connectRealtime, disconnectRealtime } from '../lib/realtime'
-import { invalidateRealtimeResource, realtimeResource } from '../lib/api'
+import { clearApiCache, realtimeResource } from '../lib/api'
 import AppShell from '../components/AppShell.vue'
 import AppSidebar from '../components/AppSidebar.vue'
 import AppHeader from '../components/AppHeader.vue'
@@ -37,6 +37,7 @@ const auth = useAuthStore(),
     router = useRouter(),
     open = ref(false),
     syncRevision = ref(0)
+let reconcileTimer = null
 const userItems = [
     { label: 'Dashboard', to: '/app/dashboard', icon: HomeIcon, group: 'Dashboard' },
     {
@@ -190,34 +191,26 @@ function routeUsesResource(resource) {
     if (resource === 'settings') return path.endsWith('/pengaturan')
     return false
 }
-function activeRouteResource() {
-    const path = route.path
-    if (path.endsWith('/dashboard')) return 'insights'
-    if (path.includes('peminjaman') || path.includes('laporan-peminjaman')) return 'peminjaman'
-    if (path.includes('konsultasi') || path.includes('laporan-konsultasi')) return 'konsultasi'
-    if (path.includes('email-resmi') || path.includes('laporan-email')) return 'usulan_email'
-    if (path.endsWith('/notifikasi')) return 'notification'
-    if (
-        path.endsWith('/umpan-balik') ||
-        path.endsWith('/riwayat-kritik-saran') ||
-        path.endsWith('/kritik-saran')
-    )
-        return 'kritik_saran'
-    if (path.endsWith('/rating')) return 'rating'
-    if (path.endsWith('/profil')) return 'user'
-    if (path.endsWith('/whatsapp')) return 'whatsapp_subscription'
-    if (path.endsWith('/faq')) return 'faq'
-    if (path.endsWith('/router')) return 'router'
-    if (path.endsWith('/pengumuman')) return 'pengumuman'
-    if (path.includes('referensi-layanan')) return 'masteritem'
-    if (path.endsWith('/pengaturan')) return 'settings'
-    return ''
+function reconcileAllData() {
+    if (reconcileTimer) window.clearTimeout(reconcileTimer)
+    reconcileTimer = window.setTimeout(async () => {
+        reconcileTimer = null
+        // Events missed while a tab was sleeping cannot be replayed by
+        // Socket.IO. Drop every per-page cache, then reload the active page
+        // from Laravel as the authoritative source.
+        clearApiCache()
+        if (auth.authenticated) {
+            try {
+                await auth.loadUser()
+            } catch {
+                // The active page keeps its existing error/retry handling.
+            }
+        }
+        syncRevision.value += 1
+    }, 100)
 }
-function reconcileAfterReconnect() {
-    const resource = activeRouteResource()
-    if (!resource) return
-    invalidateRealtimeResource({ resource })
-    syncRevision.value += 1
+function reconcileWhenVisible() {
+    if (document.visibilityState === 'visible') reconcileAllData()
 }
 function applyBackgroundRevalidation() {
     // The stale response was already rendered immediately. Remount only the
@@ -241,13 +234,18 @@ async function refreshActivePage(event) {
 onMounted(() => {
     connectRealtime(auth.token)
     window.addEventListener('gelatik:data-sync', refreshActivePage)
-    window.addEventListener('gelatik:reconnected', reconcileAfterReconnect)
+    window.addEventListener('gelatik:reconnected', reconcileAllData)
     window.addEventListener('gelatik:cache-revalidated', applyBackgroundRevalidation)
+    window.addEventListener('online', reconcileAllData)
+    document.addEventListener('visibilitychange', reconcileWhenVisible)
 })
 onBeforeUnmount(() => {
     window.removeEventListener('gelatik:data-sync', refreshActivePage)
-    window.removeEventListener('gelatik:reconnected', reconcileAfterReconnect)
+    window.removeEventListener('gelatik:reconnected', reconcileAllData)
     window.removeEventListener('gelatik:cache-revalidated', applyBackgroundRevalidation)
+    window.removeEventListener('online', reconcileAllData)
+    document.removeEventListener('visibilitychange', reconcileWhenVisible)
+    if (reconcileTimer) window.clearTimeout(reconcileTimer)
     disconnectRealtime()
 })
 </script>
@@ -257,7 +255,7 @@ onBeforeUnmount(() => {
         <template #sidebar
             ><div
                 v-if="open"
-                class="fixed inset-0 z-30 bg-slate-950/45 md:hidden"
+                class="fixed inset-0 z-30 bg-slate-950/45 lg:hidden"
                 @click="open = false" />
             <AppSidebar
                 :items="items"

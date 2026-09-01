@@ -126,20 +126,20 @@ onMounted(async () => {
                     </div>
                     <span class="badge bg-brand-50 text-brand-700">Data terkini</span>
                 </div>
-                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <RouterLink
                         v-for="card in cards"
                         :key="card.key"
                         :to="card.to"
-                        class="card group flex items-center gap-4 hover:-translate-y-0.5 hover:border-brand-300"
+                        class="card group flex items-center gap-3 hover:border-brand-300"
                     >
                         <span
-                            class="grid size-12 shrink-0 place-items-center rounded-2xl"
+                            class="grid size-10 shrink-0 place-items-center rounded-lg"
                             :class="card.tone"
-                            ><component :is="card.icon" class="size-6"
+                            ><component :is="card.icon" class="size-5"
                         /></span>
                         <div class="min-w-0">
-                            <p class="text-3xl font-bold text-navy">
+                            <p class="text-2xl font-bold text-navy">
                                 {{ data.summary?.[card.key] ?? 0 }}
                             </p>
                             <p class="truncate text-sm font-semibold text-slate-500">
@@ -157,7 +157,7 @@ onMounted(async () => {
                     <p class="eyebrow">Aktivitas akun</p>
                     <h2 class="mt-1 text-xl font-bold text-navy">Pengajuan terbaru Anda</h2>
                 </div>
-                <div class="grid gap-5 xl:grid-cols-3">
+                <div class="grid gap-4 xl:grid-cols-3">
                     <section
                         v-for="group in recentGroups"
                         :key="group.key"
@@ -169,11 +169,11 @@ onMounted(async () => {
                                 Lihat semua
                             </RouterLink>
                         </div>
-                        <div class="divide-y divide-[var(--color-border)] px-5">
+                        <div class="divide-y divide-[var(--color-border)] px-4">
                             <article
                                 v-for="item in data.recent?.[group.key] || []"
                                 :key="item.id"
-                                class="flex items-center gap-3 py-4"
+                                class="flex items-center gap-3 py-3"
                             >
                                 <div class="min-w-0 flex-1">
                                     <p class="truncate text-sm font-semibold text-navy">
@@ -188,7 +188,7 @@ onMounted(async () => {
                             </article>
                             <p
                                 v-if="!data.recent?.[group.key]?.length"
-                                class="py-10 text-center text-sm text-slate-400"
+                                class="py-7 text-center text-sm text-slate-400"
                             >
                                 Belum ada data pada akun ini.
                             </p>
@@ -208,7 +208,7 @@ onMounted(async () => {
                     />
                 </div>
             </section>
-            <div class="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
+            <div class="grid gap-4 xl:grid-cols-[1.35fr_.65fr]">
                 <section class="section-panel">
                     <div class="section-panel-header">
                         <p class="eyebrow">30 hari terakhir</p>
@@ -226,7 +226,7 @@ onMounted(async () => {
                     <DashboardRatingCard :statistics="data.service_rating_statistics || {}" />
                 </section>
             </div>
-            <div class="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
+            <div class="grid gap-4 xl:grid-cols-[1.35fr_.65fr]">
                 <ScheduleCalendar
                     :events="events"
                     :loading="calendarLoading"
@@ -241,7 +241,7 @@ onMounted(async () => {
                         <article
                             v-for="item in announcements.slice(0, 5)"
                             :key="item.id"
-                            class="py-4"
+                            class="py-3"
                         >
                             <strong class="text-sm text-navy">{{ item.judul }}</strong>
                             <p class="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">
@@ -250,7 +250,7 @@ onMounted(async () => {
                         </article>
                         <p
                             v-if="!announcements.length"
-                            class="py-10 text-center text-sm text-slate-400"
+                            class="py-7 text-center text-sm text-slate-400"
                         >
                             Belum ada pengumuman.
                         </p>
