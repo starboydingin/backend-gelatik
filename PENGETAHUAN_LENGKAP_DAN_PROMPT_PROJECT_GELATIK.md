@@ -1,6 +1,6 @@
 # Pengetahuan Lengkap dan Prompt Project Gelatik
 
-> Snapshot audit source: 1 September 2026, zona waktu Asia/Jakarta. Dokumen ini membaca source aktif beserta perubahan lokal yang belum di-commit. Jika isi dokumen bertentangan dengan source pada masa mendatang, gunakan source aktif sebagai sumber kebenaran.
+> Snapshot audit source: commit `a1bb5dc`, 1 September 2026, zona waktu Asia/Jakarta. Jika isi dokumen bertentangan dengan source pada masa mendatang, gunakan source aktif sebagai sumber kebenaran.
 
 ## 1. Ringkasan Eksekutif
 
@@ -211,7 +211,7 @@ Catatan faktual: backend mengaktifkan akun hasil registrasi secara langsung dan 
 - self-assessment gangguan jaringan;
 - arahan menuju konsultasi bila kendala tidak selesai.
 
-Perubahan lokal belum di-commit menambahkan `bandwidth_download_mbps` dan `bandwidth_upload_mbps` pada user serta fallback ke router OPD.
+Commit `a1bb5dc` menambahkan `bandwidth_download_mbps` dan `bandwidth_upload_mbps` pada user serta fallback ke router OPD.
 
 #### Chatbot
 
@@ -660,7 +660,7 @@ Event yang diizinkan mencakup:
 
 Payload dibatasi pada metadata minimal seperti event ID, type, entity ID, status, old status, response ID, timestamp, message, dan resource. Token/password/authorization ditolak.
 
-Catatan integrasi: Laravel pada perubahan email BKD juga menggunakan nama `usulan_email.verified`; registry Node saat ini belum mencantumkan event tersebut. Ini perlu diselaraskan agar broadcast tersebut tidak ditolak.
+Catatan integrasi: Laravel menggunakan event `usulan_email.verified` setelah verifikasi BKD dan registry Node pada source snapshot sudah mengizinkannya. Client tetap memperlakukan event tersebut sebagai pemicu refetch REST, bukan sebagai data final.
 
 ### 7.5 WhatsApp Gateway
 
@@ -940,17 +940,17 @@ Perintah utama:
 - Website: `npm run build`, `npm run lint`, `npm run format:check`;
 - Flutter: `flutter analyze`, `flutter test`.
 
-Hasil audit 31 Agustus 2026:
+Hasil verifikasi terbaru 1 September 2026:
 
-- website production build berhasil, 848 modul ditransformasi;
-- Node realtime: 15/15 test lulus;
+- website production build berhasil, 851 modul ditransformasi;
+- Node realtime: 16/16 test lulus, termasuk event verifikasi email;
 - Laravel unit: 21/21 test lulus, 46 assertions;
 - full Laravel suite: unit berjalan, 49 feature test error karena PDO SQLite tidak tersedia pada PHP CLI environment;
-- Flutter test tidak menghasilkan progres/output pada environment audit dan dihentikan; bukan bukti test gagal.
+- dua Flutter test terarah (`realtime_event_test.dart` dan `internet_bandwidth_test.dart`) tidak menghasilkan progres/output pada environment audit dan dihentikan; bukan bukti test gagal.
 
 ## 13. Pembaruan Terbaru
 
-### Perubahan source aktif 1 September 2026 (belum di-commit pada snapshot)
+### Commit `a1bb5dc` — 1 September 2026
 
 - website mengalami penyelarasan visual besar pada landing page, autentikasi, shell, sidebar, header, dashboard, state components, dan halaman operasional user/BKD/admin;
 - website menambahkan `GovernmentAuthLayout`, aset Muli-Meghanai, serta identitas visual pemerintah/Diskominfotik;
@@ -991,7 +991,7 @@ Hasil audit 31 Agustus 2026:
 - stabilisasi realtime, cache dashboard, navigation, dan feedback history;
 - sinkronisasi slider pengumuman.
 
-### Ringkasan perubahan lokal lintas komponen
+### Ringkasan perubahan lintas komponen pada commit terbaru
 
 - bandwidth download/upload khusus per user;
 - admin website dapat mengelola bandwidth akun;
@@ -1013,7 +1013,7 @@ Hasil audit 31 Agustus 2026:
 - mobile memberi role BKD tab Admin generik, belum portal BKD khusus.
 - source target Flutter tersedia lintas platform, tetapi readiness production tiap platform harus dibuktikan dengan build/test platform.
 - ketergantungan Gemini, Groq, FCM, SIMKI, WhatsApp, dan jaringan harus dibedakan dari fitur yang tersedia di source.
-- perubahan bandwidth user masih belum di-commit dan migration wajib dijalankan sebelum field digunakan.
+- migration bandwidth user wajib dijalankan pada environment yang belum menerapkan commit terbaru.
 
 ## 15. Prompt Pengetahuan Siap Pakai
 
@@ -1062,14 +1062,14 @@ DESIGN
 Mobile: Bento Grid + Friendly Illustrative Civic, Material 3 light-only, navy #1E3A8A, gold #F59E0B, teal #0F766E, radius 16–20. Website: formal public-service light-only, Urbanist, navy primary, teal focus, gold highlight, surface putih, border halus, soft shadow.
 
 ATURAN MENJAWAB
-1. Bedakan fakta source, requirement, perubahan belum di-commit, dan dependency eksternal.
+1. Bedakan fakta source, requirement, perubahan pada commit terbaru, dan dependency eksternal.
 2. Jangan mengarang endpoint, tabel, payload, hasil test, atau runtime availability.
 3. Untuk perubahan fitur, jelaskan dampak Laravel, database, Vue, Flutter, Node, realtime, notification, test, Postman, dan docs.
 4. Terapkan authorization backend, ownership, transaction, idempotency, dan secret hygiene.
 5. Pertahankan backward compatibility dengan schema legacy dan kedua client.
 6. Jika ada konflik informasi, periksa source, migration, test, Postman, lalu dokumentasi.
 7. FCM mobile dan web belum boleh disebut production-ready tanpa implementasi client nyata.
-8. Jelaskan bahwa perubahan bandwidth per user, chatbot 3 kegagalan, dan redesign lintas website/mobile adalah perubahan lokal snapshot 1 September 2026 bila belum di-commit.
+8. Jelaskan bahwa bandwidth per user, chatbot 3 kegagalan, dan redesign lintas website/mobile masuk commit a1bb5dc tanggal 1 September 2026.
 
 FORMAT JAWABAN PERUBAHAN
 Mulai dari tujuan, komponen terdampak, alur data, role/otorisasi, kontrak API/database, dampak web/mobile, realtime/notifikasi, risiko, dan skenario test. Berikan file/lapisan yang perlu diubah dan jangan mengganti arsitektur tanpa alasan.
@@ -1077,4 +1077,4 @@ Mulai dari tujuan, komponen terdampak, alur data, role/otorisasi, kontrak API/da
 
 ## 16. Penutup
 
-Dokumen ini dapat dipakai sebagai lampiran laporan, bahan presentasi arsitektur, basis knowledge ChatGPT, atau panduan onboarding developer. Untuk laporan akademik, pisahkan antara fitur yang sudah ada di source, fitur yang memerlukan layanan eksternal, dan perubahan lokal yang belum menjadi baseline commit.
+Dokumen ini dapat dipakai sebagai lampiran laporan, bahan presentasi arsitektur, basis knowledge ChatGPT, atau panduan onboarding developer. Untuk laporan akademik, pisahkan antara fitur yang ada di source/commit, fitur yang memerlukan layanan eksternal, dan fitur yang deployment production-nya belum dapat diverifikasi.

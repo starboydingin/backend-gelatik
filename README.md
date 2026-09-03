@@ -2,7 +2,7 @@
 
 Gelatik adalah platform layanan TIK terpadu untuk pegawai/OPD Pemerintah Provinsi Lampung. Sistem menyediakan aplikasi mobile Flutter, website Vue, REST API Laravel, database MySQL/MariaDB, serta service Node.js untuk Socket.IO dan WhatsApp.
 
-> Dokumentasi kanonis repository. Snapshot source: **1 September 2026 (Asia/Jakarta)**, termasuk perubahan worktree yang belum di-commit. Source aktif, migration, dan automated test tetap menjadi sumber kebenaran tertinggi.
+> Dokumentasi kanonis repository. Snapshot source: **commit `a1bb5dc`, 1 September 2026 (Asia/Jakarta)**. Source aktif, migration, dan automated test tetap menjadi sumber kebenaran tertinggi.
 
 ## Daftar Isi
 
@@ -486,11 +486,11 @@ flutter analyze
 flutter test
 ```
 
-Status audit 31 Agustus 2026: build website berhasil; Node 15/15 test lulus; Laravel unit 21/21 lulus (46 assertions); feature test Laravel terkendala PDO SQLite pada PHP CLI audit; Flutter test tidak memberi progres pada environment audit dan dihentikan. Keterbatasan environment bukan bukti source gagal.
+Status verifikasi 1 September 2026: website production build berhasil dengan 851 modul; Node 16/16 test lulus; Laravel unit 21/21 lulus (46 assertions). Full feature test Laravel sebelumnya terkendala ekstensi PDO SQLite pada PHP CLI. Dua test Flutter terarah kembali tidak memberi output/progres pada environment audit dan dihentikan. Keterbatasan environment tersebut bukan bukti source gagal.
 
 ## Pembaruan terbaru
 
-### Source aktif 1 September 2026
+### Commit `a1bb5dc` — 1 September 2026
 
 - redesign website: landing, autentikasi resmi, shell, sidebar, dashboard, dan halaman role;
 - `GovernmentAuthLayout`, aset pemerintah/Diskominfotik, dan ilustrasi Muli-Meghanai;
@@ -530,7 +530,7 @@ Status audit 31 Agustus 2026: build website berhasil; Node 15/15 test lulus; Lar
 - `.env.example` harus diaudit terhadap seluruh key runtime.
 - Gemini, Groq, Firebase, SIMKI, WhatsApp, dan jaringan bergantung layanan eksternal.
 - schema legacy dan migration incremental harus dikelola hati-hati.
-- perubahan bandwidth, chatbot, dan redesign terbaru masih worktree pada snapshot ini.
+- migration bandwidth user wajib dijalankan pada environment yang belum menerapkan commit `a1bb5dc`.
 - kesiapan setiap target Flutter wajib dibuktikan lewat build/test target.
 
 ## Dokumentasi lanjutan

@@ -67,7 +67,7 @@ CATATAN AKURASI KRITIS
 - Tanpa FCM, fitur inti tetap bekerja, tetapi push background/closed-app tidak tersedia.
 - Room Socket.IO tersedia untuk user_{id}, role_admin, dan role_superadmin; belum ada room role BKD khusus.
 - Mobile belum memiliki portal BKD khusus seperti website.
-- Perubahan 1 September 2026 dapat masih berupa perubahan worktree yang belum di-commit; bedakan “tersedia di source aktif” dari “sudah menjadi release/commit baseline”.
+- Perubahan 1 September 2026 tersedia pada commit `a1bb5dc`; tetap bedakan “tersedia di source/commit” dari “sudah dideploy ke production”.
 
 TUJUAN DOKUMEN
 Dokumen harus dapat dipahami oleh dosen/penguji, pemilik sistem, operator Diskominfotik, developer baru, dan tim maintenance. Jelaskan tujuan bisnis, pengguna, arsitektur, fitur, alur data, database, keamanan, setup, operasi, pengujian, pembaruan, keterbatasan, dan rekomendasi.
@@ -237,14 +237,14 @@ BAB XII — Pengujian dan Quality Assurance:
 
 BAB XIII — Pembaruan Terbaru:
 - timeline commit 25–26 Agustus, 30 Agustus, 31 Agustus 2026;
-- perubahan source aktif 1 September 2026;
+- commit `a1bb5dc` tanggal 1 September 2026;
 - redesign website/mobile;
 - workflow BKD;
 - bandwidth user;
 - chatbot tiga kegagalan;
 - kontrak realtime usulan email;
 - test yang ditambah/diubah;
-- tandai perubahan worktree yang belum menjadi baseline commit.
+- tandai status deployment sebagai belum terverifikasi bila tidak ada bukti deployment.
 
 BAB XIV — Keterbatasan, Technical Debt, dan Rekomendasi:
 - FCM client mobile belum nyata;
@@ -329,7 +329,7 @@ Lakukan audit mandiri dan laporkan checklist pada akhir dokumen:
 - role BKD dan admin tidak tertukar;
 - semua status/alur cocok dengan source;
 - endpoint dan tabel tidak dikarang;
-- perubahan worktree ditandai;
+- commit terbaru dan status deployment dibedakan;
 - seluruh diagram konsisten dengan penjelasan;
 - daftar isi/caption/cross-reference valid;
 - tidak ada secret atau data pribadi nyata;
