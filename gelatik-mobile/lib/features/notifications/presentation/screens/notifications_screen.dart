@@ -7,8 +7,9 @@ import '../../../../core/realtime/realtime_event.dart';
 import '../../../../core/realtime/realtime_socket_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/date_formatter.dart';
-import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
+import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../admin/presentation/screens/admin_peminjaman_detail_screen.dart';
 import '../../../admin/presentation/screens/admin_usulan_email_detail_screen.dart';
@@ -188,8 +189,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Detail belum dapat dibuka: $error')),
+        AppNotification.showError(
+          context,
+          'Detail belum dapat dibuka: $error',
         );
       }
     }

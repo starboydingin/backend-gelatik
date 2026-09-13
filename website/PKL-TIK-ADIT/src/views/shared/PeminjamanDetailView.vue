@@ -7,6 +7,7 @@ import { openProtectedAttachment } from '../../lib/attachments'
 import AlertMessage from '../../components/AlertMessage.vue'
 import LoadingState from '../../components/LoadingState.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import DiscussionThread from '../../components/DiscussionThread.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -61,6 +62,13 @@ onMounted(load)
                     <p v-if="!(record.pinjam_items || []).length">Belum ada data aset.</p>
                 </div>
             </section>
+
+            <!-- Two-way Discussion Thread -->
+            <DiscussionThread
+                service-type="pinjam"
+                :record-id="record.id"
+                :status="record.status"
+            />
         </template>
     </div>
 </template>

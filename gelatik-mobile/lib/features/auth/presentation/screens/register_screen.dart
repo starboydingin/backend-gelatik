@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../../shell/presentation/screens/main_shell.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/app_searchable_select.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -206,11 +207,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _passwordError = errors['password'];
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(state.errorMessage ?? 'Registrasi gagal. Coba lagi.'),
-        behavior: SnackBarBehavior.floating,
-      ),
+    AppNotification.showError(
+      context,
+      state.errorMessage ?? 'Registrasi gagal. Coba lagi.',
     );
   }
 

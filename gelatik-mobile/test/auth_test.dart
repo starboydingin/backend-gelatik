@@ -585,6 +585,11 @@ void main() {
         tester.getCenter(find.byKey(const Key('splash_gelatik_logo'))).dx,
         closeTo(720, 1),
       );
+      expect(find.byKey(const Key('splash_copyright_text')), findsOneWidget);
+      expect(
+        find.text('© ${DateTime.now().year} Diskominfotik Provinsi Lampung'),
+        findsOneWidget,
+      );
 
       await tester.pump(const Duration(seconds: 2));
       await tester.pump(const Duration(milliseconds: 500));

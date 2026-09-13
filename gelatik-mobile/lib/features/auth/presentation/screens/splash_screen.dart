@@ -75,79 +75,95 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 );
                 final contentWidth = math.min(constraints.maxWidth, 420.0);
 
-                return Center(
-                  child: SingleChildScrollView(
-                    child: SizedBox(
-                      width: contentWidth,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight,
-                        ),
+                return SizedBox(
+                  height: constraints.maxHeight,
+                  width: double.infinity,
+                  child: Column(
+                    children: [
+                      Expanded(
                         child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 28,
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Image.asset(
-                                  'assets/images/logo-tanpabackground.png',
-                                  key: const Key('splash_gelatik_logo'),
-                                  width: logoWidth,
-                                  fit: BoxFit.contain,
+                          child: SingleChildScrollView(
+                            child: SizedBox(
+                              width: contentWidth,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 20,
                                 ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'GERBANG LAYANAN TIK',
-                                  textAlign: TextAlign.center,
-                                  style:
-                                      AuthTypography.brandTitle(
-                                        context,
-                                        fontSize: 14,
-                                      ).copyWith(
-                                        color: AppColors.colorPrimary,
-                                        letterSpacing: 1.8,
-                                      ),
-                                ),
-                                SizedBox(
-                                  height: (constraints.maxHeight * 0.09).clamp(
-                                    28.0,
-                                    54.0,
-                                  ),
-                                ),
-                                SizedBox(
-                                  width: 140,
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      minHeight: 4,
-                                      backgroundColor: AppColors.colorBorder,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        AppColors.colorAccent,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/logo-tanpabackground.png',
+                                      key: const Key('splash_gelatik_logo'),
+                                      width: logoWidth,
+                                      fit: BoxFit.contain,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'GERBANG LAYANAN TIK',
+                                      textAlign: TextAlign.center,
+                                      style:
+                                          AuthTypography.brandTitle(
+                                            context,
+                                            fontSize: 14,
+                                          ).copyWith(
+                                            color: AppColors.colorPrimary,
+                                            letterSpacing: 1.8,
+                                          ),
+                                    ),
+                                    SizedBox(
+                                      height: (constraints.maxHeight * 0.09).clamp(
+                                        28.0,
+                                        54.0,
                                       ),
                                     ),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'MEMUAT SISTEM...',
-                                  style:
-                                      AuthTypography.brandTitle(
-                                        context,
-                                        fontSize: 11,
-                                      ).copyWith(
-                                        color: AppColors.colorTextMuted,
-                                        letterSpacing: 2,
+                                    SizedBox(
+                                      width: 140,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: LinearProgressIndicator(
+                                          minHeight: 4,
+                                          backgroundColor: AppColors.colorBorder,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            AppColors.colorAccent,
+                                          ),
+                                        ),
                                       ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'MEMUAT SISTEM...',
+                                      style:
+                                          AuthTypography.brandTitle(
+                                            context,
+                                            fontSize: 11,
+                                          ).copyWith(
+                                            color: AppColors.colorTextMuted,
+                                            letterSpacing: 2,
+                                          ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                        child: Text(
+                          '© ${DateTime.now().year} Diskominfotik Provinsi Lampung',
+                          key: const Key('splash_copyright_text'),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.colorTextMuted,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },

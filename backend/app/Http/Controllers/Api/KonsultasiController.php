@@ -104,6 +104,13 @@ class KonsultasiController extends Controller
         $konsultasi = Konsultasi::findOrFail($id);
         Gate::authorize('respond', $konsultasi);
 
+        if (! in_array(strtolower($konsultasi->status), ['diproses', 'ditolak'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Diskusi hanya dapat dilakukan saat pengajuan berstatus Diproses atau Ditolak.',
+            ], 422);
+        }
+
         $isiRespon = $request->isi_respon ?? $request->jawaban;
 
         $response = $this->konsultasiService->tambahRespon(

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/app_searchable_select.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/civic_form.dart';
@@ -71,8 +72,9 @@ class _BuatKonsultasiScreenState extends ConsumerState<BuatKonsultasiScreen> {
     if (!mounted) return;
     final state = ref.read(konsultasiProvider);
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Konsultasi berhasil diajukan!')),
+      AppNotification.showSuccess(
+        context,
+        'Konsultasi berhasil diajukan!',
       );
       Navigator.of(context).pop();
     } else {
@@ -81,8 +83,9 @@ class _BuatKonsultasiScreenState extends ConsumerState<BuatKonsultasiScreen> {
         _judulError = _fieldError(state, 'judul') ?? _judulError;
         _deskripsiError = _fieldError(state, 'deskripsi') ?? _deskripsiError;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(state.errorMessage ?? 'Gagal mengirim.')),
+      AppNotification.showError(
+        context,
+        state.errorMessage ?? 'Gagal mengirim.',
       );
     }
   }

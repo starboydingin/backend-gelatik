@@ -49,41 +49,45 @@ class FcmNotificationService
 
     /**
      * Kirim notifikasi personal ke user via topic user_{userId}.
-     * Otomatis insert ke tabel notification.
+     * Otomatis insert ke tabel notification jika $logNotification true.
      */
-    public function sendToUser(int $userId, string $judul, string $pesan, array $data = []): bool
+    public function sendToUser(int $userId, string $judul, string $pesan, array $data = [], bool $logNotification = true): bool
     {
         $topic = "user_{$userId}";
         $result = $this->sendToTopic($topic, $judul, $pesan, $data);
 
-        // Log ke tabel notification (personal → user_id diisi)
-        $this->logNotification(
-            $userId,
-            $judul,
-            $pesan,
-            $data['reference_id'] ?? 0,
-            $data['type'] ?? 'general'
-        );
+        // Log ke tabel notification jika diminta (personal → user_id diisi)
+        if ($logNotification) {
+            $this->logNotification(
+                $userId,
+                $judul,
+                $pesan,
+                $data['reference_id'] ?? 0,
+                $data['type'] ?? 'general'
+            );
+        }
 
         return $result;
     }
 
     /**
      * Kirim notifikasi ke semua admin via topic "admin".
-     * Otomatis insert ke tabel notification (user_id = 0, konsisten dengan pola existing).
+     * Otomatis insert ke tabel notification jika $logNotification true.
      */
-    public function sendToAdmins(string $judul, string $pesan, array $data = []): bool
+    public function sendToAdmins(string $judul, string $pesan, array $data = [], bool $logNotification = true): bool
     {
         $result = $this->sendToTopic('admin', $judul, $pesan, $data);
 
-        // Log ke tabel notification (broadcast → user_id = 0)
-        $this->logNotification(
-            0,
-            $judul,
-            $pesan,
-            $data['reference_id'] ?? 0,
-            $data['type'] ?? 'general'
-        );
+        // Log ke tabel notification jika diminta (broadcast → user_id = 0)
+        if ($logNotification) {
+            $this->logNotification(
+                0,
+                $judul,
+                $pesan,
+                $data['reference_id'] ?? 0,
+                $data['type'] ?? 'general'
+            );
+        }
 
         return $result;
     }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
+import '../../../../core/widgets/discussion_section.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../models/pinjam_model.dart';
@@ -291,6 +293,12 @@ class _PeminjamanDetailScreenState
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+              DiscussionSection(
+                serviceType: 'pinjam',
+                recordId: pinjam.id,
+                status: pinjam.status,
+              ),
               if (pinjam.statusType == PinjamStatus.menunggu) ...[
                 const SizedBox(height: 16),
                 SizedBox(
@@ -343,13 +351,10 @@ class _PeminjamanDetailScreenState
     if (success) {
       Navigator.of(this.context).pop();
     } else {
-      ScaffoldMessenger.of(this.context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ref.read(peminjamanProvider).errorMessage ??
-                'Pengajuan gagal dibatalkan.',
-          ),
-        ),
+      AppNotification.showError(
+        this.context,
+        ref.read(peminjamanProvider).errorMessage ??
+            'Pengajuan gagal dibatalkan.',
       );
     }
   }

@@ -115,6 +115,45 @@ class KonsultasiService
                 $konsultasi,
                 $response,
             );
+
+            try {
+                app(FcmNotificationService::class)->sendToUser(
+                    $konsultasi->user_id,
+                    'Balasan baru dari admin',
+                    'Admin membalas konsultasi: '.$konsultasi->judul,
+                    [
+                        'type' => 'konsultasi',
+                        'reference_id' => (string) $konsultasi->id,
+                    ],
+                    false
+                );
+            } catch (\Throwable $e) {
+                // Skips on FCM issue without breaking reply
+            }
+        } else {
+            // Pemohon yang membalas → kirim notifikasi ke admin (inbox & realtime)
+            $this->adminNotifications->announce(
+                'konsultasi.responded',
+                (int) $konsultasi->id,
+                'Tanggapan baru dari Pemohon',
+                "Pemohon ({$pembalas->name}) menanggapi konsultasi: {$konsultasi->judul}.",
+                'konsultasi',
+                ['status' => $konsultasi->status]
+            );
+
+            try {
+                app(FcmNotificationService::class)->sendToAdmins(
+                    'Tanggapan baru dari Pemohon',
+                    "Pemohon ({$pembalas->name}) menanggapi konsultasi: {$konsultasi->judul}.",
+                    [
+                        'type' => 'konsultasi',
+                        'reference_id' => (string) $konsultasi->id,
+                    ],
+                    false
+                );
+            } catch (\Throwable $e) {
+                // Skips on FCM issue without breaking reply
+            }
         }
 
         // Dispatch Event untuk notifikasi

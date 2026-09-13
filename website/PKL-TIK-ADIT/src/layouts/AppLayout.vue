@@ -75,7 +75,7 @@ const userItems = [
     { label: 'Profil', to: '/app/profil', icon: UserCircleIcon, group: 'Akun' },
 ]
 const adminItems = [
-    { label: 'Dasbor', to: '/admin/dashboard', icon: HomeIcon, group: 'Portal admin' },
+    { label: 'Dashboard', to: '/admin/dashboard', icon: HomeIcon, group: 'Portal admin' },
     { label: 'Pengguna', to: '/admin/pengguna', icon: UsersIcon, group: 'Akses' },
     { label: 'Peran & Izin', to: '/admin/peran', icon: ShieldCheckIcon, group: 'Akses' },
     {
@@ -122,7 +122,7 @@ const adminItems = [
     { label: 'Profil & Pengaturan', to: '/admin/pengaturan', icon: Cog6ToothIcon, group: 'Sistem' },
 ]
 const bkdItems = [
-    { label: 'Dasbor Verifikasi', to: '/bkd/dashboard', icon: HomeIcon, group: 'Portal BKD' },
+    { label: 'Dashboard Verifikasi', to: '/bkd/dashboard', icon: HomeIcon, group: 'Portal BKD' },
     {
         label: 'Verifikasi Email ASN',
         to: '/bkd/email-resmi',

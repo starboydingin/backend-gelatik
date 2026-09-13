@@ -21,6 +21,31 @@ class GelatikNotification {
 
   factory GelatikNotification.fromJson(Map<String, dynamic> json) {
     final read = json['read'];
+    final rawType =
+        '${json['resource_type'] ?? json['type'] ?? json['jenis'] ?? 'informasi'}'
+            .toLowerCase();
+    final rawContent =
+        '${json['judul'] ?? ''} ${json['message'] ?? ''}'.toLowerCase();
+    String? resolvedResourceType = json['resource_type']?.toString();
+    if (resolvedResourceType == null || resolvedResourceType.isEmpty) {
+      if (rawType.contains('konsul') || rawContent.contains('konsultasi')) {
+        resolvedResourceType = 'konsultasi';
+      } else if (rawType.contains('pinjam') ||
+          rawContent.contains('peminjaman')) {
+        resolvedResourceType = 'peminjaman';
+      } else if (rawType.contains('email') ||
+          rawContent.contains('usulan email')) {
+        resolvedResourceType = 'usulan_email';
+      } else if (rawType.contains('kritik') ||
+          rawType.contains('saran') ||
+          rawContent.contains('feedback')) {
+        resolvedResourceType = 'kritik_saran';
+      }
+    }
+    final rawId =
+        json['resource_id'] ?? json['item_id'] ?? json['reference_id'];
+    final resolvedResourceId = int.tryParse('$rawId');
+
     return GelatikNotification(
       id: int.tryParse('${json['id']}') ?? 0,
       title: '${json['judul'] ?? 'Informasi layanan'}',
@@ -29,8 +54,8 @@ class GelatikNotification {
       isRead:
           read == true || read == 1 || read == '1' || json['read_at'] != null,
       createdAt: DateTime.tryParse('${json['created_at'] ?? ''}'),
-      resourceType: json['resource_type']?.toString(),
-      resourceId: int.tryParse('${json['resource_id'] ?? ''}'),
+      resourceType: resolvedResourceType,
+      resourceId: resolvedResourceId,
     );
   }
 

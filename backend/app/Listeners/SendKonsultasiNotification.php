@@ -65,7 +65,8 @@ class SendKonsultasiNotification implements ShouldQueue
                     [
                         'type' => 'konsultasi',
                         'reference_id' => (string) $event->konsultasi->id,
-                    ]
+                    ],
+                    false
                 );
             } else {
                 // User membalas → kirim FCM ke admin
@@ -75,7 +76,8 @@ class SendKonsultasiNotification implements ShouldQueue
                     [
                         'type' => 'konsultasi',
                         'reference_id' => (string) $event->konsultasi->id,
-                    ]
+                    ],
+                    false
                 );
             }
         } catch (\Exception $e) {

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -54,6 +55,14 @@ class _KonsultasiDetailScreenState
   Future<void> _sendReply() async {
     final text = _replyController.text.trim();
     if (text.isEmpty) return;
+    final currentStatus = (ref.read(konsultasiProvider).selectedKonsultasi?.status ?? widget.konsultasi.status).toLowerCase();
+    if (!['diproses', 'proses', 'ditolak'].contains(currentStatus)) {
+      AppNotification.showWarning(
+        context,
+        'Diskusi hanya dapat dilakukan saat status Diproses atau Ditolak.',
+      );
+      return;
+    }
     final success = await ref
         .read(konsultasiProvider.notifier)
         .kirimBalasan(konsultasiId: widget.konsultasi.id, isiRespon: text);
@@ -63,8 +72,9 @@ class _KonsultasiDetailScreenState
       FocusScope.of(context).unfocus();
     } else {
       final message = ref.read(konsultasiProvider).errorMessage;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message ?? 'Gagal mengirim balasan.')),
+      AppNotification.showError(
+        context,
+        message ?? 'Gagal mengirim balasan.',
       );
     }
   }
@@ -74,13 +84,10 @@ class _KonsultasiDetailScreenState
         .read(konsultasiProvider.notifier)
         .ubahStatus(widget.konsultasi.id, status);
     if (!mounted || success) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          ref.read(konsultasiProvider).errorMessage ??
-              'Gagal memperbarui status.',
-        ),
-      ),
+    AppNotification.showError(
+      context,
+      ref.read(konsultasiProvider).errorMessage ??
+          'Gagal memperbarui status.',
     );
   }
 
@@ -110,13 +117,10 @@ class _KonsultasiDetailScreenState
     if (success) {
       Navigator.of(context).pop();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ref.read(konsultasiProvider).errorMessage ??
-                'Gagal menghapus konsultasi.',
-          ),
-        ),
+      AppNotification.showError(
+        context,
+        ref.read(konsultasiProvider).errorMessage ??
+            'Gagal menghapus konsultasi.',
       );
     }
   }
@@ -209,6 +213,7 @@ class _KonsultasiDetailScreenState
                   _ReplyBox(
                     controller: _replyController,
                     submitting: state.isSubmitting,
+                    canReply: ['diproses', 'proses', 'ditolak'].contains(current.status.toLowerCase()),
                     onSend: _sendReply,
                   ),
                 ],
@@ -338,42 +343,75 @@ class _ResponseBubble extends StatelessWidget {
 class _ReplyBox extends StatelessWidget {
   final TextEditingController controller;
   final bool submitting;
+  final bool canReply;
   final VoidCallback onSend;
 
   const _ReplyBox({
     required this.controller,
     required this.submitting,
+    required this.canReply,
     required this.onSend,
   });
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(12),
-    child: Row(
-      children: [
-        Expanded(
-          child: TextField(
-            key: const Key('reply-field'),
-            controller: controller,
-            enabled: !submitting,
-            decoration: const InputDecoration(
-              hintText: 'Tulis balasan pesan...',
+  Widget build(BuildContext context) {
+    if (!canReply) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        color: isDark ? Colors.amber.withValues(alpha: 0.1) : const Color(0xFFFFFBEB),
+        child: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 18,
+              color: isDark ? Colors.amber[300] : const Color(0xFFD97706),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Diskusi dua arah hanya aktif saat status tiket Diproses atau Ditolak.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.amber[200] : const Color(0xFF92400E),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              key: const Key('reply-field'),
+              controller: controller,
+              enabled: !submitting,
+              decoration: const InputDecoration(
+                hintText: 'Tulis balasan pesan...',
+              ),
             ),
           ),
-        ),
-        IconButton(
-          key: const Key('send-reply'),
-          onPressed: submitting ? null : onSend,
-          icon: submitting
-              ? const SizedBox.square(
-                  dimension: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.send_rounded),
-        ),
-      ],
-    ),
-  );
+          IconButton(
+            key: const Key('send-reply'),
+            onPressed: submitting ? null : onSend,
+            icon: submitting
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.send_rounded),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DetailError extends StatelessWidget {

@@ -8,6 +8,7 @@ import '../../../../core/realtime/realtime_socket_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../repositories/rating_repository.dart';
 
@@ -79,14 +80,16 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
         return;
       }
       setState(() => _hadRating = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Terima kasih atas penilaian Anda.')),
+      AppNotification.showSuccess(
+        context,
+        'Terima kasih atas penilaian Anda.',
       );
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        AppNotification.showError(
           context,
-        ).showSnackBar(SnackBar(content: Text(error.toString())));
+          error.toString(),
+        );
       }
     } finally {
       if (mounted) {

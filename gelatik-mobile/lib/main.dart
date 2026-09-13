@@ -8,6 +8,7 @@ import 'core/realtime/realtime_coordinator.dart';
 import 'core/realtime/realtime_event.dart';
 import 'core/realtime/realtime_socket_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/app_notification.dart';
 import 'features/auth/presentation/screens/splash_screen.dart';
 
 Future<void> main() async {
@@ -59,13 +60,10 @@ class _GelatikAppState extends ConsumerState<GelatikApp>
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final messenger = _scaffoldMessengerKey.currentState;
-      if (messenger == null) return;
-      messenger
-        ..removeCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-        );
+      AppNotification.showGlobal(
+        message: message,
+        tone: AppNotificationTone.info,
+      );
     });
   }
 
@@ -82,6 +80,7 @@ class _GelatikAppState extends ConsumerState<GelatikApp>
     return MaterialApp(
       title: 'Gelatik Mobile',
       debugShowCheckedModeBanner: false,
+      navigatorKey: AppNotification.navigatorKey,
       scaffoldMessengerKey: _scaffoldMessengerKey,
       theme: AppTheme.lightTheme,
       themeMode: ThemeMode.light,

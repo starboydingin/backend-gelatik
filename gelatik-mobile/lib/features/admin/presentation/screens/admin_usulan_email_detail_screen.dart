@@ -4,7 +4,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/discussion_section.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -51,19 +53,16 @@ class _AdminUsulanEmailDetailScreenState
             onPressed: () async {
               final notes = _catatanController.text.trim();
               Navigator.of(dialogCtx).pop();
-              final messenger = ScaffoldMessenger.of(context);
               final success = await ref
                   .read(emailProvider.notifier)
                   .verifikasiUsulanEmail(
                     id: widget.usulanId,
                     catatan: notes.isEmpty ? null : notes,
                   );
-              if (success) {
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Dokumen usulan berhasil diverifikasi.'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
+              if (success && context.mounted) {
+                AppNotification.showSuccess(
+                  context,
+                  'Dokumen usulan berhasil diverifikasi.',
                 );
               }
             },
@@ -148,7 +147,6 @@ class _AdminUsulanEmailDetailScreenState
 
                     Navigator.of(dialogCtx).pop();
 
-                    final messenger = ScaffoldMessenger.of(context);
                     final adminUser = ref.read(authProvider).currentUser;
                     final success = await ref
                         .read(emailProvider.notifier)
@@ -158,14 +156,10 @@ class _AdminUsulanEmailDetailScreenState
                           adminName: adminUser?.name ?? 'Admin BKD',
                         );
 
-                    if (success) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Usulan disetujui! Email resmi: $email',
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                    if (success && context.mounted) {
+                      AppNotification.showSuccess(
+                        context,
+                        'Usulan disetujui! Email resmi: $email',
                       );
                     }
                   },
@@ -237,7 +231,6 @@ class _AdminUsulanEmailDetailScreenState
 
                     Navigator.of(dialogCtx).pop();
 
-                    final messenger = ScaffoldMessenger.of(context);
                     final adminUser = ref.read(authProvider).currentUser;
                     final success = await ref
                         .read(emailProvider.notifier)
@@ -247,12 +240,10 @@ class _AdminUsulanEmailDetailScreenState
                           adminName: adminUser?.name ?? 'Admin BKD',
                         );
 
-                    if (success) {
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Usulan email telah ditolak.'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                    if (success && context.mounted) {
+                      AppNotification.showSuccess(
+                        context,
+                        'Usulan email telah ditolak.',
                       );
                     }
                   },
@@ -409,6 +400,13 @@ class _AdminUsulanEmailDetailScreenState
                   ),
                 ),
               ],
+
+              const SizedBox(height: 16),
+              DiscussionSection(
+                serviceType: 'usulan_email',
+                recordId: widget.usulanId,
+                status: usulan.status,
+              ),
 
               const SizedBox(height: 32),
 

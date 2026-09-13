@@ -15,15 +15,23 @@ const props = defineProps({
     open: Boolean,
 })
 defineEmits(['close', 'logout'])
-const groups = computed(() => [...new Set(props.items.map((item) => item.group))])
+
+const dashboardItem = computed(() =>
+    props.items.find((item) => item.to.endsWith('/dashboard') || item.singleLevel)
+)
+const otherItems = computed(() =>
+    props.items.filter((item) => item !== dashboardItem.value)
+)
+const groups = computed(() => [...new Set(otherItems.value.map((item) => item.group))])
 const activeGroup = computed(() =>
     groups.value.find((group) =>
-        props.items.some((item) => item.group === group && isItemActive(item))
+        otherItems.value.some((item) => item.group === group && isItemActive(item))
     )
 )
 const openGroup = ref('')
 
 function isItemActive(item) {
+    if (!item) return false
     return props.activePath === item.to || props.activePath?.startsWith(`${item.to}/`)
 }
 
@@ -66,6 +74,32 @@ watch(
             class="no-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-4"
             aria-label="Navigasi utama"
         >
+            <!-- Single-level Dashboard Navigation Item -->
+            <div v-if="dashboardItem" class="mb-2">
+                <RouterLink
+                    :to="dashboardItem.to"
+                    class="flex items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-2.5 text-sm font-semibold transition"
+                    :class="
+                        isItemActive(dashboardItem)
+                            ? 'border-white/15 bg-white text-blue-950 shadow-sm'
+                            : 'text-blue-50 hover:bg-white/10 hover:text-white'
+                    "
+                    @click="$emit('close')"
+                >
+                    <span
+                        class="grid size-7 shrink-0 place-items-center rounded-md"
+                        :class="
+                            isItemActive(dashboardItem)
+                                ? 'bg-blue-50 text-blue-800'
+                                : 'text-blue-200'
+                        "
+                    >
+                        <component :is="dashboardItem.icon" class="size-[18px]" />
+                    </span>
+                    <span class="truncate">{{ dashboardItem.label }}</span>
+                </RouterLink>
+            </div>
+
             <section v-for="group in groups" :key="group" class="mb-1.5">
                 <button
                     type="button"

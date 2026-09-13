@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -34,9 +35,7 @@ class _EditProfilScreenState extends ConsumerState<EditProfilScreen> {
   Future<void> _save() async {
     if (_nameController.text.trim().isEmpty ||
         !_emailController.text.trim().contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama dan email valid wajib diisi.')),
-      );
+      AppNotification.showWarning(context, 'Nama dan email valid wajib diisi.');
       return;
     }
     final ok = await ref
@@ -49,19 +48,14 @@ class _EditProfilScreenState extends ConsumerState<EditProfilScreen> {
         );
     if (!mounted) return;
     if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil berhasil diperbarui.')),
-      );
+      AppNotification.showSuccess(context, 'Profil berhasil diperbarui.');
       Navigator.of(context).pop();
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          ref.read(authProvider).errorMessage ??
-              'Profil tidak dapat diperbarui.',
-        ),
-      ),
+    AppNotification.showError(
+      context,
+      ref.read(authProvider).errorMessage ??
+          'Profil tidak dapat diperbarui.',
     );
   }
 

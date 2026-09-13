@@ -8,6 +8,7 @@ import AlertMessage from '../../components/AlertMessage.vue'
 import LoadingState from '../../components/LoadingState.vue'
 import PageHeader from '../../components/PageHeader.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import DiscussionThread from '../../components/DiscussionThread.vue'
 
 const route = useRoute()
 const loan = ref(null)
@@ -144,5 +145,13 @@ onMounted(load)
                 </form>
             </section>
         </div>
+
+        <!-- Two-way Discussion Thread -->
+        <DiscussionThread
+            v-if="loan"
+            service-type="pinjam"
+            :record-id="loan.id"
+            :status="loan.status"
+        />
     </div>
 </template>

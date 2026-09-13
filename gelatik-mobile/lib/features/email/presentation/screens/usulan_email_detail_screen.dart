@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/discussion_section.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../models/usulan_email_model.dart';
@@ -191,6 +192,12 @@ class UsulanEmailDetailScreen extends StatelessWidget {
                     ],
                   ],
                 ),
+              ),
+              const SizedBox(height: 16),
+              DiscussionSection(
+                serviceType: 'usulan_email',
+                recordId: usulan.id,
+                status: usulan.status,
               ),
             ],
           ),

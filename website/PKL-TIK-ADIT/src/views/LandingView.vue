@@ -1,5 +1,6 @@
 <script setup>
 import BrandMark from '../components/BrandMark.vue'
+import FaqSection from '../components/FaqSection.vue'
 import {
     ArrowRightIcon,
     ChatBubbleLeftRightIcon,
@@ -256,6 +257,7 @@ function scrollToServices() {
                     </div>
                 </div>
             </section>
+            <FaqSection />
         </main>
         <footer class="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
             <div

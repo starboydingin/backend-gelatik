@@ -6,6 +6,7 @@ import { formatDateTime } from '../../lib/date'
 import AlertMessage from '../../components/AlertMessage.vue'
 import LoadingState from '../../components/LoadingState.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import DiscussionThread from '../../components/DiscussionThread.vue'
 import { useAuthStore } from '../../stores/auth'
 
 const route = useRoute()
@@ -162,6 +163,13 @@ onMounted(load)
                     </button>
                 </div>
             </section>
+
+            <!-- Two-way Discussion Thread -->
+            <DiscussionThread
+                service-type="email-resmi"
+                :record-id="record.id"
+                :status="record.status"
+            />
         </template>
     </div>
 </template>

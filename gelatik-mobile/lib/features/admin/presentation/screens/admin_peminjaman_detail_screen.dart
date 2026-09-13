@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/discussion_section.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -99,17 +101,14 @@ class _AdminPeminjamanDetailScreenState
 
                     Navigator.of(dialogCtx).pop();
 
-                    final messenger = ScaffoldMessenger.of(context);
                     final success = await ref
                         .read(peminjamanProvider.notifier)
                         .tolakPeminjaman(widget.pinjamId, notes);
 
-                    if (success) {
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Pengajuan peminjaman telah ditolak.'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                    if (success && context.mounted) {
+                      AppNotification.showSuccess(
+                        context,
+                        'Pengajuan peminjaman telah ditolak.',
                       );
                     }
                   },
@@ -168,17 +167,14 @@ class _AdminPeminjamanDetailScreenState
               onPressed: () async {
                 Navigator.of(dialogCtx).pop();
 
-                final messenger = ScaffoldMessenger.of(context);
                 final success = await ref
                     .read(peminjamanProvider.notifier)
                     .selesaikanPeminjaman(widget.pinjamId);
 
-                if (success) {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Peminjaman telah ditandai selesai!'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
+                if (success && context.mounted) {
+                  AppNotification.showSuccess(
+                    context,
+                    'Peminjaman telah ditandai selesai!',
                   );
                 }
               },
@@ -493,6 +489,13 @@ class _AdminPeminjamanDetailScreenState
                 ),
               ],
 
+              const SizedBox(height: 16),
+              DiscussionSection(
+                serviceType: 'pinjam',
+                recordId: widget.pinjamId,
+                status: pinjam.status,
+              ),
+
               const SizedBox(height: 32),
 
               // ===============================================================
@@ -525,13 +528,9 @@ class _AdminPeminjamanDetailScreenState
                                     .setujuPeminjaman(widget.pinjamId);
 
                                 if (success && context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Pengajuan peminjaman telah disetujui! Status: Proses.',
-                                      ),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
+                                  AppNotification.showSuccess(
+                                    context,
+                                    'Pengajuan peminjaman telah disetujui! Status: Proses.',
                                   );
                                 }
                               },

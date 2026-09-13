@@ -8,6 +8,7 @@ import 'register_screen.dart';
 import '../../../shell/presentation/screens/main_shell.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/pending_activation_banner.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -106,25 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _generalError = errorMessage;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(
-                Icons.error_outline_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-              const SizedBox(width: 10),
-              Expanded(child: Text(errorMessage)),
-            ],
-          ),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+      AppNotification.showError(context, errorMessage);
     }
   }
 

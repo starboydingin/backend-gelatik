@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
 import '../../repositories/auth_repository.dart';
@@ -55,9 +56,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
             passwordConfirmation: _confirmationController.text,
           );
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      AppNotification.showSuccess(context, message);
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,

@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/app_searchable_select.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/gelatik_page_header.dart';
@@ -280,22 +281,9 @@ class _AjukanPeminjamanScreenState
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.check_circle_rounded, color: Colors.white),
-              SizedBox(width: 10),
-              Expanded(child: Text('Pengajuan peminjaman berhasil dikirim!')),
-            ],
-          ),
-          backgroundColor: AppColors.actionEmeraldLight,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
+      AppNotification.showSuccess(
+        context,
+        'Pengajuan peminjaman berhasil dikirim!',
       );
 
       // Redirect ke PeminjamanListScreen
@@ -305,9 +293,7 @@ class _AjukanPeminjamanScreenState
     } else {
       final error = ref.read(peminjamanProvider).errorMessage;
       if (error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error), behavior: SnackBarBehavior.floating),
-        );
+        AppNotification.showError(context, error);
       }
     }
   }

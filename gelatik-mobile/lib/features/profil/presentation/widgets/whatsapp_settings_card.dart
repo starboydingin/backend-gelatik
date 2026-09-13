@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../providers/wa_notification_provider.dart';
@@ -96,11 +97,9 @@ class _WhatsAppSettingsCardState extends ConsumerState<WhatsAppSettingsCard> {
 
     if (!mounted) return;
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pengaturan Notifikasi WhatsApp berhasil disimpan.'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppNotification.showSuccess(
+        context,
+        'Pengaturan Notifikasi WhatsApp berhasil disimpan.',
       );
       if (widget.popAfterSave && Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
@@ -110,9 +109,7 @@ class _WhatsAppSettingsCardState extends ConsumerState<WhatsAppSettingsCard> {
 
     final message = ref.read(waNotificationProvider).errorMessage;
     if (message != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-      );
+      AppNotification.showError(context, message);
     }
   }
 

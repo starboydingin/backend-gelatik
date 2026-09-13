@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../providers/kritik_saran_provider.dart';
@@ -61,8 +62,9 @@ class _KritikSaranScreenState extends ConsumerState<KritikSaranScreen> {
       _showSuccessDialog(feedbackId);
     } else {
       final message = ref.read(kritikSaranProvider).errorMessage;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message ?? 'Kritik dan saran gagal dikirim.')),
+      AppNotification.showError(
+        context,
+        message ?? 'Kritik dan saran gagal dikirim.',
       );
     }
   }

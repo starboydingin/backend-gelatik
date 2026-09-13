@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_notification.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/civic_form.dart';
 import '../../../../core/widgets/theme_toggle_button.dart';
@@ -60,12 +61,9 @@ class _AjukanUsulanEmailScreenState
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Usulan email resmi berhasil diajukan!'),
-          backgroundColor: AppColors.actionEmeraldLight,
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppNotification.showSuccess(
+        context,
+        'Usulan email resmi berhasil diajukan!',
       );
 
       // Redirect to UsulanEmailListScreen

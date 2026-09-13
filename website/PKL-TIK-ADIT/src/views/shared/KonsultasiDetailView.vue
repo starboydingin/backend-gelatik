@@ -7,6 +7,7 @@ import { openProtectedAttachment } from '../../lib/attachments'
 import AlertMessage from '../../components/AlertMessage.vue'
 import LoadingState from '../../components/LoadingState.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import DiscussionThread from '../../components/DiscussionThread.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -106,33 +107,34 @@ onMounted(load)
                 <button v-if="record.file && !archived" class="btn-secondary mt-5" @click="preview(`/konsul/${record.id}/attachment`)">Lihat lampiran</button>
             </section>
 
-            <section class="card">
-                <p class="eyebrow">Percakapan</p>
-                <h2 class="mt-1 text-xl font-bold">Tanggapan konsultasi</h2>
-                <div class="mt-5 space-y-3">
-                    <article v-for="response in record.responses || []" :key="response.id" class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4">
-                        <div class="flex flex-wrap justify-between gap-2"><strong>{{ response.user?.name || 'Petugas' }}</strong><small>{{ formatDateTime(response.created_at) }}</small></div>
-                        <p class="mt-2 whitespace-pre-wrap leading-7">{{ response.pesan || response.isi_respon || response.jawaban || '-' }}</p>
-                        <button v-if="response.file && !archived" class="btn-secondary mt-3 min-h-9 px-3" @click="preview(`/konsul/${record.id}/responses/${response.id}/attachment`)">Lihat lampiran balasan</button>
-                    </article>
-                    <p v-if="!(record.responses || []).length" class="text-slate-500">Belum ada tanggapan.</p>
-                </div>
-            </section>
-
-            <section v-if="admin && !archived" class="card grid gap-4 lg:grid-cols-2">
-                <form @submit.prevent="sendReply">
-                    <p class="eyebrow">Balasan petugas</p>
-                    <label class="mt-4 block"><span class="label">Tanggapan</span><textarea v-model="reply" class="input min-h-32" required /></label>
-                    <label class="mt-4 block"><span class="label">Lampiran (opsional)</span><input class="input" type="file" accept=".pdf,.jpg,.jpeg,.png" @change="replyFile = $event.target.files?.[0] || null" /></label>
-                    <button class="btn-primary mt-4" :disabled="saving">Kirim tanggapan</button>
-                </form>
+            <!-- Admin Status Control Form -->
+            <section v-if="admin && !archived" class="card">
                 <form @submit.prevent="updateStatus">
                     <p class="eyebrow">Status layanan</p>
-                    <label class="mt-4 block"><span class="label">Status berikutnya</span><select v-model="nextStatus" class="input" :disabled="!availableStatuses.length"><option v-for="status in availableStatuses" :key="status">{{ status }}</option></select></label>
-                    <p v-if="!availableStatuses.length" class="mt-3 text-sm text-slate-500">Status ini sudah final.</p>
-                    <button v-else class="btn-primary mt-4" :disabled="saving">Simpan status</button>
+                    <div class="mt-4 flex flex-wrap items-end gap-3">
+                        <label class="flex-1 min-w-[200px] block">
+                            <span class="label">Status berikutnya</span>
+                            <select v-model="nextStatus" class="input mt-1" :disabled="!availableStatuses.length">
+                                <option v-for="status in availableStatuses" :key="status">{{ status }}</option>
+                            </select>
+                        </label>
+                        <button v-if="availableStatuses.length" class="btn-primary" :disabled="saving">
+                            Simpan status
+                        </button>
+                    </div>
+                    <p v-if="!availableStatuses.length" class="mt-3 text-sm text-slate-500">
+                        Status konsultasi ini sudah final.
+                    </p>
                 </form>
             </section>
+
+            <!-- Two-way Discussion Thread -->
+            <DiscussionThread
+                v-if="!archived"
+                service-type="konsultasi"
+                :record-id="record.id"
+                :status="record.status"
+            />
         </template>
     </div>
 </template>

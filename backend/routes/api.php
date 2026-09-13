@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\CalendarController;
 use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\Api\ChatbotUrlController;
+use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\InternalWebhookController;
@@ -49,6 +50,10 @@ if (app()->environment('local', 'testing')) {
 
 // OPD List
 Route::get('/opd', [OpdController::class, 'index']);
+
+// Topik & FAQ Publik (Landing Page & Portal)
+Route::get('/topik', [TopikController::class, 'index']);
+Route::get('/faq', [FaqController::class, 'index']);
 
 // Kritik & Saran
 Route::post('/kritik-saran', [KritikSaranController::class, 'store']);
@@ -101,9 +106,11 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/items/search/{keyword}', [ItemController::class, 'search']);
     Route::get('/items/{id}', [ItemController::class, 'show']);
 
-    // Topik & FAQ
-    Route::get('/topik', [TopikController::class, 'index']);
-    Route::get('/faq', [FaqController::class, 'index']);
+    // Dua Arah Diskusi & Komentar Layanan (Konsultasi, Peminjaman, Usulan Email)
+    Route::get('/{type}/{id}/comments', [CommentController::class, 'index'])
+        ->where('type', 'pinjam|pengajuan-email|usulan-email|usulan_email|konsul|konsultasi');
+    Route::post('/{type}/{id}/comments', [CommentController::class, 'store'])
+        ->where('type', 'pinjam|pengajuan-email|usulan-email|usulan_email|konsul|konsultasi');
 
     // Rating
     Route::post('/rating', [RatingController::class, 'store']);

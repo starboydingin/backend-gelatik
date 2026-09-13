@@ -19,7 +19,7 @@ class KonsultasiPolicy
 
     public function respond(User $user, Konsultasi $konsultasi): bool
     {
-        return $this->isAdmin($user);
+        return $this->isOwner($user, $konsultasi) || $this->isAdmin($user);
     }
 
     public function update(User $user, Konsultasi $konsultasi): bool
